@@ -19,6 +19,7 @@ proven to match the Windows version byte for byte:
 - reading a GOG download folder: the installer, its parts, and the game's name
 - reading add-ons: DLC, expansions, GOG patches and mods
 - the disc layout: where every game, add-on, manual and extra goes
+- staging: laying the disc out as a folder, ready to become an ISO
 
 Next is building the ISO. xorriso has already been shown to produce a disc Windows
 treats as the same one: same label, same files byte for byte. See

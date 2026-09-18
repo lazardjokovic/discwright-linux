@@ -86,6 +86,12 @@ xorriso is needed for anything that builds an ISO: `sudo apt install xorriso`.
   (`Alan Wake`, `Dead Space`, `Hollow Knight`, `The Witcher` on the original
   machine, where it was `F:\DWdemo`, `/mnt/f/DWdemo` from WSL). Their expected
   values are what Windows DiscWright 0.7.2 said about the same folders.
+- **The staging comparison** also needs `DISCWRIGHT_STAGE_DIR`: somewhere to
+  stage on the same filesystem as the real installers, so they are hard-linked
+  rather than copied. On the original machine the installers are on `C:` behind
+  junctions in `F:\DWdemo`, so it was `/mnt/c/Users/lazar/AppData/Local/Temp/dwlinuxstage`.
+  The reference is `F:\DWdemo\out\disc`, which Windows DiscWright staged from
+  the settings in `F:\DWdemo\out\discproject.json`.
 - **`tools/mutate.py`** breaks the code in ways a real mistake would and fails if
   any breakage gets past the suite. CI runs it. Add a mutation when adding a rule
   worth protecting.
@@ -161,10 +167,21 @@ These are the owner's, carried over from the Windows project. Follow them here.
   that cannot be right, measure it, fix it here, and fix it there too, as a
   separate PR in the Windows repo with a test that fails first. Do not copy a bug
   just because the reference has it.
-- Next: the staging copy itself (from `Invoke-Build`), compared file by file
-  against the folder Windows DiscWright staged for the same games.
+- `stage.py` lays the disc out as a folder: installers hard-linked where
+  possible, each entry's own manual and extras, the disc-wide ones, music, extra
+  content behind the reserved-name guard, `autorun.inf` and `.xdg-volume-info`.
+  An old disc folder is set aside, never wiped, because the build may be reading
+  from it. It reproduces 8 of the 12 files Windows staged for the Alan Wake demo,
+  byte for byte; the other 4 are listed in `NOT_PORTED_YET` in
+  `tests/test_stage.py` and belong to the modules below. Shrink that list as each
+  lands; do not widen it.
+- One deliberate difference from Windows: settings that cannot be built (no
+  icon, a PNG icon while conversion is not ported) are refused **before**
+  anything is copied. Windows only finds out after the installers are in place.
+- Next: icons (a PNG or JPG made into the disc icon, and the PNG copy a Linux
+  desktop shows), then the menu background, then the menu itself.
 - The ISO writer is decided: xorriso. Open items from the spike are listed at the
   end of `docs/xorriso-spike.md`.
-- After staging: the project file
+- After those: the project file
   (`discproject.json`, schema 8, shared with Windows), reading the game's name out
   of a GOG installer, icons, the menu background, and the menu itself.
