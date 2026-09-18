@@ -108,6 +108,49 @@ def game_info(folder: str | Path) -> GameInfo:
     return info
 
 
+def add_on_name(file_name: str) -> str:
+    """The name an add-on gets on the menu, from its file name.
+
+    Not from its version resource, which is where a game's name comes from:
+    every GOG patch reports the base game's own name there, so four Hollow Knight
+    patches would all be called "Hollow Knight".
+    """
+    raw = Path(file_name).stem
+    name = raw
+    # patch_<game>_<from>_to_<to>: the version being moved TO is what tells two
+    # patches apart, and it belongs at the front, where the menu button, which
+    # clips at about twenty characters, will not cut it off.
+    if m := re.match(r"^patch_.+_to_(.+)$", name, flags=re.IGNORECASE):
+        name = "Update " + m.group(1)
+    elif m := re.match(r"^setup_(.+)$", name, flags=re.IGNORECASE):
+        name = m.group(1)
+    name = re.sub(r"\s+", " ", name.replace("_", " ")).strip()
+    # A file name that is nothing but underscores leaves an empty label, and a
+    # button with no text is a button nobody can identify.
+    return name or raw.strip() or "Add-on"
+
+
+def add_on_info(exe_path: str | Path) -> GameInfo:
+    """One add-on installer: DLC, an expansion, a patch or a mod.
+
+    Picked as a file rather than a folder, because an add-on usually sits in the
+    same folder as the game it belongs to and pointing at the folder would just
+    find the game again. Any .exe will do: GOG names its patches patch_*, and a
+    mod is named whatever its author chose.
+    """
+    path = Path(exe_path)
+    info = GameInfo(kind="AddOn")
+    if not path.is_file():
+        info.msg = "File not found."
+        return info
+    if path.suffix.casefold() != ".exe":
+        info.msg = (f"An add-on has to be an installer (.exe). '{path.name}' is not one - "
+                    "loose files belong in the disc's extra content.")
+        return info
+    _installer_facts(info, path)
+    return info
+
+
 def _installer_facts(info: GameInfo, exe: Path) -> None:
     # Parts belong to ONE installer and are named "<installer>-1.bin", "-2.bin"...
     # Taking every setup_*.bin in the folder swept in the parts of a DLC or a
@@ -132,12 +175,15 @@ def _installer_facts(info: GameInfo, exe: Path) -> None:
                         + ", ".join(f"-{n}" for n in info.missing_parts)
                         + " are missing - the download looks unfinished.")
 
-    name = product_name(exe)
-    if not name or not name.strip():
-        name = _fallback_name(exe)
-    # Inno pads its version strings with trailing spaces; untrimmed they leak into
-    # folder names ("...Edition                    Disc").
-    name = name.strip()
+    if info.kind == "AddOn":
+        name = add_on_name(exe.name)
+    else:
+        name = product_name(exe)
+        if not name or not name.strip():
+            name = _fallback_name(exe)
+        # Inno pads its version strings with trailing spaces; untrimmed they leak
+        # into folder names ("...Edition                    Disc").
+        name = name.strip()
 
     info.ok = True
     info.setup_exe = exe
