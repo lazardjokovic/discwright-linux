@@ -16,6 +16,7 @@ proven to match the Windows version byte for byte:
 - the volume id and the text rules every file on the disc shares
 - `autorun.inf`, which gives Windows the disc's icon, label and menu
 - `.xdg-volume-info`, which gives a Linux desktop the disc's name and icon
+- reading a GOG download folder: the installer, its parts, and the game's name
 
 Next is building the ISO. xorriso has already been shown to produce a disc Windows
 treats as the same one: same label, same files byte for byte. See

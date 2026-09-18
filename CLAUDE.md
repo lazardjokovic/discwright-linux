@@ -81,6 +81,17 @@ python3 -m venv ~/.venvs/discwright
 
 xorriso is needed for anything that builds an ISO: `sudo apt install xorriso`.
 
+- **Real GOG downloads.** Tests marked for them are skipped unless
+  `DISCWRIGHT_GOG_DIR` points at a folder holding one GOG download per subfolder
+  (`Alan Wake`, `Dead Space`, `Hollow Knight`, `The Witcher` on the original
+  machine, where it was `F:\DWdemo`, `/mnt/f/DWdemo` from WSL). Their expected
+  values are what Windows DiscWright 0.7.2 said about the same folders.
+- **`tools/mutate.py`** breaks the code in ways a real mistake would and fails if
+  any breakage gets past the suite. CI runs it. Add a mutation when adding a rule
+  worth protecting.
+- **`tools/wsl-test.sh`** runs the suite from WSL when the repo lives on the
+  Windows side, with the virtual environment kept on the Linux side.
+
 What WSL cannot show: a Linux desktop mounting the disc and displaying its name
 and icon, because WSL has no desktop automounter. That needs a real Linux machine
 or VM, once per change to the disc's identity files.
@@ -117,6 +128,14 @@ These are the owner's, carried over from the Windows project. Follow them here.
 
 - Ported and tested against Windows output: `text.py` (control characters, volume
   id, ANSI encoding), `autorun.py`, `xdg.py`.
+- `games.py` reads a GOG download folder: the installer, its parts, gaps in the
+  part numbering, and the game's name. `pe.py` reads that name out of the
+  installer's version resource with the standard library. Both agree with Windows
+  on the four real GOG downloads. Matching is case-insensitive on purpose, since
+  Windows gets that for free and Linux does not.
+- Add-ons (DLC, patches, mods) are not ported yet. Their name comes from the file
+  name rather than the version resource, because every GOG patch reports the base
+  game's name.
 - The ISO writer is decided: xorriso. Open items from the spike are listed at the
   end of `docs/xorriso-spike.md`.
 - Next: the disc layout (staging), the project file
