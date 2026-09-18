@@ -139,10 +139,22 @@ These are the owner's, carried over from the Windows project. Follow them here.
   game's name there. A patch is named by the version it moves **to**, at the
   front, so two patches of one game do not read the same on a clipped button.
   Agrees with Windows on all seven real GOG patches.
-- Which game an add-on belongs to (`parent_index`) is set by the caller; filing
-  add-ons under their game on the disc comes with the staging layout.
+- Which game an add-on belongs to (`parent_index`) is set by the caller.
+- `layout.py` holds the rules for where everything goes on the disc: the icon's
+  name, reserved names at the root, numbered game folders, add-ons filed under
+  their game, and the menu's view of all of it. Pure rules, no files touched.
+  Paths on the disc are written with backslashes, because the menu runs on
+  Windows. Name comparisons ignore case, because the disc is read on Windows too.
+- **A Windows bug found while porting:** Windows DiscWright 0.7.2 cuts a game's
+  folder name at 48 characters and re-trims only whitespace, so a cut landing on
+  a dot leaves a trailing dot. Windows drops trailing dots from folder names
+  silently, so the folder and the menu's path disagree and that game's Install
+  button points at nothing. Measured. `layout.py` trims dots after the cut; the
+  Windows app needs the same one-line fix in `Get-GameFolderName`.
+- Next: the staging copy itself (from `Invoke-Build`), compared file by file
+  against the folder Windows DiscWright staged for the same games.
 - The ISO writer is decided: xorriso. Open items from the spike are listed at the
   end of `docs/xorriso-spike.md`.
-- Next: the disc layout (staging), the project file
+- After staging: the project file
   (`discproject.json`, schema 8, shared with Windows), reading the game's name out
   of a GOG installer, icons, the menu background, and the menu itself.
