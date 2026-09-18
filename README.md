@@ -20,6 +20,9 @@ proven to match the Windows version byte for byte:
 - reading add-ons: DLC, expansions, GOG patches and mods
 - the disc layout: where every game, add-on, manual and extra goes
 - staging: laying the disc out as a folder, ready to become an ISO
+- icons: the disc icon from any picture, and the PNG a Linux desktop shows
+
+Needs Python 3.10 or newer and Pillow.
 
 Next is building the ISO. xorriso has already been shown to produce a disc Windows
 treats as the same one: same label, same files byte for byte. See

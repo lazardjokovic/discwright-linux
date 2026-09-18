@@ -4,11 +4,8 @@ Ported from the first half of Invoke-Build in DiscWright.ps1: the installers,
 each entry's own manual and extras, the disc-wide manual and extras, music,
 extra content, autorun.inf and .xdg-volume-info.
 
-Not yet here, each waiting on its own module: turning a PNG or JPG into the disc
-icon, the PNG copy of the icon a Linux desktop shows, composing the menu
-background, and writing the menu itself. stage() says so in the log and raises
-when a setting needs one of them, rather than building a disc that quietly lacks
-it.
+Not yet here, each waiting on its own module: composing the menu background,
+and writing the menu itself. stage() says so in the log.
 """
 
 from __future__ import annotations
@@ -20,6 +17,7 @@ from pathlib import Path, PureWindowsPath
 from typing import Callable
 
 from .autorun import autorun_inf
+from .icons import check_icon, convert_to_ico, convert_to_png
 from .layout import disc_entry_extras, disc_entry_folder, disc_icon_name, is_reserved_name
 from .settings import DiscSettings
 from .xdg import xdg_volume_info
@@ -100,10 +98,9 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
     # icon only once the payload is in place.
     if s.icon_path is None:
         raise StagingError("A disc needs an icon.")
-    if not s.icon_is_ico:
-        raise StagingError("Building an icon from a PNG or JPG is not ported yet; use an .ico for now.")
-    if not Path(s.icon_path).is_file():
-        raise StagingError(f"The icon is not there: {s.icon_path}")
+    icon = check_icon(s.icon_path)
+    if not icon.ok:
+        raise StagingError(f"The icon cannot be used: {icon.msg} ({s.icon_path})")
 
     out = Path(s.out_dir)
     stage_dir = out / "disc"
@@ -178,18 +175,30 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
     # a previous disc's icon for the same drive letter.
     ico_name = disc_icon_name(s.label)
     ico_out = stage_dir / ico_name
-    if _same(Path(s.icon_path), ico_out):
-        log("Icon already in place.")
+    if s.icon_is_ico:
+        if _same(Path(s.icon_path), ico_out):
+            log("Icon already in place.")
+        else:
+            _replace_file(Path(s.icon_path), ico_out)
+            log("Icon copied (.ico used as-is).")
     else:
-        _replace_file(Path(s.icon_path), ico_out)
-        log("Icon copied (.ico used as-is).")
+        log("Building multi-size icon from image...")
+        convert_to_ico(s.icon_path, ico_out)
     log(f"Disc icon: {ico_name}")
 
+    # The same icon as a PNG, for Linux file managers, only when asked for. Made
+    # from the original source, not from the .ico just written.
     png_name = None
     if s.linux_info:
-        # Windows writes .xdg-volume-info only once the PNG it points at exists,
-        # and a disc that shows a generic icon on Linux is still a working disc.
-        log("  the Linux icon is not ported yet - this disc will show a generic one on Linux.")
+        png_name = str(PureWindowsPath(ico_name).with_suffix(".png"))
+        try:
+            convert_to_png(s.icon_path, stage_dir / png_name)
+            log(f"Linux disc icon: {png_name}")
+        except (OSError, ValueError) as e:
+            # A disc that shows a generic icon on Linux is still a working disc,
+            # so this is never what stops a build.
+            log(f"  could not write the Linux icon ({e}) - the disc will use a generic one there.")
+            png_name = None
 
     # A rebuild whose label changed would otherwise leave the old icon behind.
     for stale in list(stage_dir.glob("*.ico")) + list(stage_dir.glob("*.png")):
