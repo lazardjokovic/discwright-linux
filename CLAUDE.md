@@ -133,9 +133,14 @@ These are the owner's, carried over from the Windows project. Follow them here.
   installer's version resource with the standard library. Both agree with Windows
   on the four real GOG downloads. Matching is case-insensitive on purpose, since
   Windows gets that for free and Linux does not.
-- Add-ons (DLC, patches, mods) are not ported yet. Their name comes from the file
-  name rather than the version resource, because every GOG patch reports the base
-  game's name.
+- Add-ons (DLC, patches, mods) are read by `add_on_info` in `games.py`. Any
+  `.exe` is accepted, not just `setup_*`, and the name comes from the file name
+  rather than the version resource, because every GOG patch reports the base
+  game's name there. A patch is named by the version it moves **to**, at the
+  front, so two patches of one game do not read the same on a clipped button.
+  Agrees with Windows on all seven real GOG patches.
+- Which game an add-on belongs to (`parent_index`) is set by the caller; filing
+  add-ons under their game on the disc comes with the staging layout.
 - The ISO writer is decided: xorriso. Open items from the spike are listed at the
   end of `docs/xorriso-spike.md`.
 - Next: the disc layout (staging), the project file
