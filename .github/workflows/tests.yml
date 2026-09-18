@@ -21,3 +21,7 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq xorriso
       - run: pip install -e ".[dev]"
       - run: python -m pytest -v
+      # Breaks the code in ways a real mistake would, and fails if any of them
+      # gets through. A suite that passes against broken code proves nothing.
+      - name: mutation check
+        run: python tools/mutate.py
