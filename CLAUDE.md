@@ -110,6 +110,12 @@ These are the owner's, carried over from the Windows project. Follow them here.
   desktop or runs long.
 - **One PR at a time.** Merge, wait, update the next branch, then merge it.
   Merging two at once left one behind main.
+- **`main` is protected, the same as in the Windows repo.** Changes arrive only by
+  a squash-merged PR, with both CI jobs (`pytest (3.10)`, `pytest (3.12)`)
+  passing on a branch that is up to date with `main`. No force pushes, no
+  deleting `main`, and `v*` release tags cannot be moved or deleted once pushed.
+  If a CI job is renamed, the required check in the `main` ruleset has to be
+  renamed with it, or every PR waits for a check that never reports.
 - **Commits** end with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>` and
   nothing else: no session links. **PR descriptions** end with
   `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
@@ -145,12 +151,16 @@ These are the owner's, carried over from the Windows project. Follow them here.
   their game, and the menu's view of all of it. Pure rules, no files touched.
   Paths on the disc are written with backslashes, because the menu runs on
   Windows. Name comparisons ignore case, because the disc is read on Windows too.
-- **A Windows bug found while porting:** Windows DiscWright 0.7.2 cuts a game's
-  folder name at 48 characters and re-trims only whitespace, so a cut landing on
-  a dot leaves a trailing dot. Windows drops trailing dots from folder names
-  silently, so the folder and the menu's path disagree and that game's Install
-  button points at nothing. Measured. `layout.py` trims dots after the cut; the
-  Windows app needs the same one-line fix in `Get-GameFolderName`.
+- **A Windows bug found while porting, now fixed on both sides:** Windows
+  DiscWright 0.7.2 cut a game's folder name at 48 characters and re-trimmed only
+  whitespace, so a cut landing on a dot left a trailing dot. Windows drops
+  trailing dots from folder names silently, so the folder and the menu's path
+  disagreed and that game's Install button pointed at nothing. `layout.py` trims
+  dots after the cut, and Windows DiscWright 0.7.3 does the same.
+- **Porting can find bugs in the reference.** When the Windows app does something
+  that cannot be right, measure it, fix it here, and fix it there too, as a
+  separate PR in the Windows repo with a test that fails first. Do not copy a bug
+  just because the reference has it.
 - Next: the staging copy itself (from `Invoke-Build`), compared file by file
   against the folder Windows DiscWright staged for the same games.
 - The ISO writer is decided: xorriso. Open items from the spike are listed at the
