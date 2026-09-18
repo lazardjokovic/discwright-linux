@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "discwright"
+version = "0.1.0.dev0"
+description = "Turn GOG offline installers into burnable game discs with a custom icon, label and autorun menu, on Linux."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+# Nothing yet. The disc is built by xorriso, which is a program rather than a
+# Python package; see docs/xorriso-spike.md.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+discwright = "discwright.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

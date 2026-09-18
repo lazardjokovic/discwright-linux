@@ -1,0 +1,12 @@
+# Everything is LF, whatever machine it was checked out on. The repo is started on
+# Windows and developed through WSL, and a shell script or a shebang line with a
+# carriage return in it fails on Linux in ways that do not look like a line-ending
+# problem.
+* text=auto eol=lf
+
+# Byte-exact copies of files Windows DiscWright wrote. autorun.inf is CRLF on
+# purpose, and a test compares it byte for byte, so git must never touch it.
+tests/fixtures/** -text
+*.png binary
+*.ico binary
+*.iso binary

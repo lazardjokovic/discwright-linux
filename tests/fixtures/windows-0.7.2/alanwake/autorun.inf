@@ -1,0 +1,10 @@
+[autorun]
+shellexecute=AUTORUN\menu.hta
+icon=ALANWAKE.ico
+label=ALAN WAKE
+action=Run ALAN WAKE
+
+[Content]
+MusicFiles=false
+PictureFiles=false
+VideoFiles=false

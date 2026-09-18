@@ -1,0 +1,23 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # The oldest Python a current LTS distro ships, and the newest.
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: xorriso
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq xorriso
+      - run: pip install -e ".[dev]"
+      - run: python -m pytest -v
