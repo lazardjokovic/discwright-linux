@@ -1,0 +1,48 @@
+﻿{
+    "Version":  8,
+    "AppVersion":  "0.7.1",
+    "SavedUtc":  "2026-09-13T10:21:37",
+    "SourceFolder":  "F:\\DWdemo\\Alan Wake",
+    "GameName":  "Alan Wake",
+    "Games":  [
+                  {
+                      "Folder":  "F:\\DWdemo\\Alan Wake",
+                      "GameName":  "Alan Wake",
+                      "MatchName":  "Alan Wake",
+                      "Setup":  "F:\\DWdemo\\Alan Wake\\setup_alan_wake_1.1_music_lang_fix_(80728).exe",
+                      "Kind":  "Game",
+                      "Parent":  -1,
+                      "Manual":  null,
+                      "Extras":  null
+                  }
+              ],
+    "Label":  "ALAN WAKE",
+    "IconPath":  "F:\\DWdemo\\artwork\\alanwake-icon.ico",
+    "IconIsIco":  true,
+    "Menu":  true,
+    "BgPath":  "F:\\DWdemo\\artwork\\alanwake-background.jpg",
+    "BgAsIs":  false,
+    "PanelSide":  "Right",
+    "Divider":  false,
+    "ShowTitle":  true,
+    "TitleText":  "ALAN WAKE",
+    "WindowBorder":  true,
+    "ButtonStyle":  "Minimal",
+    "MusicFile":  null,
+    "Buttons":  [
+                    "Play",
+                    "Install",
+                    "Manual",
+                    "Extras",
+                    "Exit"
+                ],
+    "ManualPath":  "F:\\DWdemo\\media\\AlanWake_manual\\alan_wake_manual\\Alan Wake manual.pdf",
+    "ExtrasPath":  "F:\\DWdemo\\media\\DiscExtras",
+    "ExtraItems":  [
+
+                   ],
+    "MediaKey":  "",
+    "LinuxInfo":  true,
+    "LegacyFs":  false,
+    "OutDir":  "F:\\DWdemo\\out"
+}
