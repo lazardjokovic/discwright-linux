@@ -1,11 +1,12 @@
 """Staging: laying the disc out as a folder, file by file, before it becomes an ISO.
 
 Ported from the first half of Invoke-Build in DiscWright.ps1: the installers,
-each entry's own manual and extras, the disc-wide manual and extras, music,
-extra content, autorun.inf and .xdg-volume-info.
+each entry's own manual and extras, the disc icons, the menu background, the
+disc-wide manual and extras, music, extra content, autorun.inf and
+.xdg-volume-info.
 
-Not yet here, each waiting on its own module: composing the menu background,
-and writing the menu itself. stage() says so in the log.
+Not yet here: writing the menu itself, which waits on its own module. stage()
+says so in the log.
 """
 
 from __future__ import annotations
@@ -17,7 +18,8 @@ from pathlib import Path, PureWindowsPath
 from typing import Callable
 
 from .autorun import autorun_inf
-from .icons import check_icon, convert_to_ico, convert_to_png
+from .background import compose_background
+from .icons import check_background, check_icon, convert_to_ico, convert_to_png
 from .layout import disc_entry_extras, disc_entry_folder, disc_icon_name, is_reserved_name
 from .settings import DiscSettings
 from .xdg import xdg_volume_info
@@ -101,6 +103,12 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
     icon = check_icon(s.icon_path)
     if not icon.ok:
         raise StagingError(f"The icon cannot be used: {icon.msg} ({s.icon_path})")
+    if s.menu:
+        if s.bg_path is None:
+            raise StagingError("The autorun menu is switched on, so it needs a background image.")
+        bg = check_background(s.bg_path)
+        if not bg.ok:
+            raise StagingError(f"The background cannot be used: {bg.msg} ({s.bg_path})")
 
     out = Path(s.out_dir)
     stage_dir = out / "disc"
@@ -207,8 +215,21 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
             log(f"  removed old icon: {stale.name}")
 
     if s.menu:
-        if s.bg_path is not None:
-            log("  composing the menu background is not ported yet.")
+        bg_out = stage_dir / "AUTORUN" / "bg.png"
+        if s.bg_as_is:
+            if _same(Path(s.bg_path), bg_out):
+                log("Background kept as-is (already on disc).")
+            else:
+                _replace_file(Path(s.bg_path), bg_out)
+                log("Background copied as-is (no compositing).")
+        else:
+            log(f"Composing menu background ({s.panel_side} panel)...")
+            # An empty title box means "use the disc label": the box is only for
+            # overriding it, so a blank one must not paint an empty title.
+            bg_title = s.title_text if (s.title_text or "").strip() else s.label
+            if s.show_title:
+                log(f"  title on artwork: {bg_title}")
+            compose_background(s.bg_path, bg_title, bg_out, s.panel_side, s.divider, s.show_title)
         if "Manual" in s.buttons and s.manual_path:
             (stage_dir / "Extras").mkdir(exist_ok=True)
             dest = stage_dir / "Extras" / Path(s.manual_path).name
