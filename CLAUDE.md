@@ -203,8 +203,8 @@ These are the owner's, carried over from the Windows project. Follow them here.
   draws it in Bahnschrift, which Linux does not have, so it is DejaVu Sans Bold
   here (or another common bold sans), placed by its ink where Windows' ink sits
   and held to the same height.
-- **Two more Windows bugs found porting the background, fixed in the Windows
-  repo's main (PR #76) and shipping in the release after 0.7.4:**
+- **Two more Windows bugs found porting the background, both fixed in Windows
+  0.7.5:**
   - **A light line along the top of the button panel.** GDI+ antialiases its
     rectangle fills with pixel centres on whole numbers, so a fill starting at 0
     covers half of pixel 0. The darkening and the panel are both drawn that
@@ -228,20 +228,38 @@ These are the owner's, carried over from the Windows project. Follow them here.
   script, then the tests. The tests parse the menu's script with Node where it
   is installed (CI has it, WSL does not); on Windows, `cscript //E:JScript`
   parses it with the real engine.
-- **A Windows menu bug found while porting, not yet fixed in Windows:**
-  `New-MenuHta` fills its placeholders with eleven chained replaces, so text
-  already filled in is filled in again. A game named `Game %%BTNS%% Edition`
-  gets the button list pasted inside its string literal, and the whole menu
-  fails to compile under JScript (measured). Unlikely, since GOG names never
-  hold `%%`, but a game can be renamed to anything. `menu.py` fills them in one
-  pass. One Windows quirk **is** matched on purpose, because it is harmless and
+- **A Windows menu bug found while porting, fixed in Windows 0.7.5:**
+  `New-MenuHta` filled its placeholders with eleven chained replaces, so text
+  already filled in was filled in again. A game named `Game %%BTNS%% Edition`
+  got the button list pasted inside its string literal, and the whole menu
+  failed to compile under JScript (measured). Unlikely, since GOG names never
+  hold `%%`, but a game can be renamed to anything. Both sides fill them in one
+  pass now. One Windows quirk **is** matched on purpose, because it is harmless and
   keeps the bytes equal: the window's application name keeps the Kelvin sign
   and the dotted capital I, which .NET's case-insensitive `[A-Za-z]` matches,
   and they reach the file as `?`.
-- Next: the ISO, through xorriso, then the command line. `Test-ComposedBg` (a
-  760x480 background is taken to be one already composed, and used as-is)
-  belongs with the command line, where settings are chosen.
-- The ISO writer is decided: xorriso. Open items from the spike are listed at the
-  end of `docs/xorriso-spike.md`.
-- After those: the project file (`discproject.json`, schema 8, shared with
-  Windows).
+- `iso.py` writes the ISO with xorriso, and `build.py` is the whole build:
+  stage, then ISO, then the old disc folder goes. The command is
+  `xorriso -as mkisofs -input-charset UTF-8 -iso-level 3 -J -joliet-long -r -V <id>`.
+  Every flag there was measured, and `-input-charset UTF-8` is not optional: under
+  a C locale, without it, xorriso silently wrote an accented name into the
+  Windows names as underscores.
+- **Windows reads this disc through Joliet, which holds less than a folder
+  does, and xorriso cuts or changes a name it cannot hold without saying so.**
+  So `name_problems` checks every name on the staged disc before anything is
+  written, and the build stops naming each file: over 103 characters, a
+  character Windows forbids or cannot store (emoji included), a trailing dot or
+  space, a Windows device name, or two names differing only in capitals. The
+  measurements behind each rule are in `docs/xorriso-spike.md`. Files over 4 GiB
+  are allowed: Windows 11 read them back whole.
+- **xorriso's own reader is not a witness for what Windows sees.** Asked for the
+  Joliet tree it reported a name whole that the record on the disc held cut to
+  64 characters. `tools/joliet.py` reads the records themselves, and the tests
+  use it.
+- The whole disc has been built end to end and compared with the Windows one:
+  see the end of `docs/xorriso-spike.md`. Ten of the twelve files byte for byte,
+  the other two the same pictures, same label, same name in Explorer.
+- Next: the command line, which is the last piece before the tool can be used.
+  `Test-ComposedBg` (a 760x480 background is taken to be one already composed,
+  and used as-is) belongs there, where settings are chosen. After it: the project
+  file (`discproject.json`, schema 8, shared with Windows).
