@@ -24,6 +24,7 @@ proven to match the Windows version byte for byte:
 - the menu background: the artwork cropped to the menu, with its panel and title
 - the menu: the same one Windows puts on the disc, byte for byte
 - the ISO itself, written with xorriso, which Windows reads as the same disc
+- the `discwright build` command that ties all of it together
 
 Needs Python 3.10 or newer and Pillow.
 
@@ -31,8 +32,25 @@ A whole disc has been built and compared with one Windows built from the same
 settings: same label, same name in Explorer, ten of its twelve files byte for byte
 and the other two the same pictures. See [docs/xorriso-spike.md](docs/xorriso-spike.md).
 
-Next is the command line that ties it together, and a window after that. Follow
-along in the commits, or use the Windows version today.
+## Building a disc
+
+```sh
+discwright build --game ~/GOG/Alan_Wake                  --icon ~/art/alanwake.ico                  --background ~/art/alanwake.jpg                  --label "ALAN WAKE"                  --manual ~/media/manual.pdf                  --out ~/discs/alanwake
+```
+
+That writes `~/discs/alanwake/ALAN WAKE.iso`, and the disc folder beside it. A
+disc can hold several games, and an add-on belongs to the game named before it:
+
+```sh
+discwright build --game ~/GOG/Witcher --add-on ~/GOG/Witcher/patch_1.4_to_1.5.exe                  --game ~/GOG/Witcher2 --icon ~/art/witcher.png                  --background ~/art/witcher.jpg --out ~/discs/witcher
+```
+
+`discwright build --help` lists the rest: which buttons the menu has, which side
+they sit on, music, extra content, and `--stage-only` to lay the disc out as a
+folder without writing an ISO.
+
+A window comes after this. Follow along in the commits, or use the Windows
+version today.
 
 ## Developing
 
