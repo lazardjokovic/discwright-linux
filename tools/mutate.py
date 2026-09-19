@@ -15,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src" / "discwright"
+TIMEOUT = 300  # seconds; the whole suite takes a few
 
 MUTATIONS = [
     ("case-sensitive installer match", "games.py",
@@ -110,18 +111,24 @@ def main() -> int:
         path = SRC / file
         original = path.read_text(encoding="utf-8")
         if before not in original:
-            print(f"  NOT APPLICABLE  {name}  (text not found in {file})")
+            print(f"  NOT APPLICABLE  {name}  (text not found in {file})", flush=True)
             survived.append(name)
             continue
+        # A mutation that hangs the suite is reported by name, with the test it
+        # hung in, rather than holding CI until the job's six-hour limit.
         try:
             path.write_text(original.replace(before, after, 1), encoding="utf-8")
-            run = subprocess.run([sys.executable, "-m", "pytest", "-q", "-x", "--no-header", "-p", "no:cacheprovider"],
-                                 cwd=ROOT, capture_output=True, text=True)
-            caught = run.returncode != 0
+            run = subprocess.run([sys.executable, "-m", "pytest", "-v", "-x", "--no-header", "-p", "no:cacheprovider"],
+                                 cwd=ROOT, capture_output=True, text=True, timeout=TIMEOUT)
+            verdict = "caught " if run.returncode != 0 else "MISSED "
+        except subprocess.TimeoutExpired as e:
+            verdict = "HUNG   "
+            out = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
+            print("\n".join("      " + line for line in out.splitlines()[-3:]), flush=True)
         finally:
             path.write_text(original, encoding="utf-8")
-        print(f"  {'caught ' if caught else 'MISSED '}  {name}")
-        if not caught:
+        print(f"  {verdict}  {name}", flush=True)
+        if verdict != "caught ":
             survived.append(name)
     print()
     print("every mutation caught" if not survived else f"{len(survived)} not caught")

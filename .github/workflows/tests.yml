@@ -8,6 +8,9 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
+    # The whole job takes about a minute. Without a limit, a hang holds the PR
+    # for GitHub's default of six hours.
+    timeout-minutes: 20
     strategy:
       matrix:
         # The oldest Python a current LTS distro ships, and the newest.
