@@ -23,14 +23,16 @@ proven to match the Windows version byte for byte:
 - icons: the disc icon from any picture, and the PNG a Linux desktop shows
 - the menu background: the artwork cropped to the menu, with its panel and title
 - the menu: the same one Windows puts on the disc, byte for byte
+- the ISO itself, written with xorriso, which Windows reads as the same disc
 
 Needs Python 3.10 or newer and Pillow.
 
-Next is building the ISO. xorriso has already been shown to produce a disc Windows
-treats as the same one: same label, same files byte for byte. See
-[docs/xorriso-spike.md](docs/xorriso-spike.md). The plan is a command-line tool
-first and a window after it. Follow along in the commits, or use the Windows
-version today.
+A whole disc has been built and compared with one Windows built from the same
+settings: same label, same name in Explorer, ten of its twelve files byte for byte
+and the other two the same pictures. See [docs/xorriso-spike.md](docs/xorriso-spike.md).
+
+Next is the command line that ties it together, and a window after that. Follow
+along in the commits, or use the Windows version today.
 
 ## Developing
 
@@ -40,7 +42,7 @@ python3 -m venv ~/.venvs/discwright
 ~/.venvs/discwright/bin/python -m pytest
 ```
 
-Building an ISO will need `xorriso` (`sudo apt install xorriso`).
+Building an ISO needs `xorriso` (`sudo apt install xorriso`).
 
 ## License
 
