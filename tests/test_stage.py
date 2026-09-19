@@ -1,6 +1,7 @@
 import hashlib
 import os
 import shutil
+import sys
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from PIL import Image, ImageChops
 
 from discwright.autorun import autorun_inf
+from discwright.background import compose_background
 from discwright.xdg import xdg_volume_info
 from discwright.games import add_on_info, game_info
 from discwright.settings import DiscSettings
@@ -16,6 +18,10 @@ from discwright.stage import StagingError, stage
 MB = 1 << 20
 PE = Path(__file__).parent / "fixtures" / "pe"
 ICONS = Path(__file__).parent / "fixtures" / "icons"
+BACKGROUND = Path(__file__).parent / "fixtures" / "background"
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+from background_diff import difference, half_pixel_lines, outside_title, title_ink, without  # noqa: E402
 
 
 def sparse(path: Path, size: int) -> Path:
@@ -40,6 +46,7 @@ def src(tmp_path):
     sparse(game / "setup_alpha_1.0-1.bin", 2 * MB)
     (root / "art").mkdir(parents=True)
     shutil.copy(ICONS / "windows-0.7.3" / "source.ico", root / "art" / "alpha.ico")
+    shutil.copy(BACKGROUND / "wide.png", root / "art" / "alpha-bg.png")
     write(root / "media" / "Alpha Manual.pdf", "MANUAL")
     write(root / "media" / "Extras" / "wallpaper.txt", "WALL")
     write(root / "media" / "Extras" / "deep" / "notes.txt", "NOTES")
@@ -49,11 +56,19 @@ def src(tmp_path):
 def settings(src: Path, out: Path, **kw) -> DiscSettings:
     base = dict(games=[game_info(src / "Alpha")], label="ALPHA", out_dir=out,
                 icon_path=src / "art" / "alpha.ico", icon_is_ico=True, menu=True,
+                bg_path=src / "art" / "alpha-bg.png",
                 buttons=["Play", "Install", "Manual", "Extras", "Exit"],
                 manual_path=src / "media" / "Alpha Manual.pdf",
                 extras_path=src / "media" / "Extras")
     base.update(kw)
     return DiscSettings(**base)
+
+
+def digest(path: Path) -> str:
+    """A file's checksum. Tests compare these rather than the bytes themselves:
+    when two whole pictures differ, pytest tries to show the difference character
+    by character, which on a CI runner takes longer than the job is allowed."""
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def listing(folder: Path) -> list[str]:
@@ -71,7 +86,7 @@ def test_lays_a_one_game_disc_out_flat(src, tmp_path):
     st, aside = stage(settings(src, tmp_path / "out"), quiet)
     assert aside is None
     assert listing(st) == [
-        "ALPHA.ico", "AUTORUN/ALPHA.ico",
+        "ALPHA.ico", "AUTORUN/ALPHA.ico", "AUTORUN/bg.png",
         "Extras/Alpha Manual.pdf", "Extras/deep/notes.txt", "Extras/wallpaper.txt",
         "autorun.inf", "setup_alpha_1.0-1.bin", "setup_alpha_1.0.exe",
     ]
@@ -95,6 +110,7 @@ def test_copies_the_disc_wide_manual_only_when_the_menu_has_a_manual_button(src,
 def test_leaves_the_menu_files_out_when_there_is_no_menu(src, tmp_path):
     st, _ = stage(settings(src, tmp_path / "out", menu=False), quiet)
     assert not (st / "AUTORUN" / "ALPHA.ico").exists()
+    assert not (st / "AUTORUN" / "bg.png").exists()
     assert b"shellexecute" not in (st / "autorun.inf").read_bytes()
 
 
@@ -102,6 +118,81 @@ def test_copies_music_into_autorun_under_a_fixed_name(src, tmp_path):
     song = write(src / "media" / "Dusk.mp3", "SONG")
     st, _ = stage(settings(src, tmp_path / "out", music_file=song), quiet)
     assert (st / "AUTORUN" / "music.mp3").read_text() == "SONG"
+
+
+# ---- the menu background ----------------------------------------------------------
+
+def test_composes_the_menu_background(src, tmp_path):
+    s = settings(src, tmp_path / "out", panel_side="Left", divider=True)
+    st, _ = stage(s, quiet)
+    expected = tmp_path / "expected.png"
+    compose_background(s.bg_path, "ALPHA", expected, "Left", True, False)
+    assert digest(st / "AUTORUN" / "bg.png") == digest(expected)
+
+
+def test_titles_the_background_with_the_disc_label_when_the_title_box_is_empty(src, tmp_path):
+    s = settings(src, tmp_path / "out", show_title=True, title_text="  ")
+    st, _ = stage(s, quiet)
+    expected = tmp_path / "expected.png"
+    compose_background(s.bg_path, "ALPHA", expected, show_title=True)
+    assert digest(st / "AUTORUN" / "bg.png") == digest(expected)
+
+
+def test_titles_the_background_with_the_title_box_when_it_has_one(src, tmp_path):
+    s = settings(src, tmp_path / "out", show_title=True, title_text="Alpha: The Return")
+    st, _ = stage(s, quiet)
+    expected = tmp_path / "expected.png"
+    compose_background(s.bg_path, "Alpha: The Return", expected, show_title=True)
+    assert digest(st / "AUTORUN" / "bg.png") == digest(expected)
+
+
+def test_copies_a_background_as_it_is_when_told_to(src, tmp_path):
+    s = settings(src, tmp_path / "out", bg_as_is=True)
+    st, _ = stage(s, quiet)
+    assert digest(st / "AUTORUN" / "bg.png") == digest(s.bg_path)
+
+
+def test_keeps_a_background_already_on_the_disc_when_rebuilding_in_place(src, tmp_path):
+    out = tmp_path / "out"
+    shutil.copytree(src / "Alpha", out / "disc")
+    on_disc = out / "disc" / "AUTORUN" / "bg.png"
+    on_disc.parent.mkdir()
+    shutil.copy(BACKGROUND / "narrow.png", on_disc)
+    log = []
+    st, _ = stage(settings(src, out, games=[game_info(out / "disc")], bg_path=on_disc, bg_as_is=True),
+                  log.append)
+    assert digest(st / "AUTORUN" / "bg.png") == digest(BACKGROUND / "narrow.png")
+    assert any("kept as-is" in m for m in log)
+
+
+def test_still_finds_a_background_that_was_picked_from_inside_the_old_folder(src, tmp_path):
+    out = tmp_path / "out"
+    old = out / "disc" / "AUTORUN" / "bg.png"
+    old.parent.mkdir(parents=True)
+    shutil.copy(BACKGROUND / "narrow.png", old)
+    st, aside = stage(settings(src, out, bg_path=old, bg_as_is=True), quiet)
+    assert aside is not None
+    assert digest(st / "AUTORUN" / "bg.png") == digest(BACKGROUND / "narrow.png")
+
+
+def test_refuses_a_menu_without_a_background_before_copying_anything(src, tmp_path):
+    out = tmp_path / "out"
+    with pytest.raises(StagingError, match="needs a background"):
+        stage(settings(src, out, bg_path=None), quiet)
+    assert not (out / "disc").exists()
+
+
+def test_refuses_an_unreadable_background_before_copying_anything(src, tmp_path):
+    out = tmp_path / "out"
+    bad = write(src / "art" / "bg.jpg", "not a picture")
+    with pytest.raises(StagingError, match="background cannot be used"):
+        stage(settings(src, out, bg_path=bad), quiet)
+    assert not (out / "disc").exists()
+
+
+def test_does_not_need_a_background_when_there_is_no_menu(src, tmp_path):
+    st, _ = stage(settings(src, tmp_path / "out", menu=False, bg_path=None), quiet)
+    assert (st / "autorun.inf").exists()
 
 
 # ---- several games, add-ons, and each entry's own files ------------------------
@@ -176,7 +267,7 @@ def test_still_finds_an_icon_that_was_picked_from_inside_the_old_folder(src, tmp
     shutil.copy(src / "art" / "alpha.ico", icon)
     original = icon.read_bytes()
     st, _ = stage(settings(src, out, icon_path=icon), quiet)
-    assert (st / "ALPHA.ico").read_bytes() == original
+    assert digest(st / "ALPHA.ico") == hashlib.sha256(original).hexdigest()
 
 
 def test_rebuilds_in_place_when_the_game_lives_in_the_disc_folder(src, tmp_path):
@@ -203,7 +294,7 @@ def test_replaces_a_read_only_file_left_by_the_last_build(src, tmp_path):
 def test_makes_the_disc_icon_from_a_picture(src, tmp_path):
     st, _ = stage(settings(src, tmp_path / "out", icon_path=ICONS / "source.png", icon_is_ico=False), quiet)
     assert (st / "ALPHA.ico").read_bytes()[:4] == b"\0\0\1\0"
-    assert (st / "AUTORUN" / "ALPHA.ico").read_bytes() == (st / "ALPHA.ico").read_bytes()
+    assert digest(st / "AUTORUN" / "ALPHA.ico") == digest(st / "ALPHA.ico")
 
 
 def test_refuses_an_unreadable_icon_before_copying_anything(src, tmp_path):
@@ -250,11 +341,12 @@ SCRATCH = os.environ.get("DISCWRIGHT_STAGE_DIR")
 
 # Files the modules still to come will write. Listed rather than ignored, so the
 # test has to be tightened when each arrives instead of passing quietly.
-NOT_PORTED_YET = {"AUTORUN/bg.png", "AUTORUN/menu.hta"}
+NOT_PORTED_YET = {"AUTORUN/menu.hta"}
 
 # Files an image encoder makes. The picture must match; the bytes cannot, since
-# two libraries compress the same picture differently. See tests/test_icons.py.
-SAME_PICTURE = {"ALANWAKE.png"}
+# two libraries compress the same picture differently. See tests/test_icons.py
+# and tests/test_background.py.
+SAME_PICTURE = {"ALANWAKE.png", "AUTORUN/bg.png"}
 
 
 def _fingerprint(p: Path) -> tuple[int, str]:
@@ -295,13 +387,11 @@ def test_stages_what_windows_staged_for_the_same_disc():
         for rel in sorted(ours - SAME_PICTURE):
             assert _fingerprint(st / rel) == _fingerprint(reference / rel), rel
         # The Linux icon is compared against the source icon's own 256px frame,
-        # not against the Windows file, because the Windows file is wrong. Windows
-        # DiscWright 0.7.3 turns this icon into noise: reproduced fresh, not only
-        # on this disc. The same code converts an icon Windows wrote itself
-        # correctly, so it is something in how this game's own icon is laid out
-        # (256px frame first, stored as a PNG, then 48, 32 and 16). Do not copy it;
-        # when Windows is fixed, this can go back to comparing with the reference.
-        for rel in SAME_PICTURE:
+        # not against the Windows file, because the Windows file is wrong: the
+        # reference was staged by Windows DiscWright 0.7.1, which turned this
+        # game's icon into noise (256px frame first, stored as a PNG). Fixed in
+        # 0.7.4; this can go back to the reference once it is restaged.
+        for rel in ["ALANWAKE.png"]:
             a = Image.open(st / rel).convert("RGBA")
             with Image.open(s.icon_path) as src:
                 src.size = max(src.info["sizes"])
@@ -310,5 +400,20 @@ def test_stages_what_windows_staged_for_the_same_disc():
             box = (1, 1, a.width - 1, a.height - 1)
             flat = ImageChops.difference(a.crop(box), b.crop(box)).tobytes()
             assert sum(flat) / len(flat) <= 3.0, rel
+        # The background as tests/test_background.py compares it: outside the
+        # title band and the lines Windows only half darkens, and inside the
+        # outermost pixel too, where 0.7.1 still had its see-through rim. The
+        # title is held to where Windows put it, since the fonts differ.
+        ours_bg = Image.open(st / "AUTORUN" / "bg.png").convert("RGBA")
+        theirs_bg = Image.open(reference / "AUTORUN" / "bg.png").convert("RGBA")
+        skip = half_pixel_lines("Right") + [(0, 479, 760, 480), (759, 0, 760, 480)]
+        mean, _ = difference(without(outside_title(ours_bg), skip), without(outside_title(theirs_bg), skip))
+        assert mean <= 3.0, mean
+        plain = out / "plain.png"
+        compose_background(s.bg_path, "", plain)
+        ours_ink = title_ink(ours_bg, Image.open(plain))
+        theirs_ink = title_ink(theirs_bg, Image.open(plain))
+        assert ours_ink and theirs_ink
+        assert abs(ours_ink[0] - theirs_ink[0]) <= 2 and abs(ours_ink[1] - theirs_ink[1]) <= 2, (ours_ink, theirs_ink)
     finally:
         shutil.rmtree(out, ignore_errors=True)

@@ -15,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src" / "discwright"
+TIMEOUT = 300  # seconds; the whole suite takes a few
 
 MUTATIONS = [
     ("case-sensitive installer match", "games.py",
@@ -63,6 +64,38 @@ MUTATIONS = [
      "left = round((im.width - side) / 2)", "left = 0"),
     ("Linux icon never written", "stage.py",
      "convert_to_png(s.icon_path, stage_dir / png_name)", "pass"),
+    ("background panel on the wrong side", "background.py",
+     'left = panel_side.casefold() == "left"', 'left = panel_side.casefold() == "right"'),
+    ("background never darkened", "background.py",
+     "DARKEN = (0, 0, 0, 70)", "DARKEN = (0, 0, 0, 0)"),
+    ("panel gradient running the wrong way", "background.py",
+     "c1, c2 = (PANEL_NEAR, PANEL_FAR) if left else (PANEL_FAR, PANEL_NEAR)",
+     "c1, c2 = (PANEL_FAR, PANEL_NEAR) if left else (PANEL_NEAR, PANEL_FAR)"),
+    ("divider never drawn", "background.py",
+     "    if divider:\n", "    if False:\n"),
+    ("background cropped from its corner", "background.py",
+     "art.crop((-ox, -oy, -ox + WIDTH, -oy + HEIGHT))", "art.crop((0, 0, WIDTH, HEIGHT))"),
+    ("top row and left column left undarkened, as on Windows", "background.py",
+     'canvas.alpha_composite(Image.new("RGBA", (WIDTH, HEIGHT), DARKEN))',
+     'canvas.alpha_composite(Image.new("RGBA", (WIDTH - 1, HEIGHT - 1), DARKEN), (1, 1))'),
+    ("title drawn when it was not asked for", "background.py",
+     "if show_title and title and title.strip():", "if title and title.strip():"),
+    ("title never shrunk to fit", "background.py",
+     "if fits or size <= TITLE_FLOOR_PT:", "if True:"),
+    ("title shrinking stopped at 12pt, as on Windows", "background.py",
+     "TITLE_FLOOR_PT = 6.0", "TITLE_FLOOR_PT = 12.0"),
+    ("title placed by the font's origin, not its ink", "background.py",
+     "x = tx + round(em / 6) - box[0]", "x = tx"),
+    ("background title ignoring the title box", "stage.py",
+     'bg_title = s.title_text if (s.title_text or "").strip() else s.label', "bg_title = s.label"),
+    ("background title blank when the title box is", "stage.py",
+     'bg_title = s.title_text if (s.title_text or "").strip() else s.label', "bg_title = s.title_text"),
+    ("background as-is composed anyway", "stage.py",
+     "if s.bg_as_is:", "if False:"),
+    ("a menu without a background found out only after the copy", "stage.py",
+     "if s.bg_path is None:", "if False:"),
+    ("an unusable background found out only after the copy", "stage.py",
+     "if not bg.ok:", "if False:"),
     ("wrong resource type read", "pe.py",
      "_RT_VERSION = 16", "_RT_VERSION = 14"),
     ("LF instead of CRLF in autorun.inf", "autorun.py",
@@ -78,18 +111,24 @@ def main() -> int:
         path = SRC / file
         original = path.read_text(encoding="utf-8")
         if before not in original:
-            print(f"  NOT APPLICABLE  {name}  (text not found in {file})")
+            print(f"  NOT APPLICABLE  {name}  (text not found in {file})", flush=True)
             survived.append(name)
             continue
+        # A mutation that hangs the suite is reported by name, with the test it
+        # hung in, rather than holding CI until the job's six-hour limit.
         try:
             path.write_text(original.replace(before, after, 1), encoding="utf-8")
-            run = subprocess.run([sys.executable, "-m", "pytest", "-q", "-x", "--no-header", "-p", "no:cacheprovider"],
-                                 cwd=ROOT, capture_output=True, text=True)
-            caught = run.returncode != 0
+            run = subprocess.run([sys.executable, "-m", "pytest", "-v", "-x", "--no-header", "-p", "no:cacheprovider"],
+                                 cwd=ROOT, capture_output=True, text=True, timeout=TIMEOUT)
+            verdict = "caught " if run.returncode != 0 else "MISSED "
+        except subprocess.TimeoutExpired as e:
+            verdict = "HUNG   "
+            out = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
+            print("\n".join("      " + line for line in out.splitlines()[-3:]), flush=True)
         finally:
             path.write_text(original, encoding="utf-8")
-        print(f"  {'caught ' if caught else 'MISSED '}  {name}")
-        if not caught:
+        print(f"  {verdict}  {name}", flush=True)
+        if verdict != "caught ":
             survived.append(name)
     print()
     print("every mutation caught" if not survived else f"{len(survived)} not caught")

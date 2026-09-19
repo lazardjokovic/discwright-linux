@@ -21,6 +21,7 @@ proven to match the Windows version byte for byte:
 - the disc layout: where every game, add-on, manual and extra goes
 - staging: laying the disc out as a folder, ready to become an ISO
 - icons: the disc icon from any picture, and the PNG a Linux desktop shows
+- the menu background: the artwork cropped to the menu, with its panel and title
 
 Needs Python 3.10 or newer and Pillow.
 

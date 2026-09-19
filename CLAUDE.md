@@ -168,38 +168,59 @@ These are the owner's, carried over from the Windows project. Follow them here.
   separate PR in the Windows repo with a test that fails first. Do not copy a bug
   just because the reference has it.
 - `stage.py` lays the disc out as a folder: installers hard-linked where
-  possible, each entry's own manual and extras, the disc-wide ones, music, extra
-  content behind the reserved-name guard, `autorun.inf` and `.xdg-volume-info`.
-  An old disc folder is set aside, never wiped, because the build may be reading
-  from it. It reproduces 8 of the 12 files Windows staged for the Alan Wake demo,
-  byte for byte; the other 4 are listed in `NOT_PORTED_YET` in
-  `tests/test_stage.py` and belong to the modules below. Shrink that list as each
+  possible, each entry's own manual and extras, the disc icons, the menu
+  background, the disc-wide manual and extras, music, extra content behind the
+  reserved-name guard, `autorun.inf` and `.xdg-volume-info`. An old disc folder
+  is set aside, never wiped, because the build may be reading from it. Of the 12
+  files Windows staged for the Alan Wake demo it reproduces 9 byte for byte and
+  2 as the same picture (`SAME_PICTURE` in `tests/test_stage.py`); the menu
+  itself is the one left, in `NOT_PORTED_YET`. Shrink that list as each module
   lands; do not widen it.
 - One deliberate difference from Windows: settings that cannot be built (no
-  icon, or one that is not a readable image) are refused **before** anything is
-  copied. Windows only finds out after the installers are in place.
+  icon, one that is not a readable image, a menu with no background or an
+  unreadable one) are refused **before** anything is copied. Windows only finds
+  out after the installers are in place.
 - `icons.py` checks a picked icon or background, and makes the disc's two icons:
   a seven-frame `.ico` assembled by hand to match Windows' structure exactly
   (256px frame as PNG, the rest as 32-bit bitmaps), and a 256px PNG for Linux.
   Pillow is the first dependency. Bytes cannot match Windows', so tests check
   the structure exactly and the picture within a tolerance chosen by
   measurement (`tools/icon_diff.py`), ignoring the outermost pixel.
-- **Two Windows icon bugs found while porting, not yet fixed in Windows:**
-  - **The Linux PNG is noise for some real game icons.** Windows'
-    `Convert-ToPng` turns the Alan Wake icon (taken from the installed game:
-    256px frame first, stored as PNG, then 48, 32, 16) into random pixels,
-    reproducibly. An icon laid out the way Windows' own `Convert-ToIco` writes
-    one converts fine. Shipped since 0.6.0 whenever "named on Linux" is ticked.
-    `tests/test_stage.py` compares the Linux PNG against the icon's own 256px
-    frame instead of the Windows file for this reason.
-  - **Every Windows icon frame has a see-through rim.** GDI+ samples past the
-    edge while scaling and blends with transparency, so each frame's outermost
-    pixels are partly transparent even where the source is opaque. Cosmetic.
-    `tools/icon_edges.py` measures it; this port does not have it, and a test
-    keeps it that way.
-- Next: the menu background, then the menu itself.
+- **Two Windows icon bugs found while porting, both fixed in Windows 0.7.4:**
+  the Linux PNG came out as noise (or failed, or blurred) for any icon with a
+  256px PNG frame, which is most real game icons, and every icon frame had a
+  see-through rim. The Alan Wake reference folder on the original machine was
+  staged by 0.7.1, so `tests/test_stage.py` still compares the Linux PNG with
+  the icon's own 256px frame; it can compare with the reference once that is
+  restaged.
+- `background.py` composes the menu background: the artwork scaled to cover
+  760x480, darkened, a panel fading toward the buttons, an optional divider and
+  an optional title. Tests compare it with what Windows 0.7.4 composed from the
+  same two drawn pictures (`tests/fixtures/background`, made by
+  `tools/background_sources.py` and
+  `tools/windows/Make-BackgroundReference.ps1`), within tolerances measured by
+  `tools/background_diff.py`. The title cannot match Windows' pixels: Windows
+  draws it in Bahnschrift, which Linux does not have, so it is DejaVu Sans Bold
+  here (or another common bold sans), placed by its ink where Windows' ink sits
+  and held to the same height.
+- **Two more Windows bugs found porting the background, not yet fixed in
+  Windows:**
+  - **A light line along the top of the button panel.** GDI+ antialiases its
+    rectangle fills with pixel centres on whole numbers, so a fill starting at 0
+    covers half of pixel 0. The darkening and the panel are both drawn that
+    way: the top row and left column get half the darkening, and so does the
+    panel's first column. On bright artwork it shows as a one-pixel light line.
+    `half_pixel_lines` in `tools/background_diff.py` names the lines; tests
+    leave them out of the comparison and check this port darkens them fully.
+  - **A long title runs off the menu.** Windows stops shrinking the title at
+    12pt whether or not it fits, and nothing limits its length. "Warhammer
+    40,000: Dawn of War - Game of the Year Edition" is 451px at 12pt with 416px
+    of room: under the panel on the right, cut off at the menu's edge on the
+    left. This port carries on down to 6pt when it has to.
+- Next: the menu itself (`New-MenuHta`), which empties `NOT_PORTED_YET`.
+  `Test-ComposedBg` (a 760x480 background is taken to be one already composed,
+  and used as-is) belongs with the command line, where settings are chosen.
 - The ISO writer is decided: xorriso. Open items from the spike are listed at the
   end of `docs/xorriso-spike.md`.
-- After those: the project file
-  (`discproject.json`, schema 8, shared with Windows), reading the game's name out
-  of a GOG installer, icons, the menu background, and the menu itself.
+- After those: the project file (`discproject.json`, schema 8, shared with
+  Windows), building the ISO, and the command line.
