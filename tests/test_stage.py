@@ -5,13 +5,17 @@ from pathlib import Path
 
 import pytest
 
+from PIL import Image, ImageChops
+
 from discwright.autorun import autorun_inf
+from discwright.xdg import xdg_volume_info
 from discwright.games import add_on_info, game_info
 from discwright.settings import DiscSettings
 from discwright.stage import StagingError, stage
 
 MB = 1 << 20
 PE = Path(__file__).parent / "fixtures" / "pe"
+ICONS = Path(__file__).parent / "fixtures" / "icons"
 
 
 def sparse(path: Path, size: int) -> Path:
@@ -34,7 +38,8 @@ def src(tmp_path):
     game = root / "Alpha"
     sparse(game / "setup_alpha_1.0.exe", MB)
     sparse(game / "setup_alpha_1.0-1.bin", 2 * MB)
-    write(root / "art" / "alpha.ico", "ICON")
+    (root / "art").mkdir(parents=True)
+    shutil.copy(ICONS / "windows-0.7.3" / "source.ico", root / "art" / "alpha.ico")
     write(root / "media" / "Alpha Manual.pdf", "MANUAL")
     write(root / "media" / "Extras" / "wallpaper.txt", "WALL")
     write(root / "media" / "Extras" / "deep" / "notes.txt", "NOTES")
@@ -166,9 +171,12 @@ def test_sets_the_old_disc_folder_aside_rather_than_deleting_it(src, tmp_path):
 def test_still_finds_an_icon_that_was_picked_from_inside_the_old_folder(src, tmp_path):
     # The build that ate its own source: the icon lived in the stage being replaced.
     out = tmp_path / "out"
-    icon = write(out / "disc" / "ALPHA.ico", "OLD ICON")
+    (out / "disc").mkdir(parents=True)
+    icon = out / "disc" / "ALPHA.ico"
+    shutil.copy(src / "art" / "alpha.ico", icon)
+    original = icon.read_bytes()
     st, _ = stage(settings(src, out, icon_path=icon), quiet)
-    assert (st / "ALPHA.ico").read_text() == "OLD ICON"
+    assert (st / "ALPHA.ico").read_bytes() == original
 
 
 def test_rebuilds_in_place_when_the_game_lives_in_the_disc_folder(src, tmp_path):
@@ -192,10 +200,17 @@ def test_replaces_a_read_only_file_left_by_the_last_build(src, tmp_path):
 
 # ---- what is refused, and what is not ported yet ---------------------------------
 
-def test_refuses_a_png_icon_before_copying_anything(src, tmp_path):
+def test_makes_the_disc_icon_from_a_picture(src, tmp_path):
+    st, _ = stage(settings(src, tmp_path / "out", icon_path=ICONS / "source.png", icon_is_ico=False), quiet)
+    assert (st / "ALPHA.ico").read_bytes()[:4] == b"\0\0\1\0"
+    assert (st / "AUTORUN" / "ALPHA.ico").read_bytes() == (st / "ALPHA.ico").read_bytes()
+
+
+def test_refuses_an_unreadable_icon_before_copying_anything(src, tmp_path):
     out = tmp_path / "out"
-    with pytest.raises(StagingError, match="not ported"):
-        stage(settings(src, out, icon_path=write(src / "art" / "a.png", "PNG"), icon_is_ico=False), quiet)
+    bad = write(src / "art" / "a.png", "not a picture")
+    with pytest.raises(StagingError, match="cannot be used"):
+        stage(settings(src, out, icon_path=bad, icon_is_ico=False), quiet)
     assert not (out / "disc").exists()
 
 
@@ -206,12 +221,20 @@ def test_refuses_a_missing_icon_before_copying_anything(src, tmp_path):
     assert not (out / "disc").exists()
 
 
-def test_writes_no_linux_name_file_while_the_png_icon_it_points_at_cannot_be_made(src, tmp_path):
+def test_names_the_disc_for_linux_when_asked(src, tmp_path):
+    st, _ = stage(settings(src, tmp_path / "out", linux_info=True), quiet)
+    assert (st / ".xdg-volume-info").read_bytes() == xdg_volume_info("ALPHA", "ALPHA.png")
+    assert Image.open(st / "ALPHA.png").size == (256, 256)
+
+
+def test_removes_the_linux_name_file_when_rebuilt_without_it(src, tmp_path):
     out = tmp_path / "out"
-    stale = write(out / "disc" / ".xdg-volume-info", "[Volume Info]\nName=OLD\n")
+    write(out / "disc" / ".xdg-volume-info", "[Volume Info]\nName=OLD\n")
+    write(out / "disc" / "ALPHA.png", "old png")
     shutil.copytree(src / "Alpha", out / "disc", dirs_exist_ok=True)
-    st, _ = stage(settings(src, out, games=[game_info(out / "disc")], linux_info=True), quiet)
+    st, _ = stage(settings(src, out, games=[game_info(out / "disc")], linux_info=False), quiet)
     assert not (st / ".xdg-volume-info").exists()
+    assert not (st / "ALPHA.png").exists()
 
 
 # ---- against what Windows DiscWright staged for the same disc ---------------------
@@ -227,7 +250,11 @@ SCRATCH = os.environ.get("DISCWRIGHT_STAGE_DIR")
 
 # Files the modules still to come will write. Listed rather than ignored, so the
 # test has to be tightened when each arrives instead of passing quietly.
-NOT_PORTED_YET = {"ALANWAKE.png", ".xdg-volume-info", "AUTORUN/bg.png", "AUTORUN/menu.hta"}
+NOT_PORTED_YET = {"AUTORUN/bg.png", "AUTORUN/menu.hta"}
+
+# Files an image encoder makes. The picture must match; the bytes cannot, since
+# two libraries compress the same picture differently. See tests/test_icons.py.
+SAME_PICTURE = {"ALANWAKE.png"}
 
 
 def _fingerprint(p: Path) -> tuple[int, str]:
@@ -265,7 +292,23 @@ def test_stages_what_windows_staged_for_the_same_disc():
         ours, theirs = set(listing(st)), set(listing(reference))
         assert theirs - ours == NOT_PORTED_YET
         assert ours - theirs == set()
-        for rel in sorted(ours):
+        for rel in sorted(ours - SAME_PICTURE):
             assert _fingerprint(st / rel) == _fingerprint(reference / rel), rel
+        # The Linux icon is compared against the source icon's own 256px frame,
+        # not against the Windows file, because the Windows file is wrong. Windows
+        # DiscWright 0.7.3 turns this icon into noise: reproduced fresh, not only
+        # on this disc. The same code converts an icon Windows wrote itself
+        # correctly, so it is something in how this game's own icon is laid out
+        # (256px frame first, stored as a PNG, then 48, 32 and 16). Do not copy it;
+        # when Windows is fixed, this can go back to comparing with the reference.
+        for rel in SAME_PICTURE:
+            a = Image.open(st / rel).convert("RGBA")
+            with Image.open(s.icon_path) as src:
+                src.size = max(src.info["sizes"])
+                b = src.convert("RGBA")
+            assert a.size == b.size == (256, 256)
+            box = (1, 1, a.width - 1, a.height - 1)
+            flat = ImageChops.difference(a.crop(box), b.crop(box)).tobytes()
+            assert sum(flat) / len(flat) <= 3.0, rel
     finally:
         shutil.rmtree(out, ignore_errors=True)

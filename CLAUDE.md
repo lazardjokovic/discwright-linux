@@ -176,10 +176,28 @@ These are the owner's, carried over from the Windows project. Follow them here.
   `tests/test_stage.py` and belong to the modules below. Shrink that list as each
   lands; do not widen it.
 - One deliberate difference from Windows: settings that cannot be built (no
-  icon, a PNG icon while conversion is not ported) are refused **before**
-  anything is copied. Windows only finds out after the installers are in place.
-- Next: icons (a PNG or JPG made into the disc icon, and the PNG copy a Linux
-  desktop shows), then the menu background, then the menu itself.
+  icon, or one that is not a readable image) are refused **before** anything is
+  copied. Windows only finds out after the installers are in place.
+- `icons.py` checks a picked icon or background, and makes the disc's two icons:
+  a seven-frame `.ico` assembled by hand to match Windows' structure exactly
+  (256px frame as PNG, the rest as 32-bit bitmaps), and a 256px PNG for Linux.
+  Pillow is the first dependency. Bytes cannot match Windows', so tests check
+  the structure exactly and the picture within a tolerance chosen by
+  measurement (`tools/icon_diff.py`), ignoring the outermost pixel.
+- **Two Windows icon bugs found while porting, not yet fixed in Windows:**
+  - **The Linux PNG is noise for some real game icons.** Windows'
+    `Convert-ToPng` turns the Alan Wake icon (taken from the installed game:
+    256px frame first, stored as PNG, then 48, 32, 16) into random pixels,
+    reproducibly. An icon laid out the way Windows' own `Convert-ToIco` writes
+    one converts fine. Shipped since 0.6.0 whenever "named on Linux" is ticked.
+    `tests/test_stage.py` compares the Linux PNG against the icon's own 256px
+    frame instead of the Windows file for this reason.
+  - **Every Windows icon frame has a see-through rim.** GDI+ samples past the
+    edge while scaling and blends with transparency, so each frame's outermost
+    pixels are partly transparent even where the source is opaque. Cosmetic.
+    `tools/icon_edges.py` measures it; this port does not have it, and a test
+    keeps it that way.
+- Next: the menu background, then the menu itself.
 - The ISO writer is decided: xorriso. Open items from the spike are listed at the
   end of `docs/xorriso-spike.md`.
 - After those: the project file
