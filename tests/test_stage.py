@@ -64,6 +64,13 @@ def settings(src: Path, out: Path, **kw) -> DiscSettings:
     return DiscSettings(**base)
 
 
+def digest(path: Path) -> str:
+    """A file's checksum. Tests compare these rather than the bytes themselves:
+    when two whole pictures differ, pytest tries to show the difference character
+    by character, which on a CI runner takes longer than the job is allowed."""
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
 def listing(folder: Path) -> list[str]:
     return sorted(str(p.relative_to(folder)).replace(os.sep, "/")
                   for p in folder.rglob("*") if p.is_file())
@@ -120,7 +127,7 @@ def test_composes_the_menu_background(src, tmp_path):
     st, _ = stage(s, quiet)
     expected = tmp_path / "expected.png"
     compose_background(s.bg_path, "ALPHA", expected, "Left", True, False)
-    assert (st / "AUTORUN" / "bg.png").read_bytes() == expected.read_bytes()
+    assert digest(st / "AUTORUN" / "bg.png") == digest(expected)
 
 
 def test_titles_the_background_with_the_disc_label_when_the_title_box_is_empty(src, tmp_path):
@@ -128,7 +135,7 @@ def test_titles_the_background_with_the_disc_label_when_the_title_box_is_empty(s
     st, _ = stage(s, quiet)
     expected = tmp_path / "expected.png"
     compose_background(s.bg_path, "ALPHA", expected, show_title=True)
-    assert (st / "AUTORUN" / "bg.png").read_bytes() == expected.read_bytes()
+    assert digest(st / "AUTORUN" / "bg.png") == digest(expected)
 
 
 def test_titles_the_background_with_the_title_box_when_it_has_one(src, tmp_path):
@@ -136,13 +143,13 @@ def test_titles_the_background_with_the_title_box_when_it_has_one(src, tmp_path)
     st, _ = stage(s, quiet)
     expected = tmp_path / "expected.png"
     compose_background(s.bg_path, "Alpha: The Return", expected, show_title=True)
-    assert (st / "AUTORUN" / "bg.png").read_bytes() == expected.read_bytes()
+    assert digest(st / "AUTORUN" / "bg.png") == digest(expected)
 
 
 def test_copies_a_background_as_it_is_when_told_to(src, tmp_path):
     s = settings(src, tmp_path / "out", bg_as_is=True)
     st, _ = stage(s, quiet)
-    assert (st / "AUTORUN" / "bg.png").read_bytes() == s.bg_path.read_bytes()
+    assert digest(st / "AUTORUN" / "bg.png") == digest(s.bg_path)
 
 
 def test_keeps_a_background_already_on_the_disc_when_rebuilding_in_place(src, tmp_path):
@@ -154,7 +161,7 @@ def test_keeps_a_background_already_on_the_disc_when_rebuilding_in_place(src, tm
     log = []
     st, _ = stage(settings(src, out, games=[game_info(out / "disc")], bg_path=on_disc, bg_as_is=True),
                   log.append)
-    assert (st / "AUTORUN" / "bg.png").read_bytes() == (BACKGROUND / "narrow.png").read_bytes()
+    assert digest(st / "AUTORUN" / "bg.png") == digest(BACKGROUND / "narrow.png")
     assert any("kept as-is" in m for m in log)
 
 
@@ -165,7 +172,7 @@ def test_still_finds_a_background_that_was_picked_from_inside_the_old_folder(src
     shutil.copy(BACKGROUND / "narrow.png", old)
     st, aside = stage(settings(src, out, bg_path=old, bg_as_is=True), quiet)
     assert aside is not None
-    assert (st / "AUTORUN" / "bg.png").read_bytes() == (BACKGROUND / "narrow.png").read_bytes()
+    assert digest(st / "AUTORUN" / "bg.png") == digest(BACKGROUND / "narrow.png")
 
 
 def test_refuses_a_menu_without_a_background_before_copying_anything(src, tmp_path):
@@ -260,7 +267,7 @@ def test_still_finds_an_icon_that_was_picked_from_inside_the_old_folder(src, tmp
     shutil.copy(src / "art" / "alpha.ico", icon)
     original = icon.read_bytes()
     st, _ = stage(settings(src, out, icon_path=icon), quiet)
-    assert (st / "ALPHA.ico").read_bytes() == original
+    assert digest(st / "ALPHA.ico") == hashlib.sha256(original).hexdigest()
 
 
 def test_rebuilds_in_place_when_the_game_lives_in_the_disc_folder(src, tmp_path):
@@ -287,7 +294,7 @@ def test_replaces_a_read_only_file_left_by_the_last_build(src, tmp_path):
 def test_makes_the_disc_icon_from_a_picture(src, tmp_path):
     st, _ = stage(settings(src, tmp_path / "out", icon_path=ICONS / "source.png", icon_is_ico=False), quiet)
     assert (st / "ALPHA.ico").read_bytes()[:4] == b"\0\0\1\0"
-    assert (st / "AUTORUN" / "ALPHA.ico").read_bytes() == (st / "ALPHA.ico").read_bytes()
+    assert digest(st / "AUTORUN" / "ALPHA.ico") == digest(st / "ALPHA.ico")
 
 
 def test_refuses_an_unreadable_icon_before_copying_anything(src, tmp_path):

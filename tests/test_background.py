@@ -1,3 +1,4 @@
+import hashlib
 import sys
 from pathlib import Path
 
@@ -39,6 +40,13 @@ def load(path: Path) -> Image.Image:
     return Image.open(path).convert("RGBA")
 
 
+def pixels(im: Image.Image) -> str:
+    """A checksum of the pixels. Compared rather than the pixels themselves:
+    when two whole pictures differ, pytest tries to show the difference byte by
+    byte, which on a CI runner takes longer than the job is allowed."""
+    return hashlib.sha256(im.tobytes()).hexdigest()
+
+
 @pytest.fixture(scope="module")
 def made(tmp_path_factory):
     t = tmp_path_factory.mktemp("bg")
@@ -71,13 +79,13 @@ def test_is_the_size_of_the_menu(made):
 
 
 def test_draws_no_title_unless_asked(made):
-    assert made["wide-right-no-title"].tobytes() == made["wide-right"].tobytes()
+    assert pixels(made["wide-right-no-title"]) == pixels(made["wide-right"])
 
 
 def test_draws_no_title_when_there_is_nothing_to_draw(tmp_path):
     compose_background(FIX / "wide.png", "   ", tmp_path / "a.png", show_title=True)
     compose_background(FIX / "wide.png", "", tmp_path / "b.png", show_title=False)
-    assert load(tmp_path / "a.png").tobytes() == load(tmp_path / "b.png").tobytes()
+    assert pixels(load(tmp_path / "a.png")) == pixels(load(tmp_path / "b.png"))
 
 
 # A title Windows DiscWright 0.7.4 draws past its room: at its 12pt minimum this
