@@ -169,13 +169,13 @@ These are the owner's, carried over from the Windows project. Follow them here.
   just because the reference has it.
 - `stage.py` lays the disc out as a folder: installers hard-linked where
   possible, each entry's own manual and extras, the disc icons, the menu
-  background, the disc-wide manual and extras, music, extra content behind the
-  reserved-name guard, `autorun.inf` and `.xdg-volume-info`. An old disc folder
-  is set aside, never wiped, because the build may be reading from it. Of the 12
-  files Windows staged for the Alan Wake demo it reproduces 9 byte for byte and
-  2 as the same picture (`SAME_PICTURE` in `tests/test_stage.py`); the menu
-  itself is the one left, in `NOT_PORTED_YET`. Shrink that list as each module
-  lands; do not widen it.
+  background, the disc-wide manual and extras, music, the menu, extra content
+  behind the reserved-name guard, `autorun.inf` and `.xdg-volume-info`. An old
+  disc folder is set aside, never wiped, because the build may be reading from
+  it. It stages every one of the 12 files Windows staged for the Alan Wake demo:
+  10 byte for byte and 2 as the same picture (`SAME_PICTURE` in
+  `tests/test_stage.py`). The file lists must match exactly, so anything a later
+  Windows version adds to the disc shows up there.
 - One deliberate difference from Windows: settings that cannot be built (no
   icon, one that is not a readable image, a menu with no background or an
   unreadable one) are refused **before** anything is copied. Windows only finds
@@ -203,24 +203,45 @@ These are the owner's, carried over from the Windows project. Follow them here.
   draws it in Bahnschrift, which Linux does not have, so it is DejaVu Sans Bold
   here (or another common bold sans), placed by its ink where Windows' ink sits
   and held to the same height.
-- **Two more Windows bugs found porting the background, not yet fixed in
-  Windows:**
+- **Two more Windows bugs found porting the background, fixed in the Windows
+  repo's main (PR #76) and shipping in the release after 0.7.4:**
   - **A light line along the top of the button panel.** GDI+ antialiases its
     rectangle fills with pixel centres on whole numbers, so a fill starting at 0
     covers half of pixel 0. The darkening and the panel are both drawn that
     way: the top row and left column get half the darkening, and so does the
     panel's first column. On bright artwork it shows as a one-pixel light line.
     `half_pixel_lines` in `tools/background_diff.py` names the lines; tests
-    leave them out of the comparison and check this port darkens them fully.
+    leave them out of the comparison, since the reference is 0.7.4's, and check
+    this port darkens them fully. The divider's top pixel had the same defect.
   - **A long title runs off the menu.** Windows stops shrinking the title at
     12pt whether or not it fits, and nothing limits its length. "Warhammer
     40,000: Dawn of War - Game of the Year Edition" is 451px at 12pt with 416px
     of room: under the panel on the right, cut off at the menu's edge on the
     left. This port carries on down to 6pt when it has to.
-- Next: the menu itself (`New-MenuHta`), which empties `NOT_PORTED_YET`.
-  `Test-ComposedBg` (a 760x480 background is taken to be one already composed,
-  and used as-is) belongs with the command line, where settings are chosen.
+- `menu.py` writes `AUTORUN/menu.hta`. The menu is **copied, not ported**:
+  `src/discwright/menu.hta.in` is the Windows template, lifted verbatim out of
+  `New-MenuHta` by `tools/menu_template.py`, and `menu.py` fills its
+  placeholders with the same escaping. The output matches Windows byte for byte
+  on every case in `tests/fixtures/menu/cases.json` (references written by
+  `tools/windows/Make-MenuReference.ps1`) and on the real Alan Wake disc. When
+  the Windows menu changes, rerun `tools/menu_template.py`, then the reference
+  script, then the tests. The tests parse the menu's script with Node where it
+  is installed (CI has it, WSL does not); on Windows, `cscript //E:JScript`
+  parses it with the real engine.
+- **A Windows menu bug found while porting, not yet fixed in Windows:**
+  `New-MenuHta` fills its placeholders with eleven chained replaces, so text
+  already filled in is filled in again. A game named `Game %%BTNS%% Edition`
+  gets the button list pasted inside its string literal, and the whole menu
+  fails to compile under JScript (measured). Unlikely, since GOG names never
+  hold `%%`, but a game can be renamed to anything. `menu.py` fills them in one
+  pass. One Windows quirk **is** matched on purpose, because it is harmless and
+  keeps the bytes equal: the window's application name keeps the Kelvin sign
+  and the dotted capital I, which .NET's case-insensitive `[A-Za-z]` matches,
+  and they reach the file as `?`.
+- Next: the ISO, through xorriso, then the command line. `Test-ComposedBg` (a
+  760x480 background is taken to be one already composed, and used as-is)
+  belongs with the command line, where settings are chosen.
 - The ISO writer is decided: xorriso. Open items from the spike are listed at the
   end of `docs/xorriso-spike.md`.
 - After those: the project file (`discproject.json`, schema 8, shared with
-  Windows), building the ISO, and the command line.
+  Windows).

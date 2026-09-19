@@ -1,8 +1,9 @@
 import hashlib
 import os
+import re
 import shutil
 import sys
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import pytest
 
@@ -86,7 +87,7 @@ def test_lays_a_one_game_disc_out_flat(src, tmp_path):
     st, aside = stage(settings(src, tmp_path / "out"), quiet)
     assert aside is None
     assert listing(st) == [
-        "ALPHA.ico", "AUTORUN/ALPHA.ico", "AUTORUN/bg.png",
+        "ALPHA.ico", "AUTORUN/ALPHA.ico", "AUTORUN/bg.png", "AUTORUN/menu.hta",
         "Extras/Alpha Manual.pdf", "Extras/deep/notes.txt", "Extras/wallpaper.txt",
         "autorun.inf", "setup_alpha_1.0-1.bin", "setup_alpha_1.0.exe",
     ]
@@ -111,6 +112,7 @@ def test_leaves_the_menu_files_out_when_there_is_no_menu(src, tmp_path):
     st, _ = stage(settings(src, tmp_path / "out", menu=False), quiet)
     assert not (st / "AUTORUN" / "ALPHA.ico").exists()
     assert not (st / "AUTORUN" / "bg.png").exists()
+    assert not (st / "AUTORUN" / "menu.hta").exists()
     assert b"shellexecute" not in (st / "autorun.inf").read_bytes()
 
 
@@ -193,6 +195,70 @@ def test_refuses_an_unreadable_background_before_copying_anything(src, tmp_path)
 def test_does_not_need_a_background_when_there_is_no_menu(src, tmp_path):
     st, _ = stage(settings(src, tmp_path / "out", menu=False, bg_path=None), quiet)
     assert (st / "autorun.inf").exists()
+
+
+# ---- the menu ------------------------------------------------------------------------
+
+def menu_strings(st: Path) -> dict[str, list[str]]:
+    """What the written menu names, read back out of the file itself: the setup,
+    manual and extras path of every game and add-on, and the disc-wide manual and
+    music, unescaped the way the menu's JScript will read them."""
+    text = (st / "AUTORUN" / "menu.hta").read_text(encoding="ascii")
+    unescape = lambda v: v.replace("\\\\", "\\")  # noqa: E731
+    games = text[text.index("var GAMES="):text.index("\n", text.index("var GAMES="))]
+    found = {}
+    for key in ("s", "man", "ext"):
+        found[key] = [unescape(v) for v in re.findall(r'\b' + key + r':"((?:[^"\\]|\\.)*)"', games) if v]
+    for var in ("MANUAL", "MUSIC"):
+        found[var] = [unescape(v) for v in re.findall(r"var " + var + r'="((?:[^"\\]|\\.)*)"', text) if v]
+    return found
+
+
+def on_disc(st: Path, disc_path: str) -> Path:
+    return st.joinpath(*PureWindowsPath(disc_path).parts)
+
+
+def test_writes_the_menu(src, tmp_path):
+    st, _ = stage(settings(src, tmp_path / "out"), quiet)
+    text = (st / "AUTORUN" / "menu.hta").read_text(encoding="ascii")
+    assert 'var GAMES=[{n:"alpha"' in text
+    assert 'var BTNS=["Play","Install","Manual","Extras","Exit"];' in text
+    assert 'icon="ALPHA.ico"' in text
+
+
+def test_every_file_the_menu_names_is_on_the_disc(src, tmp_path):
+    # The menu finds everything by joining these paths to the drive's root. A
+    # path that disagrees with the layout is a button that opens nothing.
+    sparse(src / "Beta" / "setup_beta_2.0.exe", MB)
+    sparse(src / "Alpha" / "patch_alpha_1.0_to_1.1.exe", MB)
+    patch = add_on_info(src / "Alpha" / "patch_alpha_1.0_to_1.1.exe")
+    patch.parent_index = 0
+    alpha, beta = game_info(src / "Alpha"), game_info(src / "Beta")
+    beta.manual_path = src / "media" / "Alpha Manual.pdf"
+    song = write(src / "media" / "Dusk.mp3", "SONG")
+    st, _ = stage(settings(src, tmp_path / "out", games=[alpha, beta, patch], music_file=song), quiet)
+    names = menu_strings(st)
+    assert len(names["s"]) == 3 and names["man"] and names["ext"]
+    for p in names["s"] + names["man"]:
+        assert on_disc(st, p).is_file(), p
+    for p in names["ext"]:
+        assert on_disc(st, p).is_dir(), p
+    assert names["MUSIC"] == ["music.mp3"] and (st / "AUTORUN" / "music.mp3").is_file()
+    assert names["MANUAL"] == ["Alpha Manual.pdf"] and (st / "Extras" / "Alpha Manual.pdf").is_file()
+
+
+def test_names_no_disc_wide_manual_without_a_manual_button(src, tmp_path):
+    st, _ = stage(settings(src, tmp_path / "out", buttons=["Play", "Install", "Exit"]), quiet)
+    assert menu_strings(st)["MANUAL"] == []
+
+
+def test_replaces_a_read_only_menu_left_by_the_last_build(src, tmp_path):
+    out = tmp_path / "out"
+    shutil.copytree(src / "Alpha", out / "disc")
+    old = write(out / "disc" / "AUTORUN" / "menu.hta", "STALE")
+    old.chmod(0o444)
+    st, _ = stage(settings(src, out, games=[game_info(out / "disc")]), quiet)
+    assert "var GAMES=" in (st / "AUTORUN" / "menu.hta").read_text(encoding="ascii")
 
 
 # ---- several games, add-ons, and each entry's own files ------------------------
@@ -339,9 +405,9 @@ def test_removes_the_linux_name_file_when_rebuilt_without_it(src, tmp_path):
 GOG = os.environ.get("DISCWRIGHT_GOG_DIR")
 SCRATCH = os.environ.get("DISCWRIGHT_STAGE_DIR")
 
-# Files the modules still to come will write. Listed rather than ignored, so the
-# test has to be tightened when each arrives instead of passing quietly.
-NOT_PORTED_YET = {"AUTORUN/menu.hta"}
+# Every file Windows staged is staged here too; the last, the menu, arrived with
+# menu.py. Anything added to the Windows disc later shows up as a difference in
+# the file list rather than passing quietly.
 
 # Files an image encoder makes. The picture must match; the bytes cannot, since
 # two libraries compress the same picture differently. See tests/test_icons.py
@@ -382,7 +448,7 @@ def test_stages_what_windows_staged_for_the_same_disc():
     try:
         st, _ = stage(s, quiet)
         ours, theirs = set(listing(st)), set(listing(reference))
-        assert theirs - ours == NOT_PORTED_YET
+        assert theirs - ours == set()
         assert ours - theirs == set()
         for rel in sorted(ours - SAME_PICTURE):
             assert _fingerprint(st / rel) == _fingerprint(reference / rel), rel

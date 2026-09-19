@@ -1,0 +1,464 @@
+<html>
+<head>
+<hta:application id="app" applicationname="DiscMenu_WITCHERCOLLECTION" border="none" caption="no"
+  showintaskbar="yes" singleinstance="yes" sysmenu="no" scroll="no" selection="no"
+  contextmenu="no" innerborder="no" maximizebutton="no" minimizebutton="no"
+  icon="WITCHERCOLLECTI.ico" />
+<title>WITCHER COLLECTION</title>
+<style>
+  html,body{margin:0;padding:0;width:760px;height:480px;overflow:hidden;background:#04080a;font-family:'Bahnschrift','Segoe UI',Arial,sans-serif;}
+  #stage{position:absolute;left:0;top:0;width:760px;height:480px;background:#04080a url('bg.png') no-repeat 0 0;border:0;}
+  .panel{position:absolute;left:20px;top:20px;width:250px;}
+  /* Game names are user data and some are long. nowrap+hidden keeps one that got
+     past the length clip from growing the 46px button and throwing the panel's
+     vertical centering out. */
+  .btn{display:block;width:250px;height:46px;margin:0 0 12px 0;line-height:46px;color:#e6ebef;text-decoration:none;
+    font-size:15px;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;background:#0a1519;
+    white-space:nowrap;overflow:hidden;
+    border:1px solid #16545a;border-left:5px solid #00bec8;padding-left:16px;}
+  .btn:hover{background:#12242b;border-color:#00bec8;color:#fff;}
+  .btn.play{border-left-color:#35c46a;} .btn.play:hover{border-color:#66e090;}
+  .btn.install{border-left-color:#ff781e;} .btn.install:hover{border-color:#ff9a4d;}
+  .btn.exit{border-left-color:#a03434;} .btn.exit:hover{border-color:#c86464;}
+  #x{position:absolute;right:8px;top:8px;width:28px;height:26px;line-height:26px;text-align:center;color:#e6ebef;
+    font-family:'Segoe UI',Arial;font-weight:bold;background:#0a1519;border:1px solid #7a2c2c;cursor:pointer;}
+  #x:hover{color:#fff;border-color:#c86464;}
+  #mute{position:absolute;right:44px;top:8px;width:28px;height:26px;line-height:26px;text-align:center;color:#e6ebef;
+    font-family:'Segoe UI',Arial;font-size:15px;background:#0a1519;border:1px solid #16545a;cursor:pointer;display:none;}
+  #mute:hover{color:#fff;border-color:#00bec8;}
+  /* The caption above the buttons: which game this screen is for, and which disc
+     of the set you are holding. Same nowrap+ellipsis rule as the buttons - game
+     names are user data and a long one must not push the panel around. */
+  #cap{width:250px;margin:0 0 10px 0;font-family:'Segoe UI',Arial;}
+  #cap .capn{display:block;font-size:17px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+    color:#dfe9ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #status{position:absolute;left:20px;bottom:18px;width:250px;text-align:center;display:none;
+    color:#9fb3ba;font-size:12px;line-height:17px;}
+</style>
+<script language="JScript">
+  var fso=new ActiveXObject("Scripting.FileSystemObject");
+  var shell=new ActiveXObject("Shell.Application");
+
+  // Shell.ShellExecute needs shell32.dll 5.0 and is documented as Windows 2000
+  // or newer. Windows 98 has the Shell.Application object and not that method,
+  // so on 98 every button on this menu threw and nothing opened - reported from
+  // a real machine, where the disc read fine and none of the buttons did
+  // anything.
+  //
+  // WScript.Shell has been there since Windows Scripting Host shipped with 98,
+  // and anything running this menu already has a scripting host. It takes a
+  // command line rather than a file and a verb, so a folder or a document is
+  // handed to explorer.exe, which is what ShellExecute would have done with it.
+  //
+  // Tried in the documented order: the modern call first, so Windows 2000 and
+  // everything after it behaves exactly as it did before this existed.
+  var wsh=null;
+  function openThing(p,args,wd){
+    try{ shell.ShellExecute(p,args||"",wd||"","open",1); return true; }catch(ex){}
+    try{
+      if(!wsh) wsh=new ActiveXObject("WScript.Shell");
+      var isExe=/\.(exe|com|bat|cmd|pif|lnk)$/i.test(p);
+      var cmd=isExe?('"'+p+'"'+(args?" "+args:"")):('explorer.exe "'+p+'"');
+      if(wd){ try{ wsh.CurrentDirectory=wd; }catch(e2){} }
+      wsh.Run(cmd,1,false); return true;
+    }catch(ex2){ alert(ex2.message); return false; }
+  }
+  var root="";
+  var GAMES=[{n:"The Witcher: Enhanced Edition",m:"The Witcher - Enhanced Edition",s:"Games\\01 - The Witcher Enhanced Edition\\setup_the_witcher_enhanced_edition_1.5_(a).exe",man:"Games\\01 - The Witcher Enhanced Edition\\Extras\\manual.pdf",ext:"Games\\01 - The Witcher Enhanced Edition\\Extras",a:[{n:"Update 1.5",s:"Games\\01 - The Witcher Enhanced Edition\\Add-ons\\01 - Update 1.5\\patch_the_witcher_1.4_to_1.5.exe"},{n:"Adventure Pack",s:"Games\\01 - The Witcher Enhanced Edition\\Add-ons\\02 - Adventure Pack\\setup_adventure_pack.exe"}]},{n:"The Witcher 2",m:"The Witcher 2",s:"Games\\02 - The Witcher 2\\setup_the_witcher_2_3.4.exe",man:"",ext:"",a:[]}];       // [{n:name, m:registry match, s:setup, man:manual, ext:extras, a:[{n,s}]}]
+  var BTNS=["Play","Install","Exit"];         // which of Play/Install/Manual/Extras/Exit the disc was built with
+  var MANUAL=""; var MUSIC="music.mp3";
+  var PREVIEW=false;   // true only for the app's Preview - see refreshButtons
+  // Which screen is showing: -1 is the game chooser, otherwise an index into GAMES.
+  // A disc holding one game has nothing to choose, so it opens on that game and
+  // never shows a Back button.
+  var cur = (GAMES.length==1) ? 0 : -1;
+  // Non-null while the "which one?" screen is up, for a game whose single installer
+  // put more than one launchable thing on the machine. It sits on top of whatever
+  // screen was showing rather than replacing it, so Back returns there.
+  var tasks = null;
+  var player=null, musicOn=false;
+  // Where this .hta actually lives. document.URL is always an absolute file: URL,
+  // unlike app.commandLine - AutoRun can launch the menu with a path relative to the
+  // disc root, which has no drive letter and used to leave root pointing at nonsense.
+  function htaPath(){
+    var u="";
+    try{ u=String(document.URL); }catch(e){ u=""; }
+    if(u.length){
+      var p=u.replace(/^file:/i,"").replace(/\//g,"\\");
+      try{ p=decodeURIComponent(p); }catch(e){}
+      // HTAs report file://D:\AUTORUN\menu.hta (two slashes, backslashes already),
+      // not the textbook file:///D:/... - so decide by what follows the slashes.
+      var lead=p.match(/^\\+/);
+      if(lead){
+        var n=lead[0].length, rest=p.substring(n);
+        if(/^[A-Za-z]:/.test(rest)) p=rest;          // drive letter: drop them all
+        else if(n>=3) p="\\\\"+rest;                 // UNC: normalise to two
+      }
+      return p;
+    }
+    try{ var cl=app.commandLine; var m=cl.match(/([A-Za-z]:\\[^"]*\.hta)/i);
+      if(!m) m=cl.match(/(\\\\[^"]*\.hta)/i);
+      if(m) return m[1]; }catch(e){}
+    return "";
+  }
+  function init(){
+    try{ window.resizeTo(760,480);
+      var dw=760-document.body.clientWidth, dh=480-document.body.clientHeight;
+      if(dw<0)dw=0; if(dh<0)dh=0; var ow=760+dw, oh=480+dh;
+      window.resizeTo(ow,oh); window.moveTo(Math.max(0,(screen.availWidth-ow)/2),Math.max(0,(screen.availHeight-oh)/2));
+    }catch(e){}
+    root=fso.GetParentFolderName(fso.GetParentFolderName(htaPath()));
+    document.onmousedown=startDrag; document.onmousemove=doDrag; document.onmouseup=endDrag;
+    show();   // renders the panel, which calls setupHover and refreshButtons itself
+    initMusic();
+  }
+  function initMusic(){
+    var mb=document.getElementById("mute");
+    if(!MUSIC||!root){ return; }
+    var p=fso.BuildPath(root,"AUTORUN\\"+MUSIC);
+    if(!fso.FileExists(p)){ return; }
+    try{
+      player=new ActiveXObject("WMPlayer.OCX");
+      player.settings.setMode("loop",true);
+      player.settings.volume=55;
+      player.URL=p;
+      player.controls.play();
+      musicOn=true;
+      if(mb){ mb.style.display="block"; mb.onclick=toggleMusic; }
+    }catch(e){ player=null; }   // Media Player absent - menu still works, just silent
+  }
+  function toggleMusic(){
+    if(!player) return;
+    try{
+      if(musicOn){ player.controls.pause(); musicOn=false; } else { player.controls.play(); musicOn=true; }
+      var mb=document.getElementById("mute");
+      if(mb){ mb.style.color = musicOn?"#e6ebef":"#5d6c72"; mb.style.borderColor = musicOn?"#16545a":"#39464a"; }
+    }catch(e){}
+  }
+  var _drag=false,_ox=0,_oy=0;
+  function startDrag(){ var e=window.event; var t=e.srcElement; if((t.className||"").indexOf("btn")>=0||t.id=="x")return;
+    _drag=true; _ox=e.screenX-window.screenLeft; _oy=e.screenY-window.screenTop; }
+  function doDrag(){ if(!_drag)return; var e=window.event; window.moveTo(e.screenX-_ox,e.screenY-_oy); }
+  function endDrag(){ _drag=false; }
+  function setupHover(){ var a=document.getElementsByTagName("A");
+    for(var i=0;i<a.length;i++){ if((a[i].className||"").indexOf("btn")>=0){
+      try{ a[i].accent = a[i].currentStyle.borderLeftColor; }catch(e){ a[i].accent = "#00bec8"; }
+      a[i].onmouseover=function(){ if(this.btnOff) return; this.style.backgroundColor="#14282f"; this.style.color="#fff";
+        this.style.borderTopColor="#00bec8"; this.style.borderRightColor="#00bec8"; this.style.borderBottomColor="#00bec8"; };
+      a[i].onmouseout=function(){ if(this.btnOff) return; this.style.backgroundColor="#0a1519"; this.style.color="#e6ebef";
+        this.style.borderTopColor="#16545a"; this.style.borderRightColor="#16545a"; this.style.borderBottomColor="#16545a"; }; } }
+    var xb=document.getElementById("x"); if(xb){ xb.onmouseover=function(){ this.style.color="#fff"; this.style.borderColor="#c86464"; };
+      xb.onmouseout=function(){ this.style.color="#e6ebef"; this.style.borderColor="#7a2c2c"; }; } }
+  function openItem(p,isFolder){ try{
+    if(!root){ alert("Could not work out the disc folder.\nRun the menu from the disc root."); return; }
+    var f=fso.BuildPath(root,p);
+    if(isFolder){ if(fso.FolderExists(f)) openThing(f); else alert("Not found:\n"+f); }
+    else { if(fso.FileExists(f)) openThing(f); else alert("Not found:\n"+f); } }catch(e){alert(e.message);} }
+  // Grey a button out rather than let it fail. Inline styles, not a CSS class:
+  // this document runs in quirks mode, where compound selectors like .btn.off
+  // are unreliable.
+  function setEnabled(id,ok,why){
+    var e=document.getElementById(id); if(!e) return;
+    e.btnOff = !ok;
+    e.title = ok ? "" : why;
+    e.style.backgroundColor = "#0a1519";
+    if(ok){ e.style.color="#e6ebef"; e.style.cursor="pointer"; e.style.borderLeftColor=e.accent; }
+    else  { e.style.color="#5d6c72"; e.style.cursor="default"; e.style.borderLeftColor="#39464a"; }
+  }
+  function off(id){ var e=document.getElementById(id); return (e && e.btnOff); }
+  function has(b){ for(var i=0;i<BTNS.length;i++){ if(BTNS[i]==b) return true; } return false; }
+  // A game's own manual and extras if it has them, otherwise the disc's. The
+  // fallback is what keeps a one-game disc, and every disc built before games
+  // could have their own, behaving exactly as it did.
+  function manualOf(g){ if(g.man) return g.man; return MANUAL ? ("Extras\\"+MANUAL) : ""; }
+  function extrasOf(g){ if(g.ext) return g.ext; return "Extras"; }
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+  // 250px of 15px uppercase with 2px letter-spacing runs out at about twenty
+  // characters. Clipping here rather than letting CSS do it keeps the ellipsis
+  // visible instead of shearing a letter in half; the full name is on the tooltip.
+  function clip(s){ s=String(s); return (s.length>20) ? s.substring(0,19)+"..." : s; }
+  function btnHtml(id,cls,label,fn,tip){
+    return '<a id="'+id+'" class="btn '+cls+'" onclick="'+fn+'" title="'+esc(tip||"")+'">'+
+           esc(clip(label)).replace(/ /g,"&nbsp;")+'</a>';
+  }
+  // The panel is centred on however many buttons this screen happens to have, so
+  // a three-game chooser and a six-button game screen both sit in the middle.
+  // Game names arrive already escaped for a JS string literal, which turns "<"
+  // into < - so they cannot open a tag when they land in innerHTML here.
+  //
+  // This used to carry a second line reading "Disc 2 of 3" when the disc belonged
+  // to a set. Sets are gone and so is that line: no disc DiscWright writes has
+  // ever depended on another, so a caption implying otherwise described a
+  // relationship that did not exist.
+  function capFor(name){
+    if(!name) return "";
+    return '<span class="capn">'+name+'</span>';
+  }
+  function setPanel(h,cap){
+    var p=document.getElementById("pan");
+    p.innerHTML=(cap ? '<div id="cap">'+cap+'</div>' : '')+h;
+    var c=document.getElementById("cap");
+    // Measured rather than assumed: the caption is one line or two depending on
+    // whether this disc belongs to a set.
+    var capH=c ? c.offsetHeight+10 : 0;
+    var a=p.getElementsByTagName("A"), n=a.length;
+    // 46px buttons with 12px between them fill a 480px window at eight, and a
+    // game with four add-ons already needs eight. Rather than let the ninth draw
+    // off the bottom edge where nothing can reach it, the buttons shrink to fit.
+    var bh=46, gap=12, avail=440-capH;
+    if(n*bh+(n-1)*gap > avail){
+      gap = 8;
+      bh = Math.floor((avail-(n-1)*gap)/n);
+      if(bh > 46) bh = 46;
+      if(bh < 22) bh = 22;
+      for(var i=0;i<n;i++){
+        a[i].style.height=bh+"px"; a[i].style.lineHeight=bh+"px"; a[i].style.marginBottom=gap+"px";
+      }
+    }
+    var block=capH+n*bh+(n-1)*gap, t=Math.floor((480-block)/2);
+    if(t<10) t=10;
+    p.style.top=t+"px";
+    setupHover();
+    refreshButtons();
+  }
+  function renderChooser(){
+    var h="";
+    for(var i=0;i<GAMES.length;i++){ h+=btnHtml("btn_game_"+i,"play",GAMES[i].n,"pick("+i+")",GAMES[i].n); }
+    if(has("Exit")) h+=btnHtml("btn_Exit","exit","Exit","doExit()","");
+    // The chooser lists the games itself, so it needs only the disc line.
+    setPanel(h,capFor(""));
+  }
+  function renderGame(){
+    var g=GAMES[cur], h="";
+    if(has("Play"))    h+=btnHtml("btn_Play","play","Play","doPlay()","");
+    if(has("Install")){
+      h+=btnHtml("btn_Install","install","Install","doInstall()","Install "+g.n);
+      // Add-ons sit directly under Install in the same colour, because that is
+      // what they are - another installer, for this game.
+      for(var i=0;i<g.a.length;i++){
+        h+=btnHtml("btn_addon_"+i,"install",g.a[i].n,"doAddOn("+i+")","Install "+g.a[i].n);
+      }
+    }
+    if(has("Manual"))  h+=btnHtml("btn_Manual","","Game Manual","doManual()","");
+    if(has("Extras"))  h+=btnHtml("btn_Extras","","Extras","doExtras()","");
+    if(GAMES.length>1) h+=btnHtml("btn_Back","","Back","goBack()","Back to the game list");
+    if(has("Exit"))    h+=btnHtml("btn_Exit","exit","Exit","doExit()","");
+    setPanel(h,capFor(g.n));
+  }
+  function show(){ if(tasks) renderTasks(); else if(cur<0) renderChooser(); else renderGame(); }
+  function pick(i){ cur=i; show(); }
+  function goBack(){ tasks=null; cur=-1; show(); }
+  function refreshButtons(){
+    // The launch chooser's buttons are built already enabled and none of the ids
+    // below exist while it is up.
+    if(!root || tasks) return;
+    // In preview the game files are not beside the menu, so the existence checks
+    // would grey out buttons that will be fine on the real disc. Show them live.
+    if(cur<0){
+      for(var i=0;i<GAMES.length;i++){
+        setEnabled("btn_game_"+i, (PREVIEW || fso.FileExists(fso.BuildPath(root,GAMES[i].s))),
+                   "This game's installer is not on the disc.");
+      }
+      return;
+    }
+    var g=GAMES[cur];
+    setEnabled("btn_Install", (PREVIEW || (g.s!="" && fso.FileExists(fso.BuildPath(root,g.s)))),
+               "The installer is not next to this menu.");
+    // Registry-based, so it tells the truth in preview as well. Worked out once
+    // and used by both the add-ons and Play below.
+    var parentOn = (findGame(g.m)!=null);
+    // An add-on - a patch, a piece of DLC, a mod - is applied ON TOP of the game
+    // it belongs to and needs that game installed first. A GOG patch in
+    // particular refuses outright, and the error comes from GOG's installer
+    // several clicks later rather than from the menu, which is a poor place to
+    // discover the rule. Being on the disc is necessary but not sufficient.
+    for(var j=0;j<g.a.length;j++){
+      var here = fso.FileExists(fso.BuildPath(root,g.a[j].s));
+      setEnabled("btn_addon_"+j, (PREVIEW || (here && parentOn)),
+                 here ? (g.n+" is not installed yet - use Install first.")
+                      : "This add-on's installer is not on the disc.");
+    }
+    var gman = manualOf(g), gext = extrasOf(g);
+    setEnabled("btn_Manual", (PREVIEW || (gman!="" && fso.FileExists(fso.BuildPath(root,gman)))),
+               "There is no manual for " + g.n + " on this disc.");
+    setEnabled("btn_Extras", (PREVIEW || fso.FolderExists(fso.BuildPath(root,gext))),
+               "There is nothing extra for " + g.n + " on this disc.");
+    setEnabled("btn_Play", parentOn,
+               g.n+" is not installed yet - use Install first.");
+    if(PREVIEW){
+      var ids=["btn_Install","btn_Manual","btn_Extras"];
+      for(var k=0;k<g.a.length;k++){ ids[ids.length]="btn_addon_"+k; }
+      for(var m=0;m<ids.length;m++){ var e=document.getElementById(ids[m]);
+        if(e) e.title="Preview only - this works on the built disc"; }
+    }
+  }
+  function previewStop(what){
+    alert("This is a preview of the menu.\n\n"+what+" works on the built disc, but the game files are not in the preview folder.");
+  }
+  function setStatus(msg){
+    var s=document.getElementById("status");
+    if(s){ s.innerHTML=msg; s.style.display = msg ? "block" : "none"; }
+  }
+  // ShellExecute returns the moment it hands off, long before the installer draws
+  // anything - and a 1 GB setup read off optical media can take minutes. Show that
+  // something is happening, and block a second click while it loads.
+  function launchWithStatus(id,msg,path,isFolder){
+    setStatus(msg);
+    setEnabled(id,false,"Starting...");
+    window.setTimeout(function(){          // let the window repaint before we block
+      openItem(path,isFolder);
+      window.setTimeout(function(){ setStatus(""); refreshButtons(); }, 45000);
+    }, 60);
+  }
+  function doInstall(){ if(off("btn_Install")) return; if(PREVIEW){ previewStop("Install"); return; }
+    launchWithStatus("btn_Install","Starting the installer...<br>Reading from disc can take a minute.",GAMES[cur].s,false); }
+  function doAddOn(i){ var id="btn_addon_"+i; if(off(id)) return;
+    var a=GAMES[cur].a[i];
+    if(PREVIEW){ previewStop(a.n); return; }
+    launchWithStatus(id,"Starting "+esc(a.n)+"...<br>Reading from disc can take a minute.",a.s,false); }
+  function doManual(){ if(off("btn_Manual")) return; if(PREVIEW){ previewStop("Game Manual"); return; }
+    launchWithStatus("btn_Manual","Opening the manual...",manualOf(GAMES[cur]),false); }
+  function doExtras(){ if(off("btn_Extras")) return; if(PREVIEW){ previewStop("Extras"); return; }
+    openItem(extrasOf(GAMES[cur]),true); }
+  function doExit(){ window.close(); }
+  function regGet(reg,h,sub,val){ try{ var i=reg.Methods_.Item("GetStringValue").InParameters.SpawnInstance_();
+    i.hDefKey=h;i.sSubKeyName=sub;i.sValueName=val; var o=reg.ExecMethod_("GetStringValue",i); if(o.ReturnValue==0)return o.sValue; }catch(e){} return null; }
+  // GOG's registry gameName drops or changes punctuation ("The Witcher Enhanced Edition
+  // Director's Cut" vs "The Witcher - Enhanced Edition"), so compare on letters+digits only.
+  function norm(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,""); }
+  function nameHit(nm,match){ var a=norm(nm), b=norm(match);
+    if(!a||!b) return false;
+    if(a.indexOf(b)>=0) return true;
+    if(a.length>=6 && b.indexOf(a)>=0) return true;   // registry name shorter than ours
+    return false; }
+  // Takes the name to match rather than reading a global: on a multi-game disc
+  // each game asks this about itself, and Play has to light up for the ones that
+  // are installed while staying grey for the ones that are not.
+  // Returns {exe,dir} for an installed copy, or null. The folder matters as much as
+  // the executable: it is where GOG's own goggame-<id>.info sits, and that file is
+  // the only place a bundle admits to containing more than one game.
+  function findGame(match){ try{ var HKLM=0x80000002; var svc=GetObject("winmgmts:\\\\.\\root\\default"); var reg=svc.Get("StdRegProv");
+    var bases=["SOFTWARE\\WOW6432Node\\GOG.com\\Games","SOFTWARE\\GOG.com\\Games"];
+    for(var b=0;b<bases.length;b++){ var mi=reg.Methods_.Item("EnumKey").InParameters.SpawnInstance_(); mi.hDefKey=HKLM; mi.sSubKeyName=bases[b];
+      var mo=reg.ExecMethod_("EnumKey",mi); if(mo.ReturnValue!=0||mo.sNames==null)continue; var ids=new VBArray(mo.sNames).toArray();
+      for(var k=0;k<ids.length;k++){ var sub=bases[b]+"\\"+ids[k]; var nm=regGet(reg,HKLM,sub,"gameName");
+        if(nm && nameHit(nm,match)){ var p=regGet(reg,HKLM,sub,"path"); var exe=regGet(reg,HKLM,sub,"exe");
+          if(exe && fso.FileExists(exe)) return {exe:exe, dir:(p||fso.GetParentFolderName(exe))};
+          var ef=regGet(reg,HKLM,sub,"exeFile");
+          if(p&&ef&&fso.FileExists(fso.BuildPath(p,ef))) return {exe:fso.BuildPath(p,ef), dir:p}; } } } }catch(e){} return null; }
+
+  // One string out of a JSON object, unescaped. Picked apart with a regular
+  // expression rather than JSON.parse, which the quirks-mode engine an HTA gets
+  // does not have.
+  //
+  // Unescaping is one pass, not a chain of replaces, because a chain has to pick
+  // an order and every order is wrong for something: run \uXXXX first and a path
+  // like "Manuals\\u..." loses its backslash, run it last and a name that really
+  // did escape a backslash can be read as an escape. GOG writes \u escapes for
+  // real - Empire at War's own title is "STAR WARS(R): Empire At War(TM)".
+  function jsonStr(block,key){
+    var m=block.match(new RegExp('"'+key+'"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"'));
+    if(!m) return "";
+    return m[1].replace(/\\u([0-9a-fA-F]{4})|\\(.)/g, function(s,h,c){
+      if(h) return String.fromCharCode(parseInt(h,16));
+      return c=="n" ? "\n" : c=="t" ? "\t" : c;
+    });
+  }
+  // Real .info files contain both "System\\witcher.exe" and "System//witcher.exe".
+  function relPath(s){ return String(s).replace(/\//g,"\\").replace(/\\+/g,"\\"); }
+
+  // GOG writes a goggame-<id>.info beside every installed game, listing its play
+  // tasks. This exists because a bundle that ships two games in ONE installer -
+  // Star Wars: Empire at War Gold Pack, which is what turned this up - registers a
+  // single gameName and a single exe. The registry can therefore only ever point at
+  // the base game, and the expansion sitting in the next folder is unreachable. The
+  // .info file lists both.
+  //
+  // Every {...} in that file is a play task: the rest is scalars and arrays of
+  // strings, so brace pairs containing no braces find exactly the tasks and nothing
+  // else. Only the ones that start the game count - "document" is the manual and the
+  // readme, which this menu already has its own buttons for, and a hidden task is the
+  // raw exe GOG keeps behind its own launcher.
+  //
+  // "category" is how a task says which of those it is, but it is optional and
+  // Empire at War's real file leaves it off ALL EIGHT of its tasks - so the test
+  // below dropped every one of them, this function returned nothing, and Play went
+  // on launching the base game. That was the whole reported bug.
+  //
+  // So: trust categories when the file names any, and fall back to what the task
+  // points AT when it names none. The fallback has to be conditional rather than
+  // universal. The Witcher's file names categories on five tasks and omits it on
+  // exactly one - Safe Mode, which runs the same exe as the real entry with an
+  // extra argument - so there the omission carries meaning and Safe Mode stays out.
+  // A file with no categories anywhere carries no such meaning, and an extension
+  // separates the two kinds perfectly well: .exe and .lnk start something, .pdf
+  // and .rtf are the manual.
+  function playTasks(dir){
+    var out=[];
+    try{
+      if(!dir || !fso.FolderExists(dir)) return out;
+      var info=null, en=new Enumerator(fso.GetFolder(dir).Files);
+      for(;!en.atEnd();en.moveNext()){ if(/^goggame-\d+\.info$/i.test(en.item().Name)){ info=en.item().Path; break; } }
+      if(!info) return out;
+      var st=fso.OpenTextFile(info,1), txt=st.ReadAll(); st.Close();
+      var usesCat=/"category"\s*:/.test(txt);
+      var re=/\{[^{}]*\}/g, m;
+      while((m=re.exec(txt))!=null){
+        var b=m[0];
+        if(!/"type"\s*:\s*"FileTask"/.test(b)) continue;
+        if(/"isHidden"\s*:\s*true/.test(b)) continue;
+        var rel=jsonStr(b,"path"); if(!rel) continue;
+        if(usesCat){
+          var cat=jsonStr(b,"category");
+          if(cat!="game" && cat!="launcher") continue;
+        } else if(!/\.(exe|lnk|bat|cmd)$/i.test(rel)) continue;
+        var full=fso.BuildPath(dir,relPath(rel));
+        if(!fso.FileExists(full)) continue;
+        // Empire at War's primary task carries no "name" either, so the filename
+        // stands in - without its extension, or the button reads "... War.lnk".
+        var nm=jsonStr(b,"name");
+        if(!nm) nm=fso.GetFileName(full).replace(/\.[^.]*$/,"");
+        var wd=jsonStr(b,"workingDir");
+        out[out.length]={ n:nm, p:full,
+                          a:jsonStr(b,"arguments"),
+                          w:(wd ? fso.BuildPath(dir,relPath(wd)) : fso.GetParentFolderName(full)) };
+      }
+    }catch(ex){}
+    return out;
+  }
+  function launchExe(p,args,wd){
+    if(openThing(p,args,wd||fso.GetParentFolderName(p))) window.close();
+  }
+  function renderTasks(){
+    var h="";
+    for(var i=0;i<tasks.length;i++){ h+=btnHtml("btn_task_"+i,"play",tasks[i].n,"playTask("+i+")",tasks[i].n); }
+    h+=btnHtml("btn_TaskBack","","Back","tasksBack()","Back to "+GAMES[cur].n);
+    if(has("Exit")) h+=btnHtml("btn_Exit","exit","Exit","doExit()","");
+    setPanel(h,capFor(GAMES[cur].n));
+  }
+  function playTask(i){ var t=tasks[i]; launchExe(t.p,t.a,t.w); }
+  function tasksBack(){ tasks=null; show(); }
+  function doPlay(){ if(off("btn_Play")) return;
+    var g=GAMES[cur];
+    var hit=findGame(g.m);
+    if(!hit){ alert(g.n+" isn't installed yet.\n\nUse INSTALL first, then PLAY."); return; }
+    // Two or more launch targets means a bundle, so ask which - the same way the
+    // disc asks which game when it holds more than one. One target, or an install
+    // with no .info file at all, behaves exactly as it always has.
+    var t=playTasks(hit.dir);
+    if(t.length>1){ tasks=t; show(); return; }
+    launchExe(hit.exe,"",fso.GetParentFolderName(hit.exe)); }
+  // Re-check when the menu regains focus, so Play lights up after the installer finishes.
+  window.onfocus = refreshButtons;
+  document.onkeydown=function(){ if(window.event.keyCode==27) window.close(); };
+</script>
+</head>
+<body onload="init()">
+  <div id="stage">
+    <div id="x" onclick="doExit()">X</div>
+    <div id="mute" title="Music on / off">&#9835;</div>
+    <div id="status"></div>
+    <div class="panel" id="pan"></div>
+  </div>
+</body>
+</html>

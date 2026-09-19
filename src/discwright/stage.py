@@ -2,11 +2,8 @@
 
 Ported from the first half of Invoke-Build in DiscWright.ps1: the installers,
 each entry's own manual and extras, the disc icons, the menu background, the
-disc-wide manual and extras, music, extra content, autorun.inf and
+disc-wide manual and extras, music, the menu, extra content, autorun.inf and
 .xdg-volume-info.
-
-Not yet here: writing the menu itself, which waits on its own module. stage()
-says so in the log.
 """
 
 from __future__ import annotations
@@ -19,8 +16,9 @@ from typing import Callable
 
 from .autorun import autorun_inf
 from .background import compose_background
-from .icons import check_background, check_icon, convert_to_ico, convert_to_png
-from .layout import disc_entry_extras, disc_entry_folder, disc_icon_name, is_reserved_name
+from .icons import _write, check_background, check_icon, convert_to_ico, convert_to_png
+from .layout import disc_entry_extras, disc_entry_folder, disc_icon_name, is_reserved_name, menu_games
+from .menu import menu_hta
 from .settings import DiscSettings
 from .xdg import xdg_volume_info
 
@@ -230,9 +228,11 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
             if s.show_title:
                 log(f"  title on artwork: {bg_title}")
             compose_background(s.bg_path, bg_title, bg_out, s.panel_side, s.divider, s.show_title)
+        manual_name = ""
         if "Manual" in s.buttons and s.manual_path:
             (stage_dir / "Extras").mkdir(exist_ok=True)
-            dest = stage_dir / "Extras" / Path(s.manual_path).name
+            manual_name = Path(s.manual_path).name
+            dest = stage_dir / "Extras" / manual_name
             if not _same(Path(s.manual_path), dest):
                 _replace_file(Path(s.manual_path), dest)
         if "Extras" in s.buttons and s.extras_path and Path(s.extras_path).is_dir():
@@ -240,8 +240,10 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
                 log("Extras already in place.")
             else:
                 _copy_tree_contents(Path(s.extras_path), stage_dir / "Extras")
+        music_name = ""
         if s.music_file and Path(s.music_file).is_file():
-            dest = stage_dir / "AUTORUN" / ("music" + Path(s.music_file).suffix)
+            music_name = "music" + Path(s.music_file).suffix
+            dest = stage_dir / "AUTORUN" / music_name
             if not _same(Path(s.music_file), dest):
                 _replace_file(Path(s.music_file), dest)
         # The menu window's own icon resolves next to menu.hta, not at the disc
@@ -252,7 +254,17 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
         for stale in (stage_dir / "AUTORUN").glob("*.ico"):
             if stale.name != ico_name:
                 stale.unlink()
-        log("  writing the menu is not ported yet.")
+        log("Generating autorun menu (menu.hta)...")
+        on_menu = menu_games(games)
+        if len(on_menu) > 1:
+            log(f"  chooser: {len(on_menu)} games")
+        for g in on_menu:
+            if g["add_ons"]:
+                log(f"  {g['name']}: {len(g['add_ons'])} add-on installer(s)")
+        _write(stage_dir / "AUTORUN" / "menu.hta",
+               menu_hta(s.label, on_menu, s.buttons, music_file=music_name, manual_file=manual_name,
+                        panel_side=s.panel_side, icon_name=ico_name,
+                        window_border=bool(s.window_border), button_style=s.button_style))
 
     if s.extra_items:
         log("Adding extra content...")

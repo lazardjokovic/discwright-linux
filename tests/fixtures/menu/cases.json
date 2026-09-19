@@ -1,0 +1,143 @@
+{
+  "_comment": "Menus for tests/test_menu.py, one per case. Each cfg is what New-MenuHta takes; tools/windows/Make-MenuReference.ps1 has Windows DiscWright write windows-<version>/<name>.hta from it.",
+  "cases": [
+    {
+      "name": "one-game",
+      "cfg": {
+        "GameName": "ALAN WAKE",
+        "Games": [
+          {
+            "Name": "Alan Wake",
+            "MatchName": "Alan Wake",
+            "Setup": "setup_alan_wake_1.1_music_lang_fix_(80728).exe",
+            "Manual": "",
+            "Extras": "",
+            "AddOns": []
+          }
+        ],
+        "Buttons": [
+          "Play",
+          "Install",
+          "Manual",
+          "Extras",
+          "Exit"
+        ],
+        "MusicFile": "",
+        "ManualFile": "Alan Wake manual.pdf",
+        "PanelSide": "Right",
+        "IconName": "ALANWAKE.ico",
+        "WindowBorder": true,
+        "ButtonStyle": "Minimal"
+      }
+    },
+    {
+      "name": "two-games-with-add-ons",
+      "cfg": {
+        "GameName": "WITCHER COLLECTION",
+        "Games": [
+          {
+            "Name": "The Witcher: Enhanced Edition",
+            "MatchName": "The Witcher - Enhanced Edition",
+            "Setup": "Games\\01 - The Witcher Enhanced Edition\\setup_the_witcher_enhanced_edition_1.5_(a).exe",
+            "Manual": "Games\\01 - The Witcher Enhanced Edition\\Extras\\manual.pdf",
+            "Extras": "Games\\01 - The Witcher Enhanced Edition\\Extras",
+            "AddOns": [
+              {
+                "Name": "Update 1.5",
+                "Setup": "Games\\01 - The Witcher Enhanced Edition\\Add-ons\\01 - Update 1.5\\patch_the_witcher_1.4_to_1.5.exe"
+              },
+              {
+                "Name": "Adventure Pack",
+                "Setup": "Games\\01 - The Witcher Enhanced Edition\\Add-ons\\02 - Adventure Pack\\setup_adventure_pack.exe"
+              }
+            ]
+          },
+          {
+            "Name": "The Witcher 2",
+            "MatchName": "The Witcher 2",
+            "Setup": "Games\\02 - The Witcher 2\\setup_the_witcher_2_3.4.exe",
+            "Manual": "",
+            "Extras": "",
+            "AddOns": []
+          }
+        ],
+        "Buttons": [
+          "Play",
+          "Install",
+          "Exit"
+        ],
+        "MusicFile": "music.mp3",
+        "ManualFile": "",
+        "PanelSide": "Left",
+        "IconName": "WITCHERCOLLECTI.ico",
+        "WindowBorder": false,
+        "ButtonStyle": "Bordered"
+      }
+    },
+    {
+      "name": "awkward-text",
+      "cfg": {
+        "GameName": "Tom & Jerry's \"<\u00dcber>\" Caf\u00e9\u2122 \ud83c\udfae \u212aelvin \u0130stanbul",
+        "Games": [
+          {
+            "Name": "STAR WARS\u00ae: Empire At War\u2122 \\ <script>alert(1)</script>",
+            "MatchName": "STAR WARS\u00ae: Empire At War\u2122",
+            "Setup": "Games\\01 - STAR WARS Empire At War\\setup_\u00e9\u00e0.exe",
+            "Manual": "",
+            "Extras": "",
+            "AddOns": [
+              {
+                "Name": "Line\nbreak\ttab\u0007bell \ud83c\udfae",
+                "Setup": "Games\\01 - STAR WARS Empire At War\\Add-ons\\01 - x\\y.exe"
+              }
+            ]
+          },
+          {
+            "Name": "\u017b\u00f3\u0142w",
+            "MatchName": "",
+            "Setup": "Games\\02 - Zolw\\setup.exe",
+            "Manual": "",
+            "Extras": "",
+            "AddOns": []
+          }
+        ],
+        "Buttons": [
+          "Play",
+          "Install",
+          "Manual",
+          "Extras",
+          "Exit"
+        ],
+        "MusicFile": "music \u00e9.ogg",
+        "ManualFile": "Handbuch \u00fc \"1\".pdf",
+        "PanelSide": "left",
+        "IconName": "TOM_JERRY.ico",
+        "WindowBorder": true,
+        "ButtonStyle": "minimal"
+      }
+    },
+    {
+      "name": "no-buttons-no-icon",
+      "cfg": {
+        "GameName": "",
+        "Games": [
+          {
+            "Name": "Solo",
+            "MatchName": "Solo",
+            "Setup": "setup_solo.exe",
+            "Manual": "",
+            "Extras": "",
+            "AddOns": []
+          }
+        ],
+        "Buttons": [],
+        "MusicFile": "",
+        "ManualFile": "",
+        "PanelSide": "Right",
+        "IconName": "",
+        "WindowBorder": true,
+        "ButtonStyle": "Bordered"
+      }
+    }
+  ]
+}
