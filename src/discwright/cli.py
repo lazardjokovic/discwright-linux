@@ -1,25 +1,220 @@
-"""The discwright command.
+"""The discwright command: a disc built from the command line.
 
-Only --version for now. The build command arrives when the disc it builds can be
-shown to match the Windows one; see docs/xorriso-spike.md.
+This is the Linux app. The Windows one is a window of numbered steps, and the
+options below are those steps: the games, the label, the icon, the menu, the
+extra content, the output folder. What each one does, and why it is there, is in
+the module that carries it out.
+
+    discwright build --game ~/GOG/Alan_Wake --icon cover.png \\
+                     --background art.jpg --out ~/discs/alanwake
+
+Anything that would make an unusable disc is refused before a file is copied,
+with a message naming what to do about it.
 """
 
 from __future__ import annotations
 
 import argparse
+import sys
+from pathlib import Path
 
 from . import __version__
+from .build import build
+from .games import GameInfo, add_on_info, format_size, game_info
+from .iso import IsoError
+from .settings import DiscSettings
+from .stage import StagingError, stage
+
+BUTTONS = ["Play", "Install", "Manual", "Extras", "Exit"]
+
+
+class _Entry(argparse.Action):
+    """--game and --add-on in the order they were typed, so an add-on belongs to
+    the game before it, the way the window files it under the game it is for."""
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        entries = getattr(namespace, "entries", None) or []
+        entries.append((self.dest, value))
+        namespace.entries = entries
+
+
+def _buttons(value: str) -> list[str]:
+    chosen: list[str] = []
+    for raw in value.split(","):
+        name = raw.strip().casefold()
+        if not name:
+            continue
+        match = next((b for b in BUTTONS if b.casefold() == name), None)
+        if match is None:
+            raise argparse.ArgumentTypeError(
+                f"{raw.strip()!r} is not a button. Choose from: " + ", ".join(BUTTONS))
+        if match not in chosen:
+            chosen.append(match)
+    return chosen
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="discwright",
+        description="Turn GOG offline installers into burnable game discs.")
+    p.add_argument("--version", action="version", version=f"DiscWright {__version__}")
+    sub = p.add_subparsers(dest="command")
+
+    b = sub.add_parser("build", help="build a disc and write its ISO",
+                       description="Build a disc from one or more GOG downloads.")
+    b.add_argument("--game", metavar="DIR", action=_Entry,
+                   help="a GOG download folder. Repeat for a disc holding several games.")
+    b.add_argument("--add-on", metavar="EXE", action=_Entry, dest="add_on",
+                   help="an add-on installer (DLC, an expansion, a patch, a mod) for the game "
+                        "named before it.")
+    b.add_argument("--label", metavar="TEXT",
+                   help="what Explorer shows for the disc. Defaults to the first game's name.")
+    b.add_argument("--icon", metavar="FILE", help="the disc's icon: an .ico, or any picture.")
+    b.add_argument("--out", metavar="DIR", help="where the ISO and the disc folder go.")
+
+    m = b.add_argument_group("the autorun menu")
+    m.add_argument("--no-menu", action="store_true",
+                   help="no menu: the disc just opens as a folder.")
+    m.add_argument("--background", metavar="FILE", help="the menu's artwork. A menu needs one.")
+    m.add_argument("--background-as-is", action="store_true",
+                   help="use the picture as it is, already 760x480 and composed.")
+    m.add_argument("--panel-side", choices=["right", "left"], default="right",
+                   help="which side the buttons sit on. Pick the side away from the artwork's "
+                        "focal point, or the buttons cover it (default: right).")
+    m.add_argument("--divider", action="store_true",
+                   help="draw a line between the artwork and the buttons.")
+    m.add_argument("--title", nargs="?", const="", metavar="TEXT",
+                   help="draw a title on the artwork. On its own, the disc's label. Cover art "
+                        "usually carries the game's own logo already.")
+    m.add_argument("--buttons", type=_buttons, default=list(BUTTONS), metavar="LIST",
+                   help="which buttons the menu has, comma separated "
+                        "(default: play,install,manual,extras,exit).")
+    m.add_argument("--music", metavar="FILE", help="played while the menu is open.")
+    m.add_argument("--no-window-border", action="store_true",
+                   help="no outline round the menu window.")
+    m.add_argument("--bordered-buttons", action="store_true", help="draw a box round each button.")
+
+    c = b.add_argument_group("what else goes on the disc")
+    c.add_argument("--manual", metavar="FILE", help="a manual, for the menu's Manual button.")
+    c.add_argument("--extras", metavar="DIR",
+                   help="a folder of extras, for the menu's Extras button.")
+    c.add_argument("--extra", metavar="PATH", action="append", default=[],
+                   help="a file or folder copied to the disc root under its own name. Repeatable.")
+    c.add_argument("--no-linux-name", action="store_true",
+                   help="do not write the files that give the disc its name and icon on a Linux "
+                        "desktop.")
+
+    b.add_argument("--stage-only", action="store_true",
+                   help="lay the disc out as a folder and stop, without writing the ISO.")
+    b.add_argument("--quiet", action="store_true", help="only errors.")
+    return p
+
+
+def _entries(args, out) -> list[GameInfo] | None:
+    """The games and add-ons, read from what was named, each reported the way the
+    window reports it. None when one of them cannot be used."""
+    entries: list[GameInfo] = []
+    last_game = -1
+    ok = True
+    for kind, value in getattr(args, "entries", None) or []:
+        info = game_info(value) if kind == "game" else add_on_info(value)
+        if not info.ok:
+            print(f"{value}: {info.msg}", file=sys.stderr)
+            ok = False
+            continue
+        if kind == "game":
+            last_game = len(entries)
+        elif last_game < 0:
+            print(f"{value}: an add-on belongs to a game, so name a --game before it.",
+                  file=sys.stderr)
+            ok = False
+            continue
+        else:
+            info.parent_index = last_game
+        what = "add-on" if info.kind == "AddOn" else "game"
+        files = f"{len(info.files)} file" + ("s" if len(info.files) != 1 else "")
+        out(f"{what}: {info.game_name}  ({files}, {format_size(info.total_bytes)})")
+        if info.warning:
+            out(f"  {info.warning}")
+        entries.append(info)
+    return entries if ok else None
+
+
+def _settings(args, entries: list[GameInfo], label: str) -> DiscSettings:
+    icon = Path(args.icon)
+    return DiscSettings(
+        games=entries,
+        label=label,
+        out_dir=Path(args.out),
+        icon_path=icon,
+        icon_is_ico=icon.suffix.casefold() == ".ico",
+        menu=not args.no_menu,
+        bg_path=Path(args.background) if args.background else None,
+        bg_as_is=args.background_as_is,
+        panel_side="Left" if args.panel_side == "left" else "Right",
+        divider=args.divider,
+        show_title=args.title is not None,
+        title_text=args.title or "",
+        window_border=not args.no_window_border,
+        button_style="Bordered" if args.bordered_buttons else "Minimal",
+        music_file=Path(args.music) if args.music else None,
+        buttons=args.buttons,
+        manual_path=Path(args.manual) if args.manual else None,
+        extras_path=Path(args.extras) if args.extras else None,
+        extra_items=[Path(p) for p in args.extra],
+        linux_info=not args.no_linux_name,
+    )
+
+
+def _run_build(args) -> int:
+    out = (lambda _m: None) if args.quiet else print
+    entries = _entries(args, out)
+    if entries is None:
+        return 1
+    if not entries:
+        print("Name at least one --game: the folder a GOG download came in.", file=sys.stderr)
+        return 1
+    if not args.icon:
+        print("A disc needs an --icon: the picture Explorer shows for the drive.", file=sys.stderr)
+        return 1
+    if not args.out:
+        print("Say where the disc goes with --out.", file=sys.stderr)
+        return 1
+
+    label = args.label if (args.label or "").strip() else entries[0].game_name
+    if not (args.label or "").strip():
+        out(f"label: {label}  (the first game's name; --label sets your own)")
+
+    # One line, rewritten in place. xorriso reports often and a build of a full
+    # game takes minutes, so the number has to move without filling the terminal.
+    last = [-5.0]
+
+    def progress(percent: float) -> None:
+        if percent - last[0] < 5 and percent != 100.0:
+            return
+        last[0] = percent
+        print(f"\r  {percent:5.1f}%", end="\n" if percent == 100.0 else "", flush=True)
+
+    try:
+        s = _settings(args, entries, label)
+        if args.stage_only:
+            stage_dir, _ = stage(s, out)
+            out(f"DONE.  The disc folder is {stage_dir}")
+        else:
+            build(s, out, None if args.quiet else progress)
+    except (StagingError, IsoError) as e:
+        print(f"\n{e}", file=sys.stderr)
+        return 1
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="discwright",
-        description="Turn GOG offline installers into burnable game discs.",
-    )
-    parser.add_argument("--version", action="version", version=f"DiscWright {__version__}")
-    parser.parse_args(argv)
-    parser.print_help()
-    return 0
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if getattr(args, "command", None) != "build":
+        parser.print_help()
+        return 0
+    return _run_build(args)
 
 
 if __name__ == "__main__":

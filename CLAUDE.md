@@ -259,7 +259,15 @@ These are the owner's, carried over from the Windows project. Follow them here.
 - The whole disc has been built end to end and compared with the Windows one:
   see the end of `docs/xorriso-spike.md`. Ten of the twelve files byte for byte,
   the other two the same pictures, same label, same name in Explorer.
-- Next: the command line, which is the last piece before the tool can be used.
-  `Test-ComposedBg` (a 760x480 background is taken to be one already composed,
-  and used as-is) belongs there, where settings are chosen. After it: the project
-  file (`discproject.json`, schema 8, shared with Windows).
+- `cli.py` is the tool: `discwright build`, with one option per step of the
+  Windows window. An add-on belongs to the `--game` named before it, which is
+  why both go through one argparse action that keeps the order they were typed
+  in. Everything that cannot be built is refused before a file is copied, each
+  message naming what to do. `--stage-only` stops after the disc folder.
+- Next: the project file (`discproject.json`, schema 8, shared with Windows), so
+  a disc can be reopened and rebuilt, and `Test-ComposedBg` with it (a 760x480
+  background is taken to be one already composed and used as-is). Then a window,
+  in GTK4.
+- Not ported, and probably never: the target-disc sizing (`Get-MediaFit` and the
+  media tiers), which is a window's live recommendation rather than anything the
+  disc carries.
