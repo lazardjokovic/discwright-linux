@@ -264,10 +264,26 @@ These are the owner's, carried over from the Windows project. Follow them here.
   why both go through one argparse action that keeps the order they were typed
   in. Everything that cannot be built is refused before a file is copied, each
   message naming what to do. `--stage-only` stops after the disc folder.
-- Next: the project file (`discproject.json`, schema 8, shared with Windows), so
-  a disc can be reopened and rebuilt, and `Test-ComposedBg` with it (a 760x480
-  background is taken to be one already composed and used as-is). Then a window,
-  in GTK4.
+- `project.py` reads and writes `discproject.json`, schema 8, the same file the
+  Windows app writes: a build saves one beside its ISO, and
+  `discwright build --project FILE` rebuilds from it. Every older schema opens,
+  and a key a file does not carry reads back as what that disc behaved like
+  before the key existed, not as today's default. The file is UTF-8 **with** a
+  byte order mark and CRLF, because without the mark PowerShell 5.1 reads it in
+  the machine's ANSI codepage and mangles any path with an accent. Checked both
+  ways: the tests read a real Windows file of schema 8 and one of schema 5, and
+  `tools/windows/Read-Project.ps1` had the real `Import-Project` read a file
+  written here, with every accent arriving intact.
+- **A Windows bug found while porting, not yet fixed in Windows:** a rebuild
+  over an existing disc sets the old disc folder aside and rewrites every
+  setting that pointed inside it, then deletes that folder once the ISO is
+  written. `Save-Project` runs in between, so the project it saves names files
+  in a folder that no longer exists: reopening it loses the icon or background
+  picked from the disc being rebuilt. `build.py` points those paths back at the
+  new disc folder, where the same files are, before saving.
+- Next: a window, in GTK4. `Test-ComposedBg` (a 760x480 background is taken to
+  be one already composed and used as-is) belongs there, or in the command line
+  beside `--background-as-is`.
 - Not ported, and probably never: the target-disc sizing (`Get-MediaFit` and the
   media tiers), which is a window's live recommendation rather than anything the
   disc carries.

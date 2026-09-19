@@ -25,6 +25,7 @@ proven to match the Windows version byte for byte:
 - the menu: the same one Windows puts on the disc, byte for byte
 - the ISO itself, written with xorriso, which Windows reads as the same disc
 - the `discwright build` command that ties all of it together
+- the project file a disc is saved as, shared with the Windows app
 
 Needs Python 3.10 or newer and Pillow.
 
@@ -48,6 +49,16 @@ discwright build --game ~/GOG/Witcher --add-on ~/GOG/Witcher/patch_1.4_to_1.5.ex
 `discwright build --help` lists the rest: which buttons the menu has, which side
 they sit on, music, extra content, and `--stage-only` to lay the disc out as a
 folder without writing an ISO.
+
+Every build saves a `discproject.json` beside the ISO, and that file rebuilds the
+disc:
+
+```sh
+discwright build --project ~/discs/alanwake/discproject.json
+```
+
+It is the same file the Windows app writes, so a disc saved on either machine
+opens on the other.
 
 A window comes after this. Follow along in the commits, or use the Windows
 version today.

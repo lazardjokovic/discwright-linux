@@ -22,6 +22,7 @@ from . import __version__
 from .build import build
 from .games import GameInfo, add_on_info, format_size, game_info
 from .iso import IsoError
+from .project import read_project, settings_from_project
 from .settings import DiscSettings
 from .stage import StagingError, stage
 
@@ -62,6 +63,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     b = sub.add_parser("build", help="build a disc and write its ISO",
                        description="Build a disc from one or more GOG downloads.")
+    b.add_argument("--project", metavar="FILE",
+                   help="rebuild the disc a discproject.json describes, saved by a build here "
+                        "or by DiscWright on Windows. Everything comes from the file; only "
+                        "--out, --stage-only and --quiet go with it.")
     b.add_argument("--game", metavar="DIR", action=_Entry,
                    help="a GOG download folder. Repeat for a disc holding several games.")
     b.add_argument("--add-on", metavar="EXE", action=_Entry, dest="add_on",
@@ -166,8 +171,44 @@ def _settings(args, entries: list[GameInfo], label: str) -> DiscSettings:
     )
 
 
+def _from_project(args, out) -> DiscSettings | None:
+    project = read_project(args.project)
+    if project is None:
+        print(f"{args.project}: not a disc project file.", file=sys.stderr)
+        return None
+    s, problems = settings_from_project(project)
+    for p in problems:
+        print(p, file=sys.stderr)
+    if problems:
+        # A project written on Windows names Windows paths, and a game that has
+        # moved is the same failure. Either way there is nothing to build from.
+        print("The project names files this machine cannot find.", file=sys.stderr)
+        return None
+    if args.out:
+        s.out_dir = Path(args.out)
+    out(f"project: {args.project}  (schema {project.schema}, written by DiscWright "
+        f"{project.app_version or 'unknown'})")
+    for g in s.games:
+        what = "add-on" if g.kind == "AddOn" else "game"
+        out(f"{what}: {g.game_name}  ({len(g.files)} file"
+            f"{'s' if len(g.files) != 1 else ''}, {format_size(g.total_bytes)})")
+    return s
+
+
 def _run_build(args) -> int:
     out = (lambda _m: None) if args.quiet else print
+    if args.project:
+        for name, value in (("--game or --add-on", getattr(args, "entries", None)),
+                            ("--icon", args.icon), ("--label", args.label)):
+            if value:
+                print(f"{name} cannot be given with --project: the file already says. "
+                      "Only --out, --stage-only and --quiet go with it.", file=sys.stderr)
+                return 1
+        s = _from_project(args, out)
+        if s is None:
+            return 1
+        return _build_it(args, s, out)
+
     entries = _entries(args, out)
     if entries is None:
         return 1
@@ -184,7 +225,10 @@ def _run_build(args) -> int:
     label = args.label if (args.label or "").strip() else entries[0].game_name
     if not (args.label or "").strip():
         out(f"label: {label}  (the first game's name; --label sets your own)")
+    return _build_it(args, _settings(args, entries, label), out)
 
+
+def _build_it(args, s: DiscSettings, out) -> int:
     # One line, rewritten in place. xorriso reports often and a build of a full
     # game takes minutes, so the number has to move without filling the terminal.
     last = [-5.0]
@@ -196,7 +240,6 @@ def _run_build(args) -> int:
         print(f"\r  {percent:5.1f}%", end="\n" if percent == 100.0 else "", flush=True)
 
     try:
-        s = _settings(args, entries, label)
         if args.stage_only:
             stage_dir, _ = stage(s, out)
             out(f"DONE.  The disc folder is {stage_dir}")

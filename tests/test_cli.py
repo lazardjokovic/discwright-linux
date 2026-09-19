@@ -1,6 +1,7 @@
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -205,3 +206,55 @@ def test_runs_as_a_command(src, tmp_path):
                          capture_output=True, text=True)
     assert run.returncode == 0, run.stderr
     assert (tmp_path / "out" / "disc" / "autorun.inf").is_file()
+
+
+# ---- rebuilding a saved disc ------------------------------------------------------------
+
+def saved_project(src, out) -> Path:
+    """A project as a build would have left it, without building."""
+    from discwright.games import game_info
+    from discwright.project import save_project
+    from discwright.settings import DiscSettings
+    out.mkdir(parents=True, exist_ok=True)
+    return save_project(DiscSettings(
+        games=[game_info(src / "Alpha")], label="ALPHA DISC", out_dir=out,
+        icon_path=src / "art" / "alpha.ico", icon_is_ico=True, menu=True,
+        bg_path=src / "art" / "alpha-bg.png", buttons=["Play", "Exit"], linux_info=True), out)
+
+
+def test_rebuilds_the_disc_a_project_describes(src, tmp_path, capsys):
+    out = tmp_path / "out"
+    project = saved_project(src, out)
+    assert main(["build", "--project", str(project), "--stage-only"]) == 0
+    assert (out / "disc" / "AUTORUN" / "menu.hta").is_file()
+    printed = capsys.readouterr().out
+    assert "schema 8" in printed and "game: alpha" in printed
+
+
+def test_puts_a_rebuilt_disc_where_told(src, tmp_path):
+    project = saved_project(src, tmp_path / "out")
+    elsewhere = tmp_path / "elsewhere"
+    assert main(["build", "--project", str(project), "--out", str(elsewhere), "--stage-only"]) == 0
+    assert (elsewhere / "disc" / "autorun.inf").is_file()
+
+
+def test_refuses_a_project_alongside_the_options_it_already_holds(src, tmp_path, capsys):
+    project = saved_project(src, tmp_path / "out")
+    assert main(["build", "--project", str(project), "--game", str(src / "Alpha")]) == 1
+    assert "cannot be given with --project" in capsys.readouterr().err
+
+
+def test_refuses_something_that_is_not_a_project(tmp_path, capsys):
+    bad = tmp_path / "notes.txt"
+    bad.write_text("not a project")
+    assert main(["build", "--project", str(bad)]) == 1
+    assert "not a disc project file" in capsys.readouterr().err
+
+
+def test_says_which_file_a_project_cannot_find(src, tmp_path, capsys):
+    import shutil
+    project = saved_project(src, tmp_path / "out")
+    shutil.rmtree(src / "Alpha")
+    assert main(["build", "--project", str(project), "--stage-only"]) == 1
+    err = capsys.readouterr().err
+    assert "Alpha" in err and "cannot find" in err
