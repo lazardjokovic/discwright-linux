@@ -138,6 +138,14 @@ These are the owner's, carried over from the Windows project. Follow them here.
 
 ## Where things stand
 
+**Right now (2026-09-21): testing on real Linux, before any release.** Every
+part of the Windows app's disc-making is ported, with the command line and the
+window, and all of it passes in WSL and CI. What has never been seen is a real
+Linux desktop, so the owner is testing on Arch, dual-booted on the same PC. If
+you are a session on that machine, **follow `docs/testing-on-linux.md`** and
+report what you find. **Do not release, tag or bump a version**: the owner has
+said the release waits until they have seen the results.
+
 - Ported and tested against Windows output: `text.py` (control characters, volume
   id, ANSI encoding), `autorun.py`, `xdg.py`.
 - `games.py` reads a GOG download folder: the installer, its parts, gaps in the
@@ -299,8 +307,14 @@ These are the owner's, carried over from the Windows project. Follow them here.
 - WSL shows the window on the Windows desktop through WSLg: `discwright window`.
   Installing PyGObject into the venv (`pip install -e ".[dev,gui]"`) needs
   `libgirepository-2.0-dev libcairo2-dev pkg-config python3-dev` from apt.
-- Next: a release. Nothing has been published for Linux yet: no package, no
-  version number but `0.1.0.dev0`.
+- Next: the real-Linux checks in `docs/testing-on-linux.md`, then a first
+  release, only when the owner says. Nothing has been published for Linux yet:
+  no package, no version number but `0.1.0.dev0`.
+- **Working with the owner, beyond the rules above:** say plainly when a run
+  will take over the desktop and when it is free again; ask before anything
+  that needs their password (`sudo`), their GitHub login, or deletes files they
+  did not create in this session. A safety hook protects folders directly under
+  a drive root; do not work around it, leave such a delete to the owner.
 - Not ported, and probably never: the target-disc sizing (`Get-MediaFit` and the
   media tiers), which is a window's live recommendation rather than anything the
   disc carries.
