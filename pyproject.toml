@@ -17,6 +17,9 @@ dependencies = ["Pillow>=9.1"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+# The window. GTK itself comes from the system (gir1.2-gtk-4.0 on Debian and
+# Ubuntu); PyGObject is the Python side of it.
+gui = ["PyGObject>=3.46"]
 
 [project.scripts]
 discwright = "discwright.cli:main"

@@ -258,3 +258,14 @@ def test_says_which_file_a_project_cannot_find(src, tmp_path, capsys):
     assert main(["build", "--project", str(project), "--stage-only"]) == 1
     err = capsys.readouterr().err
     assert "Alpha" in err and "cannot find" in err
+
+
+# ---- the window ----------------------------------------------------------------------
+
+def test_says_how_to_get_the_window_when_gtk_is_missing(monkeypatch, capsys):
+    # None in sys.modules makes the import fail, the way it does on a machine
+    # without GTK or PyGObject.
+    monkeypatch.setitem(sys.modules, "discwright.window", None)
+    assert main(["window"]) == 1
+    err = capsys.readouterr().err
+    assert "gir1.2-gtk-4.0" in err and "discwright build" in err

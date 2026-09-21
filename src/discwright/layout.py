@@ -169,6 +169,46 @@ def entry_add_ons(entries: Sequence[GameInfo], index: int) -> list[int]:
     return [i for i, e in enumerate(entries) if e.parent_index == index]
 
 
+def remove_entry(entries: Sequence[GameInfo], index: int,
+                 with_add_ons: bool = False) -> list[GameInfo]:
+    """The entries with one taken out, and optionally its add-ons. Ported from
+    Remove-GameEntry.
+
+    Parents are stored as positions, so taking an entry out renumbers every one
+    after it. Removing the second of four would otherwise silently re-point an
+    add-on that belonged to the fourth at the third: a disc that builds cleanly
+    with the DLC filed under the wrong game. So the shift is made here, in one
+    place, rather than left to whoever removes.
+
+    An add-on whose own parent is removed becomes a game of its own. The
+    alternative, deleting it too, throws away an installer somebody chose
+    without asking them.
+    """
+    if index < 0 or index >= len(entries):
+        return list(entries)
+    drop = {index}
+    if with_add_ons:
+        drop.update(entry_add_ons(entries, index))
+    # Old position to new, built before anything is rewritten: with more than one
+    # entry going, "one less if the parent sat after the removed row" no longer
+    # holds.
+    new_index = {}
+    for i in range(len(entries)):
+        if i not in drop:
+            new_index[i] = len(new_index)
+    kept = []
+    for i, e in enumerate(entries):
+        if i in drop:
+            continue
+        if e.parent_index >= 0:
+            if e.parent_index in drop:
+                e.kind, e.parent_index = "Game", -1
+            else:
+                e.parent_index = new_index[e.parent_index]
+        kept.append(e)
+    return kept
+
+
 def menu_games(entries: Sequence[GameInfo]) -> list[dict]:
     """The menu's view of the disc: games in order, each with its add-ons, and
     every path taken from the layout, so the menu and the disc cannot disagree."""

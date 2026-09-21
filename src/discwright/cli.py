@@ -61,6 +61,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--version", action="version", version=f"DiscWright {__version__}")
     sub = p.add_subparsers(dest="command")
 
+    sub.add_parser("window", help="open the DiscWright window",
+                   description="Open the DiscWright window: the same steps as the Windows app.")
+
     b = sub.add_parser("build", help="build a disc and write its ISO",
                        description="Build a disc from one or more GOG downloads.")
     b.add_argument("--project", metavar="FILE",
@@ -254,10 +257,28 @@ def _build_it(args, s: DiscSettings, out) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    if getattr(args, "command", None) == "window":
+        return _run_window()
     if getattr(args, "command", None) != "build":
         parser.print_help()
         return 0
     return _run_build(args)
+
+
+def _run_window() -> int:
+    # GTK is only needed for the window, so it is imported only here: the command
+    # line works on a machine without it, a server or a container.
+    try:
+        from .window import run
+    except (ImportError, ValueError) as e:
+        print("The window needs GTK 4 and PyGObject, which are not installed:\n"
+              f"  {e}\n\n"
+              "On Debian or Ubuntu:  sudo apt install gir1.2-gtk-4.0 python3-gi\n"
+              "On Fedora:            sudo dnf install gtk4 python3-gobject\n\n"
+              "Everything the window does, discwright build does from the command line.",
+              file=sys.stderr)
+        return 1
+    return run()
 
 
 if __name__ == "__main__":
