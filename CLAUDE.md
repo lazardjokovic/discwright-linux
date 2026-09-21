@@ -274,16 +274,33 @@ These are the owner's, carried over from the Windows project. Follow them here.
   ways: the tests read a real Windows file of schema 8 and one of schema 5, and
   `tools/windows/Read-Project.ps1` had the real `Import-Project` read a file
   written here, with every accent arriving intact.
-- **A Windows bug found while porting, not yet fixed in Windows:** a rebuild
+- **A Windows bug found while porting, fixed in Windows 0.7.6:** a rebuild
   over an existing disc sets the old disc folder aside and rewrites every
   setting that pointed inside it, then deletes that folder once the ISO is
   written. `Save-Project` runs in between, so the project it saves names files
   in a folder that no longer exists: reopening it loses the icon or background
   picked from the disc being rebuilt. `build.py` points those paths back at the
   new disc folder, where the same files are, before saving.
-- Next: a window, in GTK4. `Test-ComposedBg` (a 760x480 background is taken to
-  be one already composed and used as-is) belongs there, or in the command line
-  beside `--background-as-is`.
+- **The window is two files on purpose.** `form.py` holds every rule the window
+  follows, with no GTK in it: what can be used right now and the sentence saying
+  why not, what stops a build and what only needs a yes. `window.py` only draws
+  it and passes clicks back, so the rules are tested without a screen. Where the
+  Windows app leaves BUILD clickable and refuses in a dialog, this greys it out
+  and says what is missing. `Test-ComposedBg` is in the window: picking a
+  760x480 background ticks "use as it is".
+- **The window's tests** (`tests/test_window.py`) draw it for real and skip
+  without GTK 4 or a display. One walks every clickable widget and demands it be
+  greyed out during a build, rather than asking the form: a widget nobody tied
+  to a rule is exactly the one a list of rules misses. It found three on its
+  first run: Add file..., Add folder... and the extra-content list.
+  Dialogs are recorded in tests, not shown. CI runs them under `xvfb-run`.
+  `tools/window_screenshots.py` draws the window in several states to PNGs,
+  under Xvfb, without touching the desktop.
+- WSL shows the window on the Windows desktop through WSLg: `discwright window`.
+  Installing PyGObject into the venv (`pip install -e ".[dev,gui]"`) needs
+  `libgirepository-2.0-dev libcairo2-dev pkg-config python3-dev` from apt.
+- Next: a release. Nothing has been published for Linux yet: no package, no
+  version number but `0.1.0.dev0`.
 - Not ported, and probably never: the target-disc sizing (`Get-MediaFit` and the
   media tiers), which is a window's live recommendation rather than anything the
   disc carries.
