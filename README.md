@@ -39,6 +39,8 @@ icon, the menu, the extra content, the output folder. Anything that cannot be us
 yet is greyed out, and hovering it says why; **BUILD ISO** says the first thing
 still missing.
 
+![The DiscWright window with the Alan Wake demo filled in](docs/window.png)
+
 It needs GTK 4 and PyGObject:
 
 ```sh
