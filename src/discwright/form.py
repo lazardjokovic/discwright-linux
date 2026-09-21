@@ -165,6 +165,7 @@ class Form:
                               menu_off if not self.menu else "Tick the Manual button first.")
         c["extras"] = Control(self.menu and "Extras" in self.buttons,
                               menu_off if not self.menu else "Tick the Extras button first.")
+        c["add_extra"] = Control(True)
         c["remove_extra"] = Control(bool(self.extra_items), "There is no extra content to remove.")
         missing = self.missing()
         c["build"] = Control(not missing, missing[0] if missing else "")
@@ -274,5 +275,5 @@ class Form:
 
 CONTROL_NAMES = ("add_game", "add_on", "remove", "rename", "background", "bg_as_is", "buttons",
                  "music_on", "window_border", "button_style", "panel_side", "divider",
-                 "show_title", "title_text", "music", "manual", "extras", "remove_extra",
+                 "show_title", "title_text", "music", "manual", "extras", "add_extra", "remove_extra",
                  "build", "new_disc", "show_folder")

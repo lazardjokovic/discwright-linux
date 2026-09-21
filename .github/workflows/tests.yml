@@ -8,7 +8,7 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
-    # The whole job takes about a minute. Without a limit, a hang holds the PR
+    # The whole job takes a few minutes. Without a limit, a hang holds the PR
     # for GitHub's default of six hours.
     timeout-minutes: 20
     strategy:
@@ -20,11 +20,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: xorriso
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq xorriso
-      - run: pip install -e ".[dev]"
-      - run: python -m pytest -v
+      # xorriso writes the ISO. GTK 4 and the girepository headers are what the
+      # window and PyGObject need, and xvfb is a screen for the window to be
+      # drawn on, since a runner has none.
+      - name: system packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xorriso gir1.2-gtk-4.0 libgirepository-2.0-dev \
+            libcairo2-dev pkg-config xvfb
+      - run: pip install -e ".[dev,gui]"
+      - run: xvfb-run -a python -m pytest -v
       # Breaks the code in ways a real mistake would, and fails if any of them
       # gets through. A suite that passes against broken code proves nothing.
       - name: mutation check
-        run: python tools/mutate.py
+        run: xvfb-run -a python tools/mutate.py
