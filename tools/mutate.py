@@ -268,14 +268,14 @@ MUTATIONS = [
      '"Source": "Files" if g.source == "Files" else "GOG",', '"Source": "GOG",'),
     ("a folder of files reopened as a GOG download", "project.py",
      'elif e.source == "Files":', "elif False:"),
-    ("a folder of game files flattened onto the disc", "stage.py",
+    ("files staged by name instead of by their path under the folder", "stage.py",
      "dest = dest_dir / entry_file_relative(g, f)", "dest = dest_dir / f.name"),
     ("the game's own icons swept off the disc", "stage.py",
      "if stale.name not in (ico_name, png_name) and stale.name not in own_root_files:",
      "if stale.name not in (ico_name, png_name):"),
     ("a game's root files counted from the wrong folder", "stage.py",
      "if dest.parent == stage_dir:", "if False:"),
-    ("the menu not told where a game's files are", "menu.py",
+    ("the folder left out of the menu's own games list", "menu.py",
      "+ '\",d:\"' + js_string(g.get(\"folder\") or \"\")", "+ '\",d:\"' + js_string(\"\")"),
 ]
 
