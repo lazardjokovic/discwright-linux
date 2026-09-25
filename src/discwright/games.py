@@ -139,7 +139,7 @@ def folder_executables(folder: str | Path, limit: int = 25,
     # Name breaks a tie, so which executable is offered first cannot depend on
     # the order the filesystem happened to hand them over in.
     exes.sort(key=lambda p: (-p.stat().st_size, p.name.casefold()))
-    return exes
+    return exes[:limit]
 
 
 def gog_subfolders(folder: str | Path) -> list[Path]:
