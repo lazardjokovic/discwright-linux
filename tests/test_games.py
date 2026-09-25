@@ -4,7 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from discwright.games import format_size, game_info
+from discwright.games import (folder_executables, folder_info, format_size, game_info,
+                              gog_subfolders)
 
 PE = Path(__file__).parent / "fixtures" / "pe"
 MB = 1 << 20
@@ -133,6 +134,129 @@ def test_says_what_it_found_the_way_windows_does(game_a):
 ])
 def test_formats_sizes_the_way_windows_does(size, shown):
     assert format_size(size) == shown
+
+
+# A folder that is not a GOG download. Ported from the Windows suite's block of
+# the same name, added in 0.8.0.
+#
+# Asked for publicly: somebody had burned a 17 GB GOG disc with DiscWright and
+# then wanted the same disc from game files GOG never packaged. Until then a
+# game had to be a folder holding a setup_*.exe, which ruled out an installed
+# game, an unpacked archive, an itch.io download and anything portable.
+
+@pytest.fixture
+def loose(tmp_path):
+    d = tmp_path / "loose-game"
+    sparse(d / "Game.exe", 3 * MB)
+    sparse(d / "CrashHandler.exe", 64 * 1024)
+    write(d / "readme.txt", "read me")
+    write(d / "data" / "config.ini", "x=1")
+    write(d / "data" / "textures" / "wall.dds", "dds")
+    return d
+
+
+def write(path: Path, text: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="ascii")
+    return path
+
+
+def test_the_gog_reader_refuses_it_which_is_what_asks_the_question(loose):
+    info = game_info(loose)
+    assert not info.ok
+    assert info.msg.startswith("No GOG")
+
+
+def test_takes_the_folder_with_everything_in_it(loose):
+    info = folder_info(loose)
+    assert info.ok
+    assert info.source == "Files"
+    assert len(info.files) == 5
+    assert info.total_bytes > 3 * MB
+
+
+def test_names_it_after_the_folder_when_no_installer_was_picked(loose):
+    info = folder_info(loose)
+    assert info.game_name == "loose-game"
+    assert info.setup_exe is None
+    # Play has nothing to look for either way, but an empty match makes the menu
+    # search for nothing and light Play up for every game it finds.
+    assert info.match_name == "loose-game"
+
+
+def test_installs_with_the_executable_that_was_picked(loose):
+    info = folder_info(loose, loose / "Game.exe")
+    assert info.setup_exe == loose / "Game.exe"
+
+
+def test_ignores_an_installer_that_is_not_there(loose):
+    # Not a failure: the folder is still a folder of files, and the menu offers
+    # it rather than an Install button pointing at nothing.
+    info = folder_info(loose, loose / "Missing.exe")
+    assert info.ok
+    assert info.setup_exe is None
+
+
+def test_refuses_a_folder_with_nothing_in_it(tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    info = folder_info(empty)
+    assert not info.ok
+    assert "no files" in info.msg
+
+
+def test_refuses_a_folder_that_is_not_there(tmp_path):
+    info = folder_info(tmp_path / "nowhere")
+    assert not info.ok
+    assert info.msg == "Folder not found."
+
+
+def test_offers_every_executable_biggest_first(loose):
+    # An installer is rarely the smallest thing in a game folder: a crash
+    # handler or an uninstaller is.
+    exes = folder_executables(loose)
+    assert [p.name for p in exes] == ["Game.exe", "CrashHandler.exe"]
+
+
+def test_looks_for_executables_all_the_way_down(loose):
+    sparse(loose / "tools" / "Helper.exe", MB)
+    assert "Helper.exe" in [p.name for p in folder_executables(loose)]
+
+
+def test_orders_a_list_it_was_handed_exactly_as_one_it_read_itself(loose):
+    # The dialog reads the folder once and hands the list over, because a cold
+    # 20 GB game folder makes a second walk visible. Same rule either way, or
+    # the list somebody sees stops matching the one under test.
+    files = list(loose.rglob("*"))
+    given = folder_executables(loose, files=[p for p in files if p.is_file()])
+    assert [p.name for p in given] == [p.name for p in folder_executables(loose)]
+
+
+def test_caps_the_list_however_the_folder_was_read(tmp_path):
+    many = tmp_path / "many"
+    for i in range(1, 31):
+        sparse(many / f"tool{i}.exe", 1024 * i)
+    assert len(folder_executables(many)) == 25
+    assert len(folder_executables(many, files=[p for p in many.rglob("*") if p.is_file()])) == 25
+
+
+def test_says_nothing_about_executables_in_a_folder_that_is_not_there(tmp_path):
+    assert folder_executables(tmp_path / "nowhere") == []
+
+
+def test_spots_the_folder_that_holds_the_downloads_rather_than_a_game(tmp_path, game_a):
+    # The likeliest way to reach the question by mistake: the folder holding the
+    # downloads has no setup_*.exe of its own, so it is not a GOG download, and
+    # taking it whole would put every game on one entry named after the folder.
+    shelf = tmp_path / "shelf"
+    for name in ("game one", "game two"):
+        sparse(shelf / name / "setup_a_game_1.0.exe", MB)
+    (shelf / "artwork").mkdir()
+    assert [p.name for p in gog_subfolders(shelf)] == ["game one", "game two"]
+    # And a download itself is not one of those, or every ordinary folder would
+    # carry the warning.
+    assert gog_subfolders(game_a) == []
+    assert gog_subfolders(tmp_path / "nowhere") == []
 
 
 # Real GOG downloads, against what Windows DiscWright 0.7.2's own Get-GameInfo

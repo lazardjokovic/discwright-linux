@@ -19,7 +19,7 @@ from __future__ import annotations
 import hashlib
 import re
 import unicodedata
-from pathlib import PureWindowsPath
+from pathlib import Path, PureWindowsPath
 from typing import Sequence
 
 from .games import GameInfo
@@ -150,10 +150,39 @@ def disc_entry_folder(entries: Sequence[GameInfo], index: int) -> str:
 
 
 def disc_entry_setup(entries: Sequence[GameInfo], index: int) -> str:
-    """The installer's path on the disc, as the menu will launch it."""
+    """The installer's path on the disc, as the menu will launch it.
+
+    Empty for an entry that has no installer at all: a folder of game files
+    added with "no installer". The menu reads that as nothing to install here
+    and offers the folder instead.
+    """
+    exe = entries[index].setup_exe
+    if exe is None:
+        return ""
     folder = disc_entry_folder(entries, index)
-    name = entries[index].setup_exe.name
-    return str(PureWindowsPath(folder, name)) if folder else name
+    return str(PureWindowsPath(folder, exe.name)) if folder else exe.name
+
+
+def entry_file_relative(entry: GameInfo, file: Path | str) -> str:
+    """Where one of an entry's files goes, relative to the entry's folder on the
+    disc.
+
+    A GOG download keeps none of its shape, because it has none: an installer
+    and its numbered parts sit in one folder. A folder of game files keeps all
+    of it, or a game that expects data/textures.pak beside its exe arrives
+    broken. Written with the separator this machine uses, because it names a
+    file to create here; the menu's own paths are built with PureWindowsPath.
+    """
+    file = Path(file)
+    if entry.source != "Files" or entry.folder is None:
+        return file.name
+    try:
+        return str(file.resolve().relative_to(Path(entry.folder).resolve()))
+    except ValueError:
+        # Not under the folder at all, which nothing here should produce. The
+        # file still belongs on the disc, so it lands at the entry's root rather
+        # than being dropped.
+        return file.name
 
 
 def disc_entry_extras(entries: Sequence[GameInfo], index: int) -> str:
@@ -231,6 +260,11 @@ def menu_games(entries: Sequence[GameInfo]) -> list[dict]:
             # is the best guess left.
             "match_name": e.match_name or e.game_name,
             "setup": disc_entry_setup(entries, i),
+            # The entry's own folder on the disc. An entry with no installer
+            # offers this instead of Install, so its files are reachable from
+            # the menu rather than only by browsing the disc. Empty is the disc
+            # root, which is where a one-game disc puts everything.
+            "folder": disc_entry_folder(entries, i),
             "add_ons": add_ons,
             "manual": manual,
             "extras": extras,

@@ -6,7 +6,7 @@ import pytest
 from discwright.games import GameInfo
 from discwright.layout import (
     ascii_fold, disc_entry_extras, disc_entry_folder, disc_entry_setup, disc_game_indexes,
-    disc_icon_name, game_folder_name, is_reserved_name, menu_games,
+    disc_icon_name, entry_file_relative, game_folder_name, is_reserved_name, menu_games,
 )
 
 
@@ -225,3 +225,66 @@ def test_gives_the_menu_an_entrys_own_manual_beside_its_installer():
 def test_falls_back_to_the_game_name_when_there_is_no_match_name():
     e = [ent("Old Project Game")]
     assert menu_games(e)[0]["match_name"] == "Old Project Game"
+
+
+# ---- an entry that is a folder of game files, not a GOG download ----------------
+
+def files_ent(folder, name=None, setup=None):
+    """An entry as folder_info makes one: everything under a folder, shape kept."""
+    folder = Path(folder)
+    return GameInfo(ok=True, source="Files", folder=folder,
+                    game_name=name or folder.name,
+                    setup_exe=Path(setup) if setup else None,
+                    files=sorted(p for p in folder.rglob("*") if p.is_file()))
+
+
+@pytest.fixture
+def loose_folder(tmp_path):
+    d = tmp_path / "loose game"
+    (d / "data" / "textures").mkdir(parents=True)
+    (d / "Game.exe").write_bytes(b"x")
+    (d / "data" / "config.ini").write_text("x=1")
+    (d / "data" / "textures" / "wall.dds").write_text("dds")
+    return d
+
+
+def test_keeps_the_shape_of_a_folder_of_files(loose_folder):
+    # A game that expects data/textures/wall.dds beside its exe arrives broken if
+    # the disc flattens it. A GOG download has no shape to keep, so its files go
+    # by name, exactly as before.
+    e = files_ent(loose_folder)
+    deep = next(f for f in e.files if f.name == "wall.dds")
+    assert entry_file_relative(e, deep) == str(Path("data", "textures", "wall.dds"))
+    assert entry_file_relative(ent("Alpha"), Path("/somewhere/setup_Alpha.exe")) == "setup_Alpha.exe"
+
+
+def test_takes_a_file_from_outside_the_folder_by_its_name(loose_folder):
+    # Nothing here should produce one, but dropping it would lose a file off the
+    # disc, which is worse than putting it at the entry's root.
+    e = files_ent(loose_folder)
+    assert entry_file_relative(e, Path("/elsewhere/stray.dat")) == "stray.dat"
+
+
+def test_an_entry_with_no_installer_has_no_setup_path(loose_folder):
+    entries = [files_ent(loose_folder)]
+    assert disc_entry_setup(entries, 0) == ""
+    # And one that has an installer still names it, wherever the entry landed.
+    entries = [files_ent(loose_folder, setup=loose_folder / "Game.exe"), ent("Beta")]
+    assert disc_entry_setup(entries, 0).endswith("Game.exe")
+
+
+def test_tells_the_menu_where_the_files_are(loose_folder):
+    # Empty setup is the menu's signal to offer the folder instead of Install,
+    # so it has to be told which folder that is.
+    entries = [files_ent(loose_folder), ent("Beta")]
+    games = menu_games(entries)
+    assert games[0]["setup"] == ""
+    assert games[0]["folder"] == disc_entry_folder(entries, 0)
+    assert games[1]["setup"] != ""
+
+
+def test_a_lone_folder_of_files_keeps_the_disc_root(loose_folder):
+    # One game on a disc has no numbered folder, so its files sit at the root and
+    # the menu's folder for it is the root: empty.
+    entries = [files_ent(loose_folder)]
+    assert menu_games(entries)[0]["folder"] == ""
