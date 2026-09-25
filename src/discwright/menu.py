@@ -77,6 +77,11 @@ def _games_js(games: Sequence[dict]) -> str:
         match = g.get("match_name") or g["name"]
         parts.append('{n:"' + js_string(g["name"]) + '",m:"' + js_string(match)
                      + '",s:"' + js_string(g["setup"])
+                     # Where this game's files sit on the disc. The menu offers
+                     # the folder in place of Install when there is no installer
+                     # to run, and asks whether the folder is there when it
+                     # decides whether the game is on the chooser at all.
+                     + '",d:"' + js_string(g.get("folder") or "")
                      + '",man:"' + js_string(g.get("manual") or "")
                      + '",ext:"' + js_string(g.get("extras") or "") + '",a:[' + add_ons + ']}')
     return "[" + ",".join(parts) + "]"

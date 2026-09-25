@@ -64,7 +64,7 @@
     }catch(ex2){ alert(ex2.message); return false; }
   }
   var root="";
-  var GAMES=[{n:"Solo",m:"Solo",s:"setup_solo.exe",man:"",ext:"",a:[]}];       // [{n:name, m:registry match, s:setup, man:manual, ext:extras, a:[{n,s}]}]
+  var GAMES=[{n:"Solo",m:"Solo",s:"setup_solo.exe",d:"",man:"",ext:"",a:[]}];       // [{n:name, m:registry match, s:setup, man:manual, ext:extras, a:[{n,s}]}]
   var BTNS=[];         // which of Play/Install/Manual/Extras/Exit the disc was built with
   var MANUAL=""; var MUSIC="";
   var PREVIEW=false;   // true only for the app's Preview - see refreshButtons
@@ -232,7 +232,12 @@
     var g=GAMES[cur], h="";
     if(has("Play"))    h+=btnHtml("btn_Play","play","Play","doPlay()","");
     if(has("Install")){
-      h+=btnHtml("btn_Install","install","Install","doInstall()","Install "+g.n);
+      // A game with no installer is a folder of files: an unpacked zip, a
+      // portable game, anything GOG never packaged. Nothing to install, so the
+      // menu opens the folder rather than offering a button that could only
+      // ever be grey.
+      if(g.s) h+=btnHtml("btn_Install","install","Install","doInstall()","Install "+g.n);
+      else    h+=btnHtml("btn_Open","install","Open Folder","doOpenFolder()","Open "+g.n+" on this disc");
       // Add-ons sit directly under Install in the same colour, because that is
       // what they are - another installer, for this game.
       for(var i=0;i<g.a.length;i++){
@@ -256,8 +261,13 @@
     // would grey out buttons that will be fine on the real disc. Show them live.
     if(cur<0){
       for(var i=0;i<GAMES.length;i++){
-        setEnabled("btn_game_"+i, (PREVIEW || fso.FileExists(fso.BuildPath(root,GAMES[i].s))),
-                   "This game's installer is not on the disc.");
+        // A game with an installer is there when the installer is; one that is a
+        // folder of files is there when the folder is. Asking FileExists about an
+        // empty path greyed out every such game on the chooser.
+        var there = GAMES[i].s ? fso.FileExists(fso.BuildPath(root,GAMES[i].s))
+                               : fso.FolderExists(fso.BuildPath(root,GAMES[i].d));
+        setEnabled("btn_game_"+i, (PREVIEW || there),
+                   "This game's files are not on the disc.");
       }
       return;
     }
@@ -320,6 +330,10 @@
     launchWithStatus("btn_Manual","Opening the manual...",manualOf(GAMES[cur]),false); }
   function doExtras(){ if(off("btn_Extras")) return; if(PREVIEW){ previewStop("Extras"); return; }
     openItem(extrasOf(GAMES[cur]),true); }
+  // The folder this game's files sit in, for a game with no installer. An empty
+  // path is the disc root, which is where a one-game disc keeps everything.
+  function doOpenFolder(){ if(off("btn_Open")) return; if(PREVIEW){ previewStop("Open Folder"); return; }
+    openItem(GAMES[cur].d,true); }
   function doExit(){ window.close(); }
   function regGet(reg,h,sub,val){ try{ var i=reg.Methods_.Item("GetStringValue").InParameters.SpawnInstance_();
     i.hDefKey=h;i.sSubKeyName=sub;i.sValueName=val; var o=reg.ExecMethod_("GetStringValue",i); if(o.ReturnValue==0)return o.sValue; }catch(e){} return null; }

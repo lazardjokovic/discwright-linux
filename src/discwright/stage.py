@@ -17,7 +17,8 @@ from typing import Callable
 from .autorun import autorun_inf
 from .background import compose_background
 from .icons import _write, check_background, check_icon, convert_to_ico, convert_to_png
-from .layout import disc_entry_extras, disc_entry_folder, disc_icon_name, is_reserved_name, menu_games
+from .layout import (disc_entry_extras, disc_entry_folder, disc_icon_name, entry_file_relative,
+                     is_reserved_name, menu_games)
 from .menu import menu_hta
 from .settings import DiscSettings
 from .xdg import xdg_volume_info
@@ -112,6 +113,9 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
     stage_dir = out / "disc"
     aside: Path | None = None
     games = list(s.games)
+    # Names the disc's own content puts at the root, filled in while copying and
+    # read by the stale-icon sweep at the end.
+    own_root_files: set[str] = set()
 
     # Rebuilding a disc folder in place: the installers already live in the stage.
     # One entry, deliberately, not one game: a game carrying add-ons still needs
@@ -163,7 +167,19 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
                 what = "add-on" if g.kind == "AddOn" else "game"
                 log(f"  {what} : {g.game_name} -> {dest_dir.name}")
             for f in g.files:
-                _link_or_copy(f, dest_dir / f.name, log)
+                # A GOG download is an installer and its numbered parts in one
+                # folder, so the file's own name is where it goes. A folder of
+                # game files keeps its shape instead: subfolders and all, or a
+                # game that expects data/textures.pak beside its exe arrives
+                # broken.
+                dest = dest_dir / entry_file_relative(g, f)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                # What the game itself puts at the disc root, so the stale-icon
+                # sweep below can tell a game's own icon from one an earlier
+                # build left behind.
+                if dest.parent == stage_dir:
+                    own_root_files.add(dest.name)
+                _link_or_copy(f, dest, log)
 
             # This entry's own manual and extras, beside its installer, so on a
             # two-game disc each game's Manual button opens its own manual.
@@ -207,8 +223,14 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
             png_name = None
 
     # A rebuild whose label changed would otherwise leave the old icon behind.
+    #
+    # Never a file the disc's own content put there. A folder of game files lands
+    # at the disc root on a one-game disc, and a real game folder is full of
+    # icons: Hollow Knight carries gog.ico, support.ico and its own
+    # goggame-*.ico, and Windows DiscWright swept all three off the disc before
+    # this rule was written. Measured on the installed game, not imagined.
     for stale in list(stage_dir.glob("*.ico")) + list(stage_dir.glob("*.png")):
-        if stale.name not in (ico_name, png_name):
+        if stale.name not in (ico_name, png_name) and stale.name not in own_root_files:
             stale.unlink()
             log(f"  removed old icon: {stale.name}")
 
