@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from discwright.games import game_info
+from discwright.games import folder_info, game_info
 from discwright.project import (PROJECT_FILE, SCHEMA, Project, ProjectEntry, read_project,
                                 save_project, settings_from_project)
 from discwright.settings import DiscSettings
@@ -11,6 +11,7 @@ from discwright.settings import DiscSettings
 from test_stage import MB, sparse, src, write  # noqa: F401  (src is a fixture)
 
 FIX = Path(__file__).parent / "fixtures" / "projects"
+WINDOWS_V9 = FIX / "windows-0.8.0.json"      # 0.8.0's own, a GOG game and a folder of files
 WINDOWS_V8 = FIX / "windows-0.7.1.json"      # off the demo disc, schema 8
 WINDOWS_V5 = FIX / "windows-0.4.2.json"      # a real one, three schemas older
 
@@ -37,14 +38,23 @@ def settings(src: Path, out: Path, **kw) -> DiscSettings:
 def test_writes_the_schema_windows_writes(src, tmp_path):
     p = save_project(settings(src, tmp_path), tmp_path)
     assert p.name == PROJECT_FILE
-    assert loaded(p)["Version"] == SCHEMA == loaded(WINDOWS_V8)["Version"]
+    assert loaded(p)["Version"] == SCHEMA == loaded(WINDOWS_V9)["Version"]
 
 
 def test_writes_the_keys_windows_writes(src, tmp_path):
     ours = loaded(save_project(settings(src, tmp_path), tmp_path))
-    theirs = loaded(WINDOWS_V8)
+    theirs = loaded(WINDOWS_V9)
     assert sorted(ours) == sorted(theirs)
     assert sorted(ours["Games"][0]) == sorted(theirs["Games"][0])
+
+
+def test_writes_every_key_the_schema_before_it_had(src, tmp_path):
+    # The new key is added, and nothing is quietly dropped on the way: a 0.7.1
+    # app has to keep reading a file this writes.
+    ours = loaded(save_project(settings(src, tmp_path), tmp_path))
+    older = loaded(WINDOWS_V8)
+    assert not set(older) - set(ours)
+    assert not set(older["Games"][0]) - set(ours["Games"][0])
 
 
 def test_writes_it_the_way_windows_powershell_reads_it(src, tmp_path):
@@ -195,3 +205,54 @@ def test_says_which_game_has_gone(src, tmp_path):
 def test_a_windows_project_names_files_this_machine_has_not_got(src):
     s, problems = settings_from_project(read_project(WINDOWS_V8))
     assert problems and "DWdemo" in problems[0]
+
+
+# ---- schema 9: which kind of folder an entry is ----------------------------------------
+
+def loose(root: Path) -> Path:
+    """A folder of game files, the kind GOG never packaged."""
+    d = root / "Portable Game"
+    (d / "data").mkdir(parents=True)
+    (d / "PortableGame.exe").write_bytes(b"x" * 1024)
+    (d / "data" / "config.ini").write_text("x=1")
+    return d
+
+
+def test_records_which_kind_of_folder_each_entry_is(src, tmp_path):
+    d = loose(tmp_path)
+    s = settings(src, tmp_path, games=[game_info(src / "Alpha"), folder_info(d, d / "PortableGame.exe")])
+    doc = loaded(save_project(s, tmp_path))
+    assert [g["Source"] for g in doc["Games"]] == ["GOG", "Files"]
+
+
+def test_reopens_a_folder_of_files_as_one(src, tmp_path):
+    # Read back as a GOG download it would be searched for a setup_*.exe, find
+    # none, and report the disc's own game as broken on a disc that builds.
+    d = loose(tmp_path)
+    save_project(settings(src, tmp_path, games=[folder_info(d)]), tmp_path)
+    s, problems = settings_from_project(read_project(tmp_path / PROJECT_FILE))
+    assert problems == []
+    assert s.games[0].source == "Files"
+    assert s.games[0].game_name == "Portable Game"
+    assert len(s.games[0].files) == 2
+
+
+def test_keeps_the_installer_a_folder_of_files_was_given(src, tmp_path):
+    d = loose(tmp_path)
+    save_project(settings(src, tmp_path, games=[folder_info(d, d / "PortableGame.exe")]), tmp_path)
+    s, _ = settings_from_project(read_project(tmp_path / PROJECT_FILE))
+    assert s.games[0].setup_exe.name == "PortableGame.exe"
+
+
+def test_reads_an_entry_from_before_the_two_kinds_existed_as_a_gog_download(src, tmp_path):
+    # Schema 8 and older could only hold GOG downloads, so a file with no Source
+    # describes one, and re-detection reads the folder exactly as it always did.
+    p = read_project(WINDOWS_V8)
+    assert p.entries[0].source == "GOG"
+
+
+def test_reads_a_real_windows_file_of_both_kinds(src):
+    p = read_project(WINDOWS_V9)
+    assert (p.schema, p.app_version) == (9, "0.8.0")
+    assert [e.source for e in p.entries] == ["GOG", "Files"]
+    assert [e.name for e in p.entries] == ["Alan Wake", "Portable Game"]

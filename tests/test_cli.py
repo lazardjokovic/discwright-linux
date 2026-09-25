@@ -9,6 +9,7 @@ from discwright import __version__
 from discwright import cli as cli_module
 from discwright.cli import main
 from discwright.iso import IsoError
+from discwright.project import SCHEMA
 
 from test_stage import BACKGROUND, ICONS, MB, sparse, src, write  # noqa: F401  (src is a fixture)
 
@@ -228,7 +229,7 @@ def test_rebuilds_the_disc_a_project_describes(src, tmp_path, capsys):
     assert main(["build", "--project", str(project), "--stage-only"]) == 0
     assert (out / "disc" / "AUTORUN" / "menu.hta").is_file()
     printed = capsys.readouterr().out
-    assert "schema 8" in printed and "game: alpha" in printed
+    assert f"schema {SCHEMA}" in printed and "game: alpha" in printed
 
 
 def test_puts_a_rebuilt_disc_where_told(src, tmp_path):

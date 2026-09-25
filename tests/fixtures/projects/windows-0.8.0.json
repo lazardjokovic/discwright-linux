@@ -1,0 +1,60 @@
+﻿{
+    "Version":  9,
+    "AppVersion":  "0.8.0",
+    "SavedUtc":  "2026-09-25T19:04:33",
+    "SourceFolder":  "F:\\DWdemo\\Alan Wake",
+    "GameName":  "Alan Wake",
+    "Games":  [
+                  {
+                      "Folder":  "F:\\DWdemo\\Alan Wake",
+                      "GameName":  "Alan Wake",
+                      "MatchName":  "Alan Wake",
+                      "Setup":  "F:\\DWdemo\\Alan Wake\\setup_alan_wake_1.1_music_lang_fix_(80728).exe",
+                      "Kind":  "Game",
+                      "Source":  "GOG",
+                      "Parent":  -1,
+                      "Manual":  null,
+                      "Extras":  null
+                  },
+                  {
+                      "Folder":  "F:\\DWdemo\\Portable Game",
+                      "GameName":  "Portable Game",
+                      "MatchName":  "Portable Game",
+                      "Setup":  "F:\\DWdemo\\Portable Game\\PortableGame.exe",
+                      "Kind":  "Game",
+                      "Source":  "Files",
+                      "Parent":  -1,
+                      "Manual":  null,
+                      "Extras":  null
+                  }
+              ],
+    "Label":  "SCHEMA NINE",
+    "IconPath":  "F:\\DWdemo\\artwork\\alanwake-icon.ico",
+    "IconIsIco":  true,
+    "Menu":  true,
+    "BgPath":  "F:\\DWdemo\\artwork\\alanwake-background.jpg",
+    "BgAsIs":  false,
+    "PanelSide":  "Right",
+    "Divider":  false,
+    "ShowTitle":  true,
+    "TitleText":  "SCHEMA NINE",
+    "WindowBorder":  true,
+    "ButtonStyle":  "Minimal",
+    "MusicFile":  null,
+    "Buttons":  [
+                    "Play",
+                    "Install",
+                    "Manual",
+                    "Extras",
+                    "Exit"
+                ],
+    "ManualPath":  null,
+    "ExtrasPath":  null,
+    "ExtraItems":  [
+
+                   ],
+    "MediaKey":  "",
+    "LinuxInfo":  true,
+    "LegacyFs":  false,
+    "OutDir":  "C:\\Users\\lazar\\AppData\\Local\\Temp\\claude\\C--WINDOWS-system32\\5279cda6-9113-434e-9a58-d980e4ed4c0c\\scratchpad\\v9out"
+}

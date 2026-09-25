@@ -15,6 +15,7 @@ opens. What each one added, from the Windows source:
     6  MatchName, the name the menu looks for in the registry
     7  LinuxInfo, the disc's name and icon for a Linux desktop
     8  LegacyFs, ISO9660 and Joliet beside UDF
+    9  Source per entry: a GOG download, or a folder of game files
 
 A key a file does not carry reads back as what the disc behaved like before that
 key existed, rather than as today's default, so reopening an old project and
@@ -33,11 +34,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path, PureWindowsPath
 
-from .games import GameInfo, add_on_info, game_info
+from .games import GameInfo, add_on_info, folder_info, game_info
 from .settings import DiscSettings
 
 PROJECT_FILE = "discproject.json"
-SCHEMA = 8
+SCHEMA = 9
 
 
 @dataclass
@@ -48,6 +49,7 @@ class ProjectEntry:
     parent_index: int = -1
     setup: str | None = None
     name: str | None = None
+    source: str = "GOG"
     match_name: str | None = None
     manual: str | None = None
     extras: str | None = None
@@ -110,6 +112,9 @@ def save_project(s: DiscSettings, out_dir: str | Path) -> Path:
             # folder would find the game again.
             "Setup": _text(g.setup_exe),
             "Kind": "AddOn" if g.kind == "AddOn" else "Game",
+            # Schema 9. "Files" is a folder that never came from GOG, which is
+            # read back with folder_info rather than searched for an installer.
+            "Source": "Files" if g.source == "Files" else "GOG",
             "Parent": int(g.parent_index),
             "Manual": _text(g.manual_path),
             "Extras": _text(g.extras_path),
@@ -165,6 +170,10 @@ def read_project(path: str | Path) -> Project | None:
         entries.append(ProjectEntry(
             folder=str(g["Folder"]),
             kind="AddOn" if g.get("Kind") == "AddOn" else "Game",
+            # Schema 9. Anything older could only hold GOG downloads, so a file
+            # without it describes one, and re-detection reads the folder for an
+            # installer exactly as it always did.
+            source="Files" if g.get("Source") == "Files" else "GOG",
             parent_index=int(g.get("Parent", -1)),
             setup=_text(g.get("Setup")),
             name=_text(g.get("GameName")),
@@ -230,6 +239,11 @@ def settings_from_project(p: Project) -> tuple[DiscSettings, list[str]]:
         setup = _local(e.setup)
         if e.kind == "AddOn" and setup is not None:
             info = add_on_info(setup)
+        elif e.source == "Files":
+            # A folder of game files, not a GOG download. Reading it as one
+            # would find no setup_*.exe and report the disc's own game as
+            # broken, on a disc that builds perfectly well.
+            info = folder_info(folder, setup) if folder else GameInfo(msg="No folder.")
         else:
             info = game_info(folder) if folder else GameInfo(msg="No folder.")
         if not info.ok:
