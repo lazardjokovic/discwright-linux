@@ -353,3 +353,112 @@ def test_refuses_an_empty_name(src):
 def test_rename_needs_something_picked(ready):
     assert not ready.controls()["rename"].enabled
     assert ready.controls(selected=0)["rename"].enabled
+
+
+# ---- the question a folder that is not a GOG download asks -----------------------------
+
+@pytest.fixture
+def loose(tmp_path):
+    d = tmp_path / "Portable Game"
+    sparse(d / "PortableGame.exe", 3 * MB)
+    sparse(d / "CrashHandler.exe", 64 * 1024)
+    (d / "readme.txt").write_text("read me")
+    (d / "data").mkdir()
+    (d / "data" / "config.ini").write_text("x=1")
+    return d
+
+
+def test_asks_about_a_folder_with_files_and_no_gog_installer(loose):
+    q = Form().folder_question(loose)
+    assert q is not None
+    assert q.folder == loose
+    assert [e.name for e in q.executables] == ["PortableGame.exe", "CrashHandler.exe"]
+    assert q.file_count == 4
+
+
+def test_asks_nothing_about_a_gog_download(src):
+    assert Form().folder_question(src / "Alpha") is None
+
+
+def test_asks_nothing_about_an_empty_folder_or_one_that_is_not_there(tmp_path):
+    # A dialog offering a choice between none of nought executables is not a
+    # question, and on Windows it was what hung the test suite. add_game says
+    # what is wrong with the folder instead.
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    form = Form()
+    assert form.folder_question(empty) is None
+    assert form.add_game(empty) is not None
+    assert form.folder_question(tmp_path / "nowhere") is None
+    assert form.add_game(tmp_path / "nowhere") == "Folder not found."
+
+
+def test_asks_nothing_about_a_folder_refused_for_another_reason(src, tmp_path):
+    # The output folder picked by mistake has its own message, which says which
+    # folder was picked rather than sending somebody to check their download.
+    out = tmp_path / "out"
+    (out / "disc").mkdir(parents=True)
+    sparse(out / "disc" / "setup_alpha_1.0.exe", MB)
+    assert Form().folder_question(out) is None
+    assert "not a GOG download" in (Form().add_game(out) or "")
+
+
+def test_offers_no_installer_first_and_the_executables_after_it(loose):
+    q = Form().folder_question(loose)
+    assert q.choices[0].startswith("No installer:")
+    assert q.choices[1].startswith("Install with PortableGame.exe")
+    assert q.installer_for(0) is None
+    assert q.installer_for(1) == loose / "PortableGame.exe"
+    # Out of range is the safe answer, not a crash: a list with nothing selected
+    # must not add an installer nobody chose.
+    assert q.installer_for(99) is None
+
+
+def test_says_what_is_about_to_go_on_the_disc(loose):
+    q = Form().folder_question(loose)
+    assert q.note.startswith("4 file(s), 3 MB.")
+    assert "2 executable(s), largest first." in q.note
+
+
+def test_says_so_when_there_is_nothing_to_install(tmp_path):
+    d = tmp_path / "just files"
+    d.mkdir()
+    (d / "notes.txt").write_text("hello")
+    q = Form().folder_question(d)
+    assert q.choices == [q.choices[0]]
+    assert "nothing to install" in q.note
+
+
+def test_warns_when_the_folder_is_where_the_downloads_live(tmp_path, loose):
+    shelf = tmp_path / "shelf"
+    for name in ("game one", "game two"):
+        sparse(shelf / name / "setup_a_game_1.0.exe", MB)
+    q = Form().folder_question(shelf)
+    assert q.warning.startswith("2 GOG download(s) sit in subfolders")
+    assert '"game one"' in q.warning
+    assert "Cancel and pick that folder instead" in q.warning
+    # And an ordinary game folder carries no such warning.
+    assert Form().folder_question(loose).warning == ""
+
+
+def test_adds_the_folder_with_the_installer_the_question_named(loose):
+    form = Form()
+    q = form.folder_question(loose)
+    assert form.add_files(q.folder, q.installer_for(1)) is None
+    assert form.games[0].source == "Files"
+    assert form.games[0].setup_exe == loose / "PortableGame.exe"
+    # And the disc takes its name from the first game, as it does for a download.
+    assert form.label == "Portable Game"
+
+
+def test_adds_the_folder_with_no_installer_at_all(loose):
+    form = Form()
+    assert form.add_files(loose) is None
+    assert form.games[0].setup_exe is None
+    assert form.games[0].source == "Files"
+
+
+def test_says_what_is_wrong_rather_than_adding_a_folder_it_cannot_use(tmp_path):
+    form = Form()
+    assert form.add_files(tmp_path / "nowhere") == "Folder not found."
+    assert form.games == []

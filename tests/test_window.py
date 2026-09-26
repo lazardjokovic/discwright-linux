@@ -177,3 +177,128 @@ def test_asks_before_building_with_a_label_windows_cannot_show(window, src, tmp_
     window.on_build()
     assert recorded["asks"] and "cannot show this disc label" in recorded["asks"][0][1]
     assert not window.form.building and started == []
+
+
+# ---- the question a folder that is not a GOG download asks ----------------------------
+
+def rows_of(listbox):
+    out, i = [], 0
+    while (row := listbox.get_row_at_index(i)) is not None:
+        out.append(row.get_child().get_label())
+        i += 1
+    return out
+
+
+def labels_in(widget, found=None):
+    found = [] if found is None else found
+    child = widget.get_first_child()
+    while child is not None:
+        if isinstance(child, Gtk.Label):
+            found.append(child.get_label())
+        labels_in(child, found)
+        child = child.get_next_sibling()
+    return found
+
+
+def list_in(widget):
+    child = widget.get_first_child()
+    while child is not None:
+        if isinstance(child, Gtk.ListBox):
+            return child
+        if (found := list_in(child)) is not None:
+            return found
+        child = child.get_next_sibling()
+    return None
+
+
+def buttons_in(widget, found=None):
+    found = {} if found is None else found
+    child = widget.get_first_child()
+    while child is not None:
+        if isinstance(child, Gtk.Button) and child.get_label():
+            found[child.get_label()] = child
+        buttons_in(child, found)
+        child = child.get_next_sibling()
+    return found
+
+
+@pytest.fixture
+def loose(tmp_path):
+    d = tmp_path / "Portable Game"
+    (d / "data").mkdir(parents=True)
+    with open(d / "PortableGame.exe", "wb") as f:
+        f.truncate(3 << 20)
+    with open(d / "CrashHandler.exe", "wb") as f:
+        f.truncate(64 << 10)
+    (d / "readme.txt").write_text("read me")
+    (d / "data" / "config.ini").write_text("x=1")
+    return d
+
+
+@pytest.fixture
+def shown(window, monkeypatch):
+    """The dialog built but not presented, so a run puts nothing on screen."""
+    seen = []
+    monkeypatch.setattr(window, "show_window", lambda w: seen.append(w))
+    return seen
+
+
+def test_shows_the_question_the_form_wrote(window, loose, shown):
+    q = window.form.folder_question(loose)
+    win = window.ask_about_folder(q)
+    assert shown == [win]
+    assert win.get_title() == "No GOG installer in this folder"
+    body = win.get_child()
+    assert q.explain in labels_in(body)
+    assert q.note in labels_in(body)
+    assert rows_of(list_in(body)) == q.choices
+    win.destroy()
+
+
+def test_starts_on_the_answer_that_cannot_go_wrong(window, loose, shown):
+    win = window.ask_about_folder(window.form.folder_question(loose))
+    chooser = list_in(win.get_child())
+    assert chooser.get_selected_row().get_index() == 0
+    win.destroy()
+
+
+def test_adds_the_folder_when_add_is_clicked(window, loose, shown):
+    win = window.ask_about_folder(window.form.folder_question(loose))
+    buttons_in(win.get_child())["Add"].emit("clicked")
+    assert len(window.form.games) == 1
+    assert window.form.games[0].source == "Files"
+    assert window.form.games[0].setup_exe is None
+
+
+def test_adds_it_with_the_installer_that_was_picked(window, loose, shown):
+    win = window.ask_about_folder(window.form.folder_question(loose))
+    body = win.get_child()
+    chooser = list_in(body)
+    chooser.select_row(chooser.get_row_at_index(1))
+    buttons_in(body)["Add"].emit("clicked")
+    assert window.form.games[0].setup_exe == loose / "PortableGame.exe"
+
+
+def test_adds_nothing_when_cancelled(window, loose, shown):
+    # Cancel is not the same answer as "no installer": that one adds the folder.
+    win = window.ask_about_folder(window.form.folder_question(loose))
+    buttons_in(win.get_child())["Cancel"].emit("clicked")
+    assert window.form.games == []
+
+
+def test_warns_when_the_folder_is_where_the_downloads_live(window, tmp_path, shown):
+    shelf = tmp_path / "shelf"
+    for name in ("game one", "game two"):
+        (shelf / name).mkdir(parents=True)
+        with open(shelf / name / "setup_a_game_1.0.exe", "wb") as f:
+            f.truncate(1 << 20)
+    q = window.form.folder_question(shelf)
+    win = window.ask_about_folder(q)
+    assert q.warning in labels_in(win.get_child())
+    win.destroy()
+
+
+def test_leaves_that_warning_out_for_an_ordinary_game_folder(window, loose, shown):
+    win = window.ask_about_folder(window.form.folder_question(loose))
+    assert not any("sit in subfolders" in text for text in labels_in(win.get_child()))
+    win.destroy()

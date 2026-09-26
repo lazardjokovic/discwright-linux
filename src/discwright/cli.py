@@ -15,12 +15,14 @@ with a message naming what to do about it.
 from __future__ import annotations
 
 import argparse
+import shlex
 import sys
 from pathlib import Path
 
 from . import __version__
 from .build import build
-from .games import GameInfo, add_on_info, format_size, game_info
+from .games import (GameInfo, add_on_info, folder_executables, folder_info,
+                    format_size, game_info, gog_subfolders)
 from .iso import IsoError
 from .project import read_project, settings_from_project
 from .settings import DiscSettings
@@ -72,6 +74,13 @@ def build_parser() -> argparse.ArgumentParser:
                         "--out, --stage-only and --quiet go with it.")
     b.add_argument("--game", metavar="DIR", action=_Entry,
                    help="a GOG download folder. Repeat for a disc holding several games.")
+    b.add_argument("--files", metavar="DIR", action=_Entry,
+                   help="a folder of game files that is not a GOG download: an unpacked "
+                        "archive, an itch.io download, an installed game, anything portable. "
+                        "It goes on the disc as it stands, subfolders and all.")
+    b.add_argument("--installer", metavar="EXE", action=_Entry,
+                   help="the executable that installs the --files folder named before it. "
+                        "Without one the menu opens that folder instead of offering Install.")
     b.add_argument("--add-on", metavar="EXE", action=_Entry, dest="add_on",
                    help="an add-on installer (DLC, an expansion, a patch, a mod) for the game "
                         "named before it.")
@@ -118,19 +127,87 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _inside(path: Path, folder: Path) -> bool:
+    try:
+        path.resolve().relative_to(folder.resolve())
+    except (ValueError, OSError):
+        return False
+    return True
+
+
+def _no_gog_advice(folder: Path) -> str:
+    """What to type instead, for a folder with no GOG installer in it.
+
+    The Windows app asks this as a question in a dialog, listing the folder's
+    executables largest first. A command cannot ask, and taking any folder
+    handed to --game would put a mis-picked home directory on a disc, so it
+    says what the dialog would have offered and lets the next command answer.
+    """
+    # Quoted where a shell would need it: these lines are meant to be pasted
+    # back, and a game folder with a space in its name is the normal case.
+    quoted = shlex.quote(str(folder))
+    lines = []
+    downloads = gog_subfolders(folder)
+    if downloads:
+        lines.append(f"  {len(downloads)} GOG download(s) sit in subfolders of it, starting with "
+                     f'"{downloads[0].name}" - name one of those instead.')
+    files = [p for p in folder.rglob("*") if p.is_file()] if folder.is_dir() else []
+    if not files:
+        return "\n".join(lines)
+    lines.append(f"  To put it on a disc as it stands ({len(files)} file(s), "
+                 f"{format_size(sum(p.stat().st_size for p in files))}):")
+    lines.append(f"    --files {quoted}")
+    exes = folder_executables(folder, files=files)
+    if exes:
+        lines.append("  To have the menu install it, name the executable that does, "
+                     "largest first here:")
+        lines += [f"    --files {quoted} --installer {shlex.quote(str(e))}" for e in exes[:3]]
+    return "\n".join(lines)
+
+
+def _read_entry(kind: str, value: str, installer: str | None):
+    if kind == "game":
+        return game_info(value)
+    if kind == "files":
+        return folder_info(value, installer)
+    return add_on_info(value)
+
+
 def _entries(args, out) -> list[GameInfo] | None:
     """The games and add-ons, read from what was named, each reported the way the
     window reports it. None when one of them cannot be used."""
     entries: list[GameInfo] = []
     last_game = -1
     ok = True
-    for kind, value in getattr(args, "entries", None) or []:
-        info = game_info(value) if kind == "game" else add_on_info(value)
-        if not info.ok:
-            print(f"{value}: {info.msg}", file=sys.stderr)
+    typed = list(getattr(args, "entries", None) or [])
+    for i, (kind, value) in enumerate(typed):
+        if kind == "installer":
+            # Read with the folder it belongs to, not on its own.
+            if i == 0 or typed[i - 1][0] != "files":
+                print(f"{value}: --installer names the executable inside the --files folder "
+                      "before it, so put a --files first.", file=sys.stderr)
+                ok = False
+            continue
+        installer = typed[i + 1][1] if kind == "files" and i + 1 < len(typed) \
+            and typed[i + 1][0] == "installer" else None
+        if installer is not None and not _inside(Path(installer), Path(value)):
+            # The dialog on Windows can only offer executables from the folder
+            # itself. One from anywhere else is not on the disc, so the menu's
+            # Install button would point at nothing.
+            print(f"{installer}: an installer has to be inside the folder it installs, "
+                  f"or it does not go on the disc.", file=sys.stderr)
             ok = False
             continue
-        if kind == "game":
+        info = _read_entry(kind, value, installer)
+        if not info.ok:
+            print(f"{value}: {info.msg}", file=sys.stderr)
+            if kind == "game" and info.msg.startswith("No GOG"):
+                advice = _no_gog_advice(Path(value))
+                if advice:
+                    print(advice, file=sys.stderr)
+            ok = False
+            continue
+        if kind in ("game", "files"):
             last_game = len(entries)
         elif last_game < 0:
             print(f"{value}: an add-on belongs to a game, so name a --game before it.",
