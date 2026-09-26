@@ -10,14 +10,14 @@ import pytest
 from discwright.menu import html_text, js_string, menu_hta
 
 FIX = Path(__file__).parent / "fixtures" / "menu"
-WINDOWS = FIX / "windows-0.7.4"
+WINDOWS = FIX / "windows-0.8.0"
 CASES = {c["name"]: c["cfg"] for c in json.loads((FIX / "cases.json").read_text(encoding="ascii"))["cases"]}
 
 
 def build(cfg: dict) -> bytes:
     """menu_hta called with what New-MenuHta was given for the same case."""
     games = [{"name": g["Name"], "match_name": g["MatchName"], "setup": g["Setup"],
-              "manual": g["Manual"], "extras": g["Extras"],
+              "folder": g["Folder"], "manual": g["Manual"], "extras": g["Extras"],
               "add_ons": [{"name": a["Name"], "setup": a["Setup"]} for a in g["AddOns"]]}
              for g in cfg["Games"]]
     return menu_hta(cfg["GameName"], games, cfg["Buttons"],
@@ -144,3 +144,36 @@ def test_paths_reach_the_menu_with_windows_separators():
     setup = CASES["two-games-with-add-ons"]["Games"][0]["Setup"]
     assert js_string(setup) in text
     assert "\\\\" in js_string(str(PureWindowsPath("Games", "a.exe")))
+
+
+# ---- a game with no installer ---------------------------------------------------
+
+def test_carries_the_folder_each_game_sits_in():
+    # The menu needs it for two decisions: which button a game gets, and whether
+    # a game with no installer is on the disc at all.
+    folder = str(PureWindowsPath("Games", "02 - Portable"))
+    games = [{"name": "Portable", "match_name": "Portable", "setup": "",
+              "folder": folder, "add_ons": []}]
+    text = menu_hta("S", games, ["Play"]).decode("ascii")
+    # Doubled in the JS literal, because the menu joins it to the drive's root.
+    assert 'd:"' + js_string(folder) + '"' in text
+
+
+def test_a_game_with_no_installer_gets_open_folder_instead_of_install():
+    text = build(CASES["a-folder-of-files"]).decode("ascii")
+    # Both buttons are in the script, one per branch of the same if.
+    assert 'btnHtml("btn_Open","install","Open Folder","doOpenFolder()"' in text
+    assert "function doOpenFolder()" in text
+    # And the entry that has no installer says so with an empty path, which is
+    # what that branch tests. Its folder comes straight from the case.
+    portable = CASES["a-folder-of-files"]["Games"][1]
+    assert portable["Setup"] == ""
+    assert 's:"",d:"' + js_string(portable["Folder"]) + '"' in text
+
+
+def test_the_chooser_asks_for_the_folder_when_there_is_no_installer():
+    # Asking FileExists about an empty path greyed out every such game on the
+    # chooser, which is a game nobody could reach.
+    text = build(CASES["a-folder-of-files"]).decode("ascii")
+    assert "GAMES[i].s ? fso.FileExists" in text
+    assert "fso.FolderExists(fso.BuildPath(root,GAMES[i].d))" in text
