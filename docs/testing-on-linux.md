@@ -1,9 +1,14 @@
 # Testing on a real Linux machine
 
 Everything up to now ran in WSL on the Windows machine, where the Windows app
-and its reference discs live. This is the list for a real Linux install (Arch,
-on the same PC, dual booted), before the first release. **Not a release: report
-what you find, and change nothing about versions or tags.**
+and its reference discs live. This is the list for a real Linux install on the
+same PC, before the first release. **Not a release: report what you find, and
+change nothing about versions or tags.**
+
+Written for Arch, which is no longer on the machine; **Kubuntu** is what goes on
+next, so the install below has a block for each. Kubuntu also answers a question
+Arch would not have: it is KDE, and KDE's file manager may ignore
+`.xdg-volume-info`, which is the file that puts the disc's name on the desktop.
 
 What only a real Linux desktop can show, and WSL never could:
 
@@ -16,19 +21,38 @@ What only a real Linux desktop can show, and WSL never could:
 
 ## 1. Install
 
+This is the developer's install, with the tests. For the ordinary one, the
+README's **Installing it** is the tested recipe.
+
+**Kubuntu, Ubuntu, Debian**
+
+```sh
+sudo apt install git python3-venv python3-gi gir1.2-gtk-4.0 python3-pil xorriso \
+                 fonts-dejavu-core nodejs gh
+git clone https://github.com/lazardjokovic/discwright-linux
+cd discwright-linux
+python3 -m venv --system-site-packages .venv     # the distro's Pillow and PyGObject
+.venv/bin/pip install -e ".[dev]"
+```
+
+**Arch**
+
 ```sh
 sudo pacman -S --needed git python python-pillow python-gobject gtk4 xorriso \
                         ttf-dejavu nodejs github-cli
 git clone https://github.com/lazardjokovic/discwright-linux
 cd discwright-linux
-python -m venv --system-site-packages .venv      # Arch's own Pillow and PyGObject
+python -m venv --system-site-packages .venv
 .venv/bin/pip install -e ".[dev]"
 ```
 
-`--system-site-packages` because Arch's PyGObject is already built against its
-GTK; building PyGObject from pip needs its headers, which are more to install
-for no gain. `nodejs` lets the five tests that parse the menu's script run;
-`github-cli` is only for opening pull requests (`gh auth login` once).
+`--system-site-packages` because the distribution's PyGObject is already built
+against its GTK; building PyGObject from pip needs its headers, which are more to
+install for no gain. Get this wrong and the window reports GTK missing on a
+machine that has it. The DejaVu font is what the menu's title is drawn in here,
+since Windows draws it in Bahnschrift and Linux has no such font. `nodejs` lets
+the five tests that parse the menu's script run; `gh` is only for opening pull
+requests (`gh auth login` once).
 
 Note what Python and Pillow this is (`.venv/bin/python -V`,
 `.venv/bin/python -c "import PIL; print(PIL.__version__)"`): CI tests 3.10 and

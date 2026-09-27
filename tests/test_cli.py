@@ -271,6 +271,17 @@ def test_says_how_to_get_the_window_when_gtk_is_missing(monkeypatch, capsys):
     assert main(["window"]) == 1
     err = capsys.readouterr().err
     assert "gir1.2-gtk-4.0" in err and "discwright build" in err
+    # Named per distribution, because the package names differ and guessing
+    # them is the first thing somebody has to do to get the window at all.
+    assert "dnf install gtk4 python3-gobject" in err
+    assert "pacman -S gtk4 python-gobject" in err
+    # And the likelier cause than a missing package: they are installed, and the
+    # virtual environment cannot see them, because PyGObject comes from the
+    # distribution rather than from pip. Without this line the message sends
+    # somebody to install what they already have, which is where a install of
+    # the window dead-ends.
+    assert "--system-site-packages" in err
+    assert "pipx install --system-site-packages" in err
 
 
 # ---- a folder of game files, which is not a GOG download -------------------------------
