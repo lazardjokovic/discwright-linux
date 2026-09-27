@@ -25,9 +25,14 @@ Made on 2026-09-18, with the reasons, so they are not reopened by accident:
 1. **Python.** Present on every Linux desktop, readable by the people who will run
    it, and GTK4 gives it a native window later. Standard library only where
    possible; add a dependency only for a real need (Pillow will be one, for icons).
-2. **Command line first.** A command that takes GOG folders and settings and
-   writes the finished ISO. The window comes later, on top of it. The disc is the
-   hard part and the part that has to be proven.
+2. **Command line first, but the window is the app.** The command came first as a
+   build order, not as a statement of what this is: the disc was the hard part and
+   the part that had to be proven, and a command is the shortest way to prove it.
+   What people use is the window, here as much as on Windows, and the command line
+   is for scripting a disc or building one over SSH. Docs lead with the window,
+   anything that makes the window harder to install or to understand is a bug in
+   the same sense a wrong disc is, and a feature is not ported until the window
+   offers it (2026-09-27, from the owner).
 3. **The same disc as Windows.** Not a Linux-flavoured disc. A disc burned on
    either machine must behave identically on both: AutoRun menu, icon and label on
    Windows; name and icon on Linux. GOG's Linux `.sh` installers are a later

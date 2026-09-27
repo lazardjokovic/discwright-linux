@@ -350,8 +350,17 @@ def _run_window() -> int:
     except (ImportError, ValueError) as e:
         print("The window needs GTK 4 and PyGObject, which are not installed:\n"
               f"  {e}\n\n"
-              "On Debian or Ubuntu:  sudo apt install gir1.2-gtk-4.0 python3-gi\n"
-              "On Fedora:            sudo dnf install gtk4 python3-gobject\n\n"
+              "On Debian, Ubuntu or Kubuntu:  sudo apt install gir1.2-gtk-4.0 python3-gi\n"
+              "On Fedora:                     sudo dnf install gtk4 python3-gobject\n"
+              "On Arch:                       sudo pacman -S gtk4 python-gobject\n\n"
+              # The likeliest reason to be reading this is not a missing package
+              # at all. PyGObject is built against the system's GTK and comes
+              # from the distro, so a virtual environment made the ordinary way
+              # cannot see it however well it is installed, and the advice above
+              # sends somebody to install what they already have.
+              "If they are installed already, the virtual environment DiscWright is in cannot\n"
+              "see them. Make it with:  python3 -m venv --system-site-packages ~/.venvs/discwright\n"
+              "or install with:         pipx install --system-site-packages .\n\n"
               "Everything the window does, discwright build does from the command line.",
               file=sys.stderr)
         return 1

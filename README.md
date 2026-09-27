@@ -11,7 +11,7 @@ either machine works on both.
 ## Status
 
 **Works, and not released yet.** Everything the Windows app does to make a disc is
-here, from the command line or a window:
+here, in a window, with a command line for scripting it:
 
 - reading a GOG download folder: the installer, its parts, and the game's name
 - a folder of game files that never came from GOG, kept on the disc as it stands
@@ -26,8 +26,48 @@ A whole disc has been built and compared with one Windows built from the same
 settings: same label, same name in Explorer, ten of its twelve files byte for byte
 and the other two the same pictures. See [docs/xorriso-spike.md](docs/xorriso-spike.md).
 
-Needs Python 3.10 or newer, Pillow, and xorriso (`sudo apt install xorriso`). The
-window needs GTK 4 as well.
+## Installing it
+
+Not packaged or on PyPI yet, so it is installed from a clone. Three steps, and
+the whole of the first one is things that come from your distribution rather
+than from Python: **GTK 4 and PyGObject for the window, Pillow for the pictures,
+xorriso to write the ISO.**
+
+**Debian, Ubuntu, Kubuntu**
+
+```sh
+sudo apt install git python3-venv python3-gi gir1.2-gtk-4.0 python3-pil xorriso
+```
+
+**Fedora**
+
+```sh
+sudo dnf install git python3-gobject gtk4 python3-pillow xorriso
+```
+
+**Arch**
+
+```sh
+sudo pacman -S --needed git python python-gobject gtk4 python-pillow xorriso
+```
+
+Then, on any of them:
+
+```sh
+git clone https://github.com/lazardjokovic/discwright-linux
+python3 -m venv --system-site-packages ~/.venvs/discwright
+~/.venvs/discwright/bin/pip install ./discwright-linux
+~/.venvs/discwright/bin/discwright window
+```
+
+**`--system-site-packages` is the part to get right.** PyGObject is built against
+your system's GTK and comes from your distribution, so a virtual environment made
+without that flag cannot see it however well it is installed, and the window will
+say GTK is missing on a machine that has it. `pipx install --system-site-packages
+./discwright-linux` works the same way and puts `discwright` on your PATH.
+
+Checked on Ubuntu 24.04 with Python 3.12 and Pillow 10.2: the steps above install
+it and the window opens.
 
 ## The window
 
@@ -42,12 +82,8 @@ still missing.
 
 ![The DiscWright window with the Alan Wake demo filled in](docs/window.png)
 
-It needs GTK 4 and PyGObject:
-
-```sh
-sudo apt install gir1.2-gtk-4.0 python3-gi      # Debian, Ubuntu
-sudo dnf install gtk4 python3-gobject           # Fedora
-```
+This is the way in. Everything below is the same thing without a screen, for
+scripting a disc or building one over SSH.
 
 ## Building a disc from the command line
 
