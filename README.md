@@ -1,12 +1,44 @@
 # DiscWright for Linux
 
-Turn a GOG offline installer into a real game disc, on Linux: the game's own icon
-and title when the disc goes into a Windows PC, a menu on double-click, and the
-game's name and icon on a Linux desktop.
+Make a real game disc out of a GOG download, on Linux: the game's own icon and
+title when the disc goes into a Windows PC, with a menu on double-click, and its
+name and icon on a Linux desktop.
 
 This is the Linux version of [DiscWright](https://github.com/lazardjokovic/discwright),
-which does the same on Windows. It builds **the same disc**, so a disc made on
-either machine works on both.
+which does the same on Windows, and it writes **the same disc** from the same
+settings.
+
+## What this is for
+
+GOG sells **installers**, not discs and not ISO files. A Windows game arrives as
+`setup_game_1.0.exe` with `.bin` parts beside it; a game with a Linux build
+arrives as a `.sh`. DiscWright is what turns a download like that into a disc you
+can burn, label and put on a shelf.
+
+GOG's own app, GOG Galaxy, is Windows only, so on Linux people fetch their
+downloads from the website or with something like
+[lgogdownloader](https://github.com/Sude-/lgogdownloader),
+[Minigalaxy](https://github.com/sharkwouter/minigalaxy) or
+[Heroic](https://heroicgameslauncher.com/). Until now, turning those into a disc
+meant booting Windows. **That is what this removes: the machine that makes the
+disc no longer has to be the machine that uses it.**
+
+### What the disc does, on each machine
+
+| | Windows | Linux |
+| --- | --- | --- |
+| The files | there, as they were downloaded | there, as they were downloaded |
+| Name and icon on the drive | yes, from `autorun.inf` and the `.ico` | yes, from `.xdg-volume-info`, which GNOME reads and KDE may ignore |
+| The menu on double-click | yes | **no** |
+
+The menu is an HTML Application, which is a Windows thing: `mshta` runs it and
+nothing on Linux does. So a disc made here is a **Windows game disc that is also
+legible on a Linux desktop**, and the usual reason to make one is for a Windows
+machine, an old PC, or a shelf.
+
+A Linux-side launcher, and reading GOG's Linux `.sh` installers as games rather
+than as ordinary files, are in the [roadmap](ROADMAP.md). Neither is here yet,
+and the README will say so until they are.
 
 ## Status
 
@@ -25,6 +57,9 @@ here, in a window, with a command line for scripting it:
 A whole disc has been built and compared with one Windows built from the same
 settings: same label, same name in Explorer, ten of its twelve files byte for byte
 and the other two the same pictures. See [docs/xorriso-spike.md](docs/xorriso-spike.md).
+
+What is **not** here: anything that makes the disc do something on Linux, which
+is a short list and an honest one. See the [roadmap](ROADMAP.md).
 
 ## Installing it
 
