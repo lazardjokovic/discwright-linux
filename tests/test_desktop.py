@@ -138,3 +138,35 @@ class TestInstalling:
 
     def test_uninstalling_what_was_never_installed_is_not_a_failure(self, tmp_path):
         self.run(tmp_path / "home", "--uninstall")
+
+
+# ---- the scripts a tester runs on a machine this one cannot reach ----------------------
+
+@pytest.mark.skipif(os.name != "posix", reason="shell scripts")
+@pytest.mark.parametrize("script,shell", [
+    ("packaging/desktop/install.sh", "sh"),
+    ("tools/linux-report.sh", "bash"),
+])
+def test_the_shell_scripts_parse(script, shell):
+    # These run on a machine that is not this one, where a syntax error costs a
+    # trip back rather than a red test. -n parses without running.
+    path = Path(__file__).parent.parent / script
+    assert path.is_file()
+    run = subprocess.run([shell, "-n", str(path)], capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="needs git to read the recorded mode")
+@pytest.mark.parametrize("script", ["packaging/desktop/install.sh", "tools/linux-report.sh"])
+def test_the_shell_scripts_are_executable_in_the_clone(script):
+    # Git's recorded mode, not this working copy's. The repository is developed
+    # on a Windows filesystem, which reports every file executable, and then
+    # checks out 644 on Linux, where ./install.sh is exactly what the README
+    # tells somebody to type. Asking git is the only way to see that from here.
+    repo = Path(__file__).parent.parent
+    run = subprocess.run(["git", "ls-files", "-s", script], cwd=repo,
+                         capture_output=True, text=True)
+    if run.returncode != 0 or not run.stdout.strip():
+        pytest.skip("not a git checkout")
+    mode = run.stdout.split()[0]
+    assert mode == "100755", f"{script} is recorded as {mode}, so a clone cannot run it"

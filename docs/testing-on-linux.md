@@ -67,6 +67,19 @@ Note what Python and Pillow this is (`.venv/bin/python -V`,
 Everything should pass or skip. The skips should be only the real-data tests,
 which need the next step. The window's tests draw on the real display.
 
+**Or run the lot in one go**, which also writes down what this machine is, so
+the answers arrive together rather than as remembered impressions:
+
+```sh
+tools/linux-report.sh              # the machine, the suite, and a disc built end to end
+tools/linux-report.sh --mutate     # and the mutation check, about twenty minutes
+```
+
+It writes `~/discwright-report-<host>-<date>.txt`, and leaves a real ISO in
+`~/discwright-check/out/` for the checks further down that need eyes. It reports
+rather than judges: a missing `node` or `desktop-file-validate` is written down,
+not treated as a failure.
+
 ## 3. The suite, with the real games
 
 The GOG downloads are on the Windows partitions. On Windows they were reached
@@ -81,8 +94,10 @@ Linux NTFS driver does not follow those. The real folders are:
 | `The Witcher` | `.../Offline Installers/the_witcher` |
 
 `artwork`, `media` and `out` are real folders in `DWdemo` on the `F:` partition.
-So build a folder of symlinks with the names the tests expect. With `C` and `F`
-mounted at `$WINC` and `$WINF` (wherever they mount here):
+So build a folder of symlinks with the names the tests expect. Open both
+partitions once in Dolphin and it mounts them, usually under
+`/media/$USER/<label>` or `/run/media/$USER/<uuid>`; `lsblk -o NAME,LABEL,MOUNTPOINT`
+says where they went. With those two paths in `$WINC` and `$WINF`:
 
 ```sh
 GOG="$WINC/Program Files (x86)/GOG Galaxy/Games/Offline Installers"
@@ -154,16 +169,64 @@ Look for, and write down what actually happens:
    something to document, not a bug in the disc.
 4. **Rebuild from the project**: `discwright build --project <out>/discproject.json`
    rebuilds the same disc from the command line.
+5. **A folder of game files**, which is what 0.8.0 added and no Linux desktop has
+   seen. **Add game...** and pick a folder that is not a GOG download: an
+   installed game works, and the Windows side was proven against one of 4.9 GB.
+   The question should appear, listing that folder's executables largest first,
+   with *No installer* already chosen and the file count and size underneath.
+   - Leave it on *No installer* and add it. Build. On the disc, the game's
+     subfolders should be there as they were, and `AUTORUN/menu.hta` should
+     carry **Open Folder**.
+   - Point it at the folder holding your GOG downloads instead, if you have one
+     on this machine. It should warn, in orange with a warning icon, that
+     downloads sit in subfolders and name the first, and **Cancel** should add
+     nothing.
+6. **The application menu.** Install the entry:
+
+   ```sh
+   packaging/desktop/install.sh .venv/bin/discwright
+   ```
+
+   Then look for DiscWright in KDE's application menu. The icon should be the
+   real one, not a generic cog, and clicking it should open the window. While it
+   is open, check the task manager entry: it should carry the same icon and name,
+   which is what `StartupWMClass` is for, and is the part most likely to be
+   wrong on a desktop other than the one it was written on.
+   `packaging/desktop/install.sh --uninstall` takes it away again.
 
 Then, **back on Windows**, the Linux-built ISO:
 
-5. Mount it. **This PC** should show the game's icon and **ALAN WAKE**.
-6. Double-click the drive. The menu should open; Install and Manual should work.
+7. Mount it. **This PC** should show the game's icon and **ALAN WAKE**.
+8. Double-click the drive. The menu should open; Install and Manual should work.
+9. If the disc from check 5 came across too, mount that one and press **Open
+   Folder**: Explorer should open that game's folder on the disc.
 
-An ISO built in WSL from the same settings is already waiting for checks 5 and
-6: `F:\DWdemo\linux-built\ALAN WAKE.iso`.
+An ISO built in WSL from the same settings is already waiting for checks 7 and
+8: `F:\DWdemo\linux-built\ALAN WAKE.iso`.
 
-## 5. Report
+## 5. What KDE may do differently
+
+Kubuntu is KDE, and everything above was written on GNOME's assumptions. Three
+places where the answer may simply be different, and different is a fact to
+write down rather than a bug to fix in a hurry:
+
+- **`.xdg-volume-info`.** GNOME reads it through gvfs. KDE mounts with Solid and
+  may ignore the file, in which case the disc shows its volume id (`ALAN_WAKE`)
+  and a generic icon. If so, say so: the disc is still correct for Windows and
+  for GNOME, and what KDE wants instead is worth finding out before anything is
+  changed.
+- **File dialogs.** A GTK 4 application on KDE goes through the desktop portal,
+  so **Add game...** may open Plasma's file dialog rather than GTK's. That it
+  opens at all, and returns the folder picked, is the check.
+- **The window's own look.** GTK 4 on Plasma uses whatever GTK theme is set, not
+  Breeze, so it may look out of place. Worth a screenshot, not worth a fix.
+
+## 6. Report
+
+Attach the report `tools/linux-report.sh` wrote, then add what only a person
+saw: what the desktop showed for the disc, whether the menu entry appeared with
+its icon, and what the folder question looked like. Screenshots beat sentences
+for all three.
 
 Write the results into `docs/xorriso-spike.md`, under "Still to check", as
 measured facts: what was run, on what (distro, desktop, Python, Pillow, GTK),
