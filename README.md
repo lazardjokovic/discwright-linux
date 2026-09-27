@@ -14,6 +14,7 @@ either machine works on both.
 here, from the command line or a window:
 
 - reading a GOG download folder: the installer, its parts, and the game's name
+- a folder of game files that never came from GOG, kept on the disc as it stands
 - add-ons: DLC, expansions, GOG patches and mods, filed under their game
 - the disc label, `autorun.inf`, and the files that name the disc on Linux
 - the disc icon from any picture
@@ -67,6 +68,24 @@ discwright build --game ~/GOG/Witcher --add-on ~/GOG/Witcher/patch_1.4_to_1.5.ex
                  --game ~/GOG/Witcher2 --icon ~/art/witcher.png \
                  --background ~/art/witcher.jpg --out ~/discs/witcher
 ```
+
+A game does not have to come from GOG. Point `--files` at any folder of game files,
+an unpacked archive, an itch.io download, an installed game, anything portable, and
+it goes on the disc as it stands, subfolders and all. Name the executable that
+installs it with `--installer`, or leave it out and the menu offers **Open Folder**
+instead of Install:
+
+```sh
+discwright build --files "~/games/Portable Game" \
+                 --installer "~/games/Portable Game/setup.exe" \
+                 --icon ~/art/cover.png --background ~/art/wide.jpg \
+                 --out ~/discs/portable
+```
+
+`--game` still wants a GOG download, and says what to type if the folder it is
+given is not one. The window asks the same question in a dialog, listing the
+folder's executables largest first, since an installer is rarely the smallest
+thing in a game folder.
 
 `discwright build --help` lists the rest: which buttons the menu has, which side
 they sit on, music, extra content, and `--stage-only` to lay the disc out as a

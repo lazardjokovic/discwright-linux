@@ -138,13 +138,24 @@ These are the owner's, carried over from the Windows project. Follow them here.
 
 ## Where things stand
 
-**Right now (2026-09-21): testing on real Linux, before any release.** Every
+**Right now (2026-09-26): testing on real Linux, before any release.** Every
 part of the Windows app's disc-making is ported, with the command line and the
 window, and all of it passes in WSL and CI. What has never been seen is a real
-Linux desktop, so the owner is testing on Arch, dual-booted on the same PC. If
-you are a session on that machine, **follow `docs/testing-on-linux.md`** and
-report what you find. **Do not release, tag or bump a version**: the owner has
-said the release waits until they have seen the results.
+Linux desktop. Arch has been taken off the dual boot; the owner plans to install
+Kubuntu and try the app there. If you are a session on that machine, **follow
+`docs/testing-on-linux.md`** and report what you find, and note that KDE may
+ignore `.xdg-volume-info`. **Do not release, tag or bump a version**: the owner
+has said the release waits until they have seen the results.
+
+**Caught up with Windows 0.8.0 (2026-09-26):** a game no longer has to be a GOG
+download. `folder_info` in `games.py` takes any folder of game files and keeps
+its shape, `layout.py` places each file by its path under that folder rather
+than by name, the menu offers **Open Folder** where there is nothing to install,
+and the project file records which kind each entry is, at schema 9. The command
+line asks with `--files` and `--installer`, since it cannot show a dialog, and
+`--game` prints what to type when the folder it was given is not a GOG download.
+The window asks the question Windows asks in a dialog, with its wording in
+`form.py` so it can be read without a screen.
 
 - Ported and tested against Windows output: `text.py` (control characters, volume
   id, ANSI encoding), `autorun.py`, `xdg.py`.

@@ -23,7 +23,7 @@ from gi.repository import Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import __version__  # noqa: E402
 from .build import build  # noqa: E402
-from .form import BUTTONS, Form  # noqa: E402
+from .form import BUTTONS, FolderQuestion, Form  # noqa: E402
 from .games import format_size  # noqa: E402
 from .icons import check_background, check_icon  # noqa: E402
 from .iso import IsoError, iso_path  # noqa: E402
@@ -436,18 +436,92 @@ class DiscWindow(Gtk.ApplicationWindow):
         self.refresh()
 
     def on_add_game(self) -> None:
-        dialog = Gtk.FileDialog(modal=True, title="The folder a GOG download came in")
+        dialog = Gtk.FileDialog(modal=True, title="A GOG download, or a folder of game files")
 
         def done(dlg, result):
             try:
                 folder = Path(dlg.select_folder_finish(result).get_path())
             except GLib.Error:
                 return
+            # No GOG installer is a question rather than a refusal now: which
+            # executable installs this, or is the folder itself the game?
+            question = self.form.folder_question(folder)
+            if question is not None:
+                return self.ask_about_folder(question)
             err = self.form.add_game(folder)
             if err:
                 return self.alert("This folder cannot be added", f"{folder}\n\n{err}")
             self.refresh()
         dialog.select_folder(self, None, done)
+
+    def ask_about_folder(self, question: FolderQuestion) -> Gtk.Window:
+        """What the menu should do with a folder that is not a GOG download.
+
+        The wording and the order of the answers are form.py's, where they can
+        be read without a screen. Cancel adds nothing, and is not the same as
+        "no installer", which adds the folder with no Install button.
+        """
+        win = Gtk.Window(transient_for=self, modal=True, title=question.title,
+                         default_width=560, resizable=False)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        for m in ("set_margin_top", "set_margin_bottom", "set_margin_start", "set_margin_end"):
+            getattr(box, m)(14)
+        box.append(Gtk.Label(xalign=0, wrap=True, label=question.explain))
+        if question.warning:
+            # An icon beside it, not only the theme's warning colour: whether
+            # that colour reaches a plain label depends on the theme, and this
+            # line is the one that stops a mis-picked folder going on a disc.
+            line = Gtk.Box(spacing=8)
+            line.append(Gtk.Image(icon_name="dialog-warning-symbolic",
+                                  valign=Gtk.Align.START, margin_top=2))
+            warn = Gtk.Label(xalign=0, wrap=True, label=question.warning, hexpand=True)
+            warn.add_css_class("warning")
+            line.append(warn)
+            box.append(line)
+
+        choices = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
+        for text in question.choices:
+            row = Gtk.ListBoxRow()
+            row.set_child(Gtk.Label(xalign=0, wrap=True, label=text, margin_top=6,
+                                    margin_bottom=6, margin_start=8, margin_end=8))
+            choices.append(row)
+        # The safe answer, already chosen, so the quickest way through the
+        # dialog cannot point a menu button at the wrong program.
+        choices.select_row(choices.get_row_at_index(0))
+        scroller = Gtk.ScrolledWindow(min_content_height=180, vexpand=True)
+        scroller.set_child(choices)
+        box.append(scroller)
+
+        note = Gtk.Label(xalign=0, wrap=True, label=question.note)
+        note.add_css_class("dim-label")
+        box.append(note)
+
+        row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
+        cancel = Gtk.Button(label="Cancel")
+        add = Gtk.Button(label="Add")
+        add.add_css_class("suggested-action")
+        row.append(cancel)
+        row.append(add)
+        box.append(row)
+        win.set_child(box)
+
+        def apply(*_):
+            picked = choices.get_selected_row()
+            installer = question.installer_for(picked.get_index() if picked else 0)
+            err = self.form.add_files(question.folder, installer)
+            win.close()
+            if err:
+                return self.alert("This folder cannot be added", f"{question.folder}\n\n{err}")
+            self.refresh()
+        cancel.connect("clicked", lambda *_: win.close())
+        add.connect("clicked", apply)
+        # Through a seam, like alert and ask, so a test can look at the dialog
+        # without a window appearing on somebody's screen mid-run.
+        self.show_window(win)
+        return win
+
+    def show_window(self, win: Gtk.Window) -> None:
+        win.present()
 
     def on_add_on(self) -> None:
         parent = self.form.parent_for(self.selected)

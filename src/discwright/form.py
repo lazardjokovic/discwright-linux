@@ -16,7 +16,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .games import GameInfo, add_on_info, format_size, game_info
+from .games import (GameInfo, add_on_info, folder_executables, folder_info, format_size,
+                    game_info, gog_subfolders)
 from .icons import check_background, check_icon
 from .iso import iso_path
 from .layout import remove_entry
@@ -32,6 +33,68 @@ class Control:
     """Whether a control can be used now, and if not, the sentence saying why."""
     enabled: bool
     why: str = ""
+
+
+@dataclass
+class FolderQuestion:
+    """What to ask about a folder that is not a GOG download.
+
+    The Windows app asks it in a dialog (Show-FolderInstallerDialog). The
+    wording lives here rather than in the widget, so both halves of this port
+    say what Windows says and the sentences can be read without a screen.
+
+    Nothing is refused for a folder that reaches this point: it holds files, so
+    it can go on a disc. The question is only what the menu does with it.
+    """
+    folder: Path
+    executables: list[Path] = field(default_factory=list)
+    file_count: int = 0
+    total_bytes: int = 0
+    # GOG downloads sitting in subfolders of the folder that was picked, which
+    # is the likeliest way to arrive here by mistake.
+    downloads: list[Path] = field(default_factory=list)
+
+    title = "No GOG installer in this folder"
+
+    @property
+    def explain(self) -> str:
+        return (f"{self.folder.name} holds no setup_*.exe, so it is not a GOG download.\n"
+                "Everything in it goes on the disc either way. "
+                "What should the menu do with it?")
+
+    @property
+    def warning(self) -> str:
+        """Empty unless the folder is where the downloads live. A warning and not
+        a refusal: a real game folder can have a setup_*.exe buried under it."""
+        if not self.downloads:
+            return ""
+        return (f"{len(self.downloads)} GOG download(s) sit in subfolders of this one, "
+                f'starting with "{self.downloads[0].name}".\n'
+                "If you meant one of those, Cancel and pick that folder instead.")
+
+    @property
+    def note(self) -> str:
+        """What is about to go on the disc. A game folder reads as a few files and
+        a few GB; the folder holding every download somebody owns reads as tens of
+        GB, which is the mis-pick showing itself before anything is added."""
+        counted = f"{self.file_count} file(s), {format_size(self.total_bytes)}.  "
+        if self.executables:
+            return counted + f"{len(self.executables)} executable(s), largest first."
+        return counted + "No executables at all, so there is nothing to install."
+
+    @property
+    def choices(self) -> list[str]:
+        """The answers, in the order they are offered. The safe one comes first
+        and is the one selected: a wrong installer is a menu button that runs the
+        wrong program, while no installer is only one button fewer."""
+        return ["No installer: put the files on the disc and let the menu open the folder"] + [
+            f"Install with {e.name}   ({format_size(e.stat().st_size)})" for e in self.executables]
+
+    def installer_for(self, choice: int) -> Path | None:
+        """The installer a chosen answer names, or None for "no installer"."""
+        if choice <= 0 or choice > len(self.executables):
+            return None
+        return self.executables[choice - 1]
 
 
 @dataclass
@@ -69,6 +132,42 @@ class Form:
         info = game_info(folder)
         if not info.ok:
             return info.msg
+        return self._add(info)
+
+    def folder_question(self, folder: str | Path) -> FolderQuestion | None:
+        """What to ask about a folder the GOG reader would not take, or None
+        when there is nothing to ask.
+
+        Nothing to ask covers three cases, and each is a different answer: the
+        folder is a GOG download after all, so add_game takes it; it is not
+        there, or it holds no files at all, so add_game refuses it with its own
+        message. A dialog offering a choice between none of nought executables
+        is not a question, and on Windows it was what hung the test suite.
+        """
+        folder = Path(folder)
+        info = game_info(folder)
+        if info.ok or not info.msg.startswith("No GOG"):
+            return None
+        files = [p for p in folder.rglob("*") if p.is_file()] if folder.is_dir() else []
+        if not files:
+            return None
+        return FolderQuestion(
+            folder=folder,
+            executables=folder_executables(folder, files=files),
+            file_count=len(files),
+            total_bytes=sum(p.stat().st_size for p in files),
+            downloads=gog_subfolders(folder),
+        )
+
+    def add_files(self, folder: str | Path, installer: str | Path | None = None) -> str | None:
+        """Add a folder of game files, with the installer the question named, or
+        none. Returns what went wrong, or None."""
+        info = folder_info(folder, installer)
+        if not info.ok:
+            return info.msg
+        return self._add(info)
+
+    def _add(self, info: GameInfo) -> None:
         self.games.append(info)
         # The first game names the disc, unless the user already has.
         if not self.label.strip():

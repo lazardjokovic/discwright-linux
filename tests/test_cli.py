@@ -1,3 +1,4 @@
+import shlex
 import shutil
 import subprocess
 import sys
@@ -270,3 +271,101 @@ def test_says_how_to_get_the_window_when_gtk_is_missing(monkeypatch, capsys):
     assert main(["window"]) == 1
     err = capsys.readouterr().err
     assert "gir1.2-gtk-4.0" in err and "discwright build" in err
+
+
+# ---- a folder of game files, which is not a GOG download -------------------------------
+
+@pytest.fixture
+def loose(tmp_path):
+    d = tmp_path / "Portable Game"
+    sparse(d / "PortableGame.exe", 3 * MB)
+    sparse(d / "CrashHandler.exe", 64 * 1024)
+    write(d / "readme.txt", "read me")
+    write(d / "data" / "config.ini", "x=1")
+    return d
+
+
+def base(src, out, *entry):
+    return ["build", *entry, "--icon", str(src / "art" / "alpha.ico"),
+            "--background", str(src / "art" / "alpha-bg.png"), "--out", str(out)]
+
+
+def test_takes_a_folder_of_game_files(loose, src, tmp_path, caught):
+    assert main(base(src, tmp_path / "out", "--files", str(loose))) == 0
+    games = caught["settings"].games
+    assert len(games) == 1 and games[0].source == "Files"
+    assert games[0].setup_exe is None
+
+
+def test_takes_the_installer_named_after_it(loose, src, tmp_path, caught):
+    assert main(base(src, tmp_path / "out", "--files", str(loose),
+                     "--installer", str(loose / "PortableGame.exe"))) == 0
+    assert caught["settings"].games[0].setup_exe == loose / "PortableGame.exe"
+
+
+def test_refuses_an_installer_from_outside_the_folder(loose, src, tmp_path, capsys):
+    # The dialog on Windows can only offer executables from the folder itself.
+    # One from anywhere else never reaches the disc, so the menu's Install
+    # button would point at nothing.
+    stray = tmp_path / "elsewhere" / "other.exe"
+    sparse(stray, MB)
+    assert main(base(src, tmp_path / "out", "--files", str(loose), "--installer", str(stray))) == 1
+    assert "inside the folder it installs" in capsys.readouterr().err
+
+
+def test_refuses_an_installer_with_no_folder_before_it(loose, src, tmp_path, capsys):
+    assert main(base(src, tmp_path / "out",
+                     "--installer", str(loose / "PortableGame.exe"))) == 1
+    assert "put a --files first" in capsys.readouterr().err
+
+
+def test_files_and_downloads_can_share_a_disc(loose, src, tmp_path, caught):
+    assert main(base(src, tmp_path / "out", "--game", str(src / "Alpha"),
+                     "--files", str(loose))) == 0
+    assert [g.source for g in caught["settings"].games] == ["GOG", "Files"]
+
+
+def test_an_add_on_still_attaches_to_a_folder_of_files(loose, src, tmp_path, caught):
+    patch = loose.parent / "patch_portable_1.0_to_1.1.exe"
+    sparse(patch, MB)
+    assert main(base(src, tmp_path / "out", "--files", str(loose),
+                     "--add-on", str(patch))) == 0
+    games = caught["settings"].games
+    assert games[1].kind == "AddOn" and games[1].parent_index == 0
+
+
+def test_says_what_to_type_when_a_folder_is_not_a_gog_download(loose, src, tmp_path, capsys):
+    # A command cannot ask the question the window asks, and taking any folder
+    # handed to --game would put a mis-picked home directory on a disc. So it
+    # refuses and prints the answer it would have offered.
+    assert main(base(src, tmp_path / "out", "--game", str(loose))) == 1
+    err = capsys.readouterr().err
+    assert 'No GOG "setup_*.exe"' in err
+    assert f"--files {shlex.quote(str(loose))}" in err
+    assert f"--installer {shlex.quote(str(loose / 'PortableGame.exe'))}" in err
+    # Quoted, because these lines are meant to be pasted back and a game folder
+    # with a space in its name is the normal case.
+    assert "'" in shlex.quote(str(loose))
+
+
+def test_says_when_the_folder_is_where_the_downloads_live(src, tmp_path, capsys):
+    shelf = tmp_path / "shelf"
+    for name in ("game one", "game two"):
+        sparse(shelf / name / "setup_a_game_1.0.exe", MB)
+    assert main(base(src, tmp_path / "out", "--game", str(shelf))) == 1
+    err = capsys.readouterr().err
+    assert "2 GOG download(s) sit in subfolders" in err
+    assert '"game one"' in err
+
+
+def test_says_nothing_extra_about_a_folder_with_nothing_in_it(src, tmp_path, capsys):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert main(base(src, tmp_path / "out", "--game", str(empty))) == 1
+    err = capsys.readouterr().err
+    assert "--files" not in err
+
+
+def test_names_a_folder_of_files_in_what_it_reports(loose, src, tmp_path, caught, capsys):
+    main(base(src, tmp_path / "out", "--files", str(loose)))
+    assert "game: Portable Game  (4 files, 3 MB)" in capsys.readouterr().out
