@@ -40,6 +40,18 @@ A Linux-side launcher, and reading GOG's Linux `.sh` installers as games rather
 than as ordinary files, are in the [roadmap](ROADMAP.md). Neither is here yet,
 and the README will say so until they are.
 
+### One place the two tools differ
+
+**File names longer than 103 characters are refused here, and accepted on
+Windows.** The Windows app writes UDF, which has room for them; this writes
+ISO9660 with Joliet, where 103 is what Windows 11 reads back whole, so a name
+past that would arrive on the disc cut and the menu would not find the file.
+Rather than write a disc like that, the build stops and names the file.
+
+It never comes up for a GOG download, whose longest real filename measured is 96
+characters. It can come up for **a folder of game files**, which may hold
+anything. Shorten the name, or build that one on Windows.
+
 ## Status
 
 **Works, and not released yet.** Everything the Windows app does to make a disc is
