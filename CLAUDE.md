@@ -18,6 +18,11 @@ Related repositories:
 - `lazardjokovic/discwright.com` - the website. Its `site/index.html` names the
   current Windows version in one place and has to be bumped on every release.
 
+Both repos carry a `ROADMAP.md`, and which one an item belongs in follows the
+same rule as the code: anything about **the disc** is the Windows repo's, because
+the disc is the same one. This repo's roadmap is about **Linux**: what a Linux
+machine can do with a disc, and how the tool reaches the people who use one.
+
 ## Decisions already made
 
 Made on 2026-09-18, with the reasons, so they are not reopened by accident:
