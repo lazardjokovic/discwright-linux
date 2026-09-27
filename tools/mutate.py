@@ -287,6 +287,10 @@ MUTATIONS = [
      "if False:"),
     ("nothing said about what to type instead", "cli.py",
      'if kind == "game" and info.msg.startswith("No GOG"):', "if False:"),
+    ("nothing said when the disc replaces a game's own file", "stage.py",
+     'if name and name in own_root_files:', "if False:"),
+    ("the game's own root folders not noticed", "stage.py",
+     "own_root_dirs.add(dest.relative_to(stage_dir).parts[0])", "pass"),
     ("the folder left out of the menu's own games list", "menu.py",
      "+ '\",d:\"' + js_string(g.get(\"folder\") or \"\")", "+ '\",d:\"' + js_string(\"\")"),
 ]

@@ -114,8 +114,9 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
     aside: Path | None = None
     games = list(s.games)
     # Names the disc's own content puts at the root, filled in while copying and
-    # read by the stale-icon sweep at the end.
+    # read by the stale-icon sweep, and by the note about what the disc replaced.
     own_root_files: set[str] = set()
+    own_root_dirs: set[str] = set()
 
     # Rebuilding a disc folder in place: the installers already live in the stage.
     # One entry, deliberately, not one game: a game carrying add-ons still needs
@@ -179,6 +180,10 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
                 # build left behind.
                 if dest.parent == stage_dir:
                     own_root_files.add(dest.name)
+                elif stage_dir in dest.parents:
+                    # The folders it brings to the root as well: the disc writes
+                    # into AUTORUN and Extras, and would merge with them.
+                    own_root_dirs.add(dest.relative_to(stage_dir).parts[0])
                 _link_or_copy(f, dest, log)
 
             # This entry's own manual and extras, beside its installer, so on a
@@ -322,5 +327,20 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
         # Rebuilt without it: leaving it would point Linux at a PNG just removed.
         xdg.unlink()
         log("Removed .xdg-volume-info - this disc is no longer named for Linux.")
+
+    # What the disc has just written over. A GOG download is setup_*.exe and its
+    # .bin parts, which can never be called any of these; a folder of game files
+    # can be called anything, and plenty of games ship an autorun.inf of their
+    # own. On a one-game disc those files land at the root, so the disc's own
+    # land on top of them.
+    #
+    # The disc has to win, since its autorun.inf is what opens the menu. What it
+    # must not do is win in silence: the promise made when the folder was added
+    # is that it goes on the disc as it stands, and here part of it did not.
+    for name in ("autorun.inf", ico_name, png_name, ".xdg-volume-info"):
+        if name and name in own_root_files:
+            log(f"  NOTE: the disc's own {name} replaced the game's file of that name.")
+    if "AUTORUN" in own_root_dirs:
+        log("  NOTE: this game brings an AUTORUN folder; the disc's menu files sit in it too.")
 
     return stage_dir, aside

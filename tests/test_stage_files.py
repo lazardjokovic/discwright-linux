@@ -129,3 +129,64 @@ def test_rebuilds_over_itself_without_losing_the_files(portable, src, tmp_path):
     st, aside = stage(settings_for([folder_info(portable)], src, out), quiet)
     assert (st / "data" / "textures" / "wall.dds").is_file()
     assert aside is not None
+
+
+# ---- when the game folder already holds the names the disc uses ------------------
+
+def collected(lines):
+    return "\n".join(lines)
+
+
+@pytest.fixture
+def clashing(portable):
+    """A game folder carrying an autorun.inf and an AUTORUN folder of its own.
+    Plenty of games ship one; a GOG download never could, because its files are
+    setup_*.exe and .bin parts."""
+    write(portable / "autorun.inf", "[autorun]\nopen=THEIRS.EXE\n")
+    write(portable / "AUTORUN" / "theirs.txt", "the game has one too")
+    write(portable / "PORTABLE.ico", "not an icon, but named like the disc's")
+    return portable
+
+
+def test_the_discs_own_files_win(clashing, src, tmp_path):
+    # They have to: the disc's autorun.inf is what opens the menu.
+    st, _ = stage(settings_for([folder_info(clashing)], src, tmp_path / "out"), quiet)
+    assert "AUTORUN" in (st / "autorun.inf").read_text(encoding="latin-1")
+    assert (st / "PORTABLE.ico").read_bytes()[:4] == b"\0\0\1\0"
+
+
+def test_it_says_which_of_the_games_files_were_replaced(clashing, src, tmp_path):
+    # Winning silently contradicts the promise made when the folder was added:
+    # that it goes on the disc as it stands. Here part of it did not.
+    said = []
+    stage(settings_for([folder_info(clashing)], src, tmp_path / "out"), said.append)
+    log = collected(said)
+    assert "the disc's own autorun.inf replaced" in log
+    assert "the disc's own PORTABLE.ico replaced" in log
+
+
+def test_it_says_the_game_brought_an_autorun_folder(clashing, src, tmp_path):
+    said = []
+    st, _ = stage(settings_for([folder_info(clashing)], src, tmp_path / "out"), said.append)
+    assert (st / "AUTORUN" / "theirs.txt").is_file()
+    assert (st / "AUTORUN" / "menu.hta").is_file()
+    assert "brings an AUTORUN folder" in collected(said)
+
+
+def test_it_says_nothing_of_the_sort_for_an_ordinary_folder(portable, src, tmp_path):
+    # A note on every disc would be a note nobody reads.
+    said = []
+    stage(settings_for([folder_info(portable)], src, tmp_path / "out"), said.append)
+    assert "replaced" not in collected(said)
+
+
+def test_a_game_in_its_own_folder_cannot_clash_at_all(clashing, src, tmp_path):
+    # Two games means numbered folders, so the game's autorun.inf is inside one
+    # and never meets the disc's. Nothing to say.
+    other = clashing.parent / "Other Game"
+    write(other / "other.txt", "other")
+    said = []
+    st, _ = stage(settings_for([folder_info(clashing), folder_info(other)], src,
+                               tmp_path / "out"), said.append)
+    assert (st / "Games" / "01 - Portable Game" / "autorun.inf").is_file()
+    assert "replaced" not in collected(said)
