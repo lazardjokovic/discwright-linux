@@ -1,0 +1,20 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=DiscWright
+GenericName=Game disc builder
+Comment=Turn a GOG offline installer into a burnable game disc
+# Rewritten by install.sh to the full path of the command it finds, because
+# DiscWright is installed into a virtual environment that is not on PATH unless
+# it was installed with pipx.
+Exec=discwright window
+TryExec=discwright
+Icon=com.discwright.DiscWright
+Terminal=false
+# DiscBurning belongs to AudioVideo in the menu specification, so both are here.
+Categories=Utility;AudioVideo;DiscBurning;
+Keywords=GOG;ISO;disc;burn;autorun;game;menu;
+StartupNotify=true
+# The application id the window registers, so the desktop puts this icon and
+# name on the running window rather than a generic one.
+StartupWMClass=com.discwright.DiscWright

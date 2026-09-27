@@ -69,6 +69,20 @@ say GTK is missing on a machine that has it. `pipx install --system-site-package
 Checked on Ubuntu 24.04 with Python 3.12 and Pillow 10.2: the steps above install
 it and the window opens.
 
+### In the application menu
+
+So it starts from your desktop's menu, with its own icon, rather than by typing a
+path:
+
+```sh
+./discwright-linux/packaging/desktop/install.sh ~/.venvs/discwright/bin/discwright
+```
+
+Everything it writes goes under your home folder, nothing needs root, and
+`install.sh --uninstall` takes it out again. Give it the path to the command, as
+above, or nothing at all if `discwright` is already on your PATH. It refuses
+rather than writing a menu entry that does nothing when it is clicked.
+
 ## The window
 
 ```sh
