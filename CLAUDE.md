@@ -154,16 +154,49 @@ These are the owner's, carried over from the Windows project. Follow them here.
 
 ## Where things stand
 
-**Right now (2026-09-26): testing on real Linux, before any release.** Every
+**Right now (2026-09-30): testing on real Linux, before any release.** Every
 part of the Windows app's disc-making is ported, with the command line and the
 window, and all of it passes in WSL and CI. What has never been seen is a real
-Linux desktop. Arch has been taken off the dual boot; the owner plans to install
-Kubuntu and try the app there. If you are a session on that machine, **follow
-`docs/testing-on-linux.md`** and report what you find, and note that KDE may
-ignore `.xdg-volume-info`. **Do not release, tag or bump a version**: the owner
-has said the release waits until they have seen the results.
+Linux desktop. Arch came off the dual boot and **Kubuntu is the machine**.
 
-**Caught up with Windows 0.8.0 (2026-09-26):** a game no longer has to be a GOG
+### If you are the session on Kubuntu, start here
+
+Nothing is half finished and nothing needs writing before testing can start.
+`main` is green, there are no open pull requests, and the work is to find out
+what a real KDE desktop does with this.
+
+```sh
+sudo apt install git python3-venv python3-gi gir1.2-gtk-4.0 python3-pil xorriso \
+                 fonts-dejavu-core nodejs gh desktop-file-utils
+git clone https://github.com/lazardjokovic/discwright-linux
+cd discwright-linux
+python3 -m venv --system-site-packages .venv     # the flag matters, see the README
+.venv/bin/pip install -e ".[dev]"
+tools/linux-report.sh                            # --mutate for the full run
+```
+
+`tools/linux-report.sh` writes down what the machine is, runs the suite, builds
+a disc end to end and leaves a real ISO in `~/discwright-check/out/`. Then
+`docs/testing-on-linux.md` is the list, and its by-hand section is the part no
+script can answer: **what the desktop shows for a mounted disc**, whether the
+application menu entry appears with its icon, and what the folder question
+looks like on KDE's own dialogs. Screenshots beat sentences for all three.
+
+Three things to expect rather than be surprised by:
+
+- **KDE may ignore `.xdg-volume-info` entirely.** GNOME reads it through gvfs;
+  KDE mounts with Solid. If the disc shows its volume id and a generic icon,
+  that is a fact to write down, not a bug to rush a fix for.
+- **The file dialogs will be Plasma's**, through the desktop portal, not GTK's.
+  That they open and return the folder picked is the check.
+- **The window will not look like Breeze**, since GTK 4 uses whatever GTK theme
+  is set. Worth a screenshot, not worth a fix.
+
+**Do not release, tag or bump a version.** The release waits until the owner has
+seen the results. Anything that does need fixing is fixed the way everything
+here is: a test that fails first, then the fix, in a pull request.
+
+**Caught up with Windows 0.8.0 (2026-09-26), and finished since:** a game no longer has to be a GOG
 download. `folder_info` in `games.py` takes any folder of game files and keeps
 its shape, `layout.py` places each file by its path under that folder rather
 than by name, the menu offers **Open Folder** where there is nothing to install,
@@ -172,6 +205,14 @@ line asks with `--files` and `--installer`, since it cannot show a dialog, and
 `--game` prints what to type when the folder it was given is not a GOG download.
 The window asks the question Windows asks in a dialog, with its wording in
 `form.py` so it can be read without a screen.
+
+Since then, and all on `main`: the README says how to **install** it, with the
+steps run on Ubuntu 24.04 rather than written from memory; `packaging/desktop`
+puts DiscWright in the **application menu** with its own icon;
+`tools/linux-report.sh` collects the machine, the suite and a built disc into
+one report; `ROADMAP.md` says what a Linux machine can and cannot do with a
+disc; and the build now **says when the disc's own files land on top of a
+game's**, which the Windows app does too.
 
 - Ported and tested against Windows output: `text.py` (control characters, volume
   id, ANSI encoding), `autorun.py`, `xdg.py`.
