@@ -107,6 +107,12 @@ xorriso is needed for anything that builds an ISO: `sudo apt install xorriso`.
   worth protecting.
 - **`tools/wsl-test.sh`** runs the suite from WSL when the repo lives on the
   Windows side, with the virtual environment kept on the Linux side.
+- **`.claude/skills/goldens`** is the procedure for remaking the files this port
+  is tested against, all of which Windows DiscWright itself produces: the menu
+  template, the reference menus, the project file and the background. Read it
+  before touching anything under `tests/fixtures`, and note that
+  `tools/windows/Make-ProjectReference.ps1` now writes the project fixture that
+  used to be made by hand.
 
 What WSL cannot show: a Linux desktop mounting the disc and displaying its name
 and icon, because WSL has no desktop automounter. That needs a real Linux machine
