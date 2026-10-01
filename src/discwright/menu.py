@@ -83,7 +83,12 @@ def _games_js(games: Sequence[dict]) -> str:
                      # decides whether the game is on the chooser at all.
                      + '",d:"' + js_string(g.get("folder") or "")
                      + '",man:"' + js_string(g.get("manual") or "")
-                     + '",ext:"' + js_string(g.get("extras") or "") + '",a:[' + add_ons + ']}')
+                     + '",ext:"' + js_string(g.get("extras") or "")
+                     # files is 1 when the entry is a folder of game files
+                     # rather than an installer. A number rather than the word,
+                     # because every byte of the menu is read off a disc.
+                     + '",files:' + ("1" if g.get("source") == "Files" else "0")
+                     + ',a:[' + add_ons + ']}')
     return "[" + ",".join(parts) + "]"
 
 

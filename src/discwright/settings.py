@@ -23,6 +23,12 @@ class DiscSettings:
     menu: bool = True
     bg_path: Path | None = None
     bg_as_is: bool = False
+    # Pictures for the printed cover and the printed disc face. Nothing here
+    # prints anything yet; they are carried so that a project written by the
+    # Windows app keeps them when it is opened and saved on Linux. Dropping a
+    # key on the way through would delete somebody's choice without saying so.
+    cover_path: str | None = None
+    disc_art_path: str | None = None
     panel_side: str = "Right"
     divider: bool = False
     show_title: bool = False

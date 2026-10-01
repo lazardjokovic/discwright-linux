@@ -1,0 +1,62 @@
+﻿{
+    "Version":  10,
+    "AppVersion":  "0.9.1",
+    "SavedUtc":  "2026-10-01T22:37:03",
+    "SourceFolder":  "C:\\Users\\lazar\\AppData\\Local\\Temp\\dwprojref\\gog_game",
+    "GameName":  "gog game",
+    "Games":  [
+                  {
+                      "Folder":  "C:\\Users\\lazar\\AppData\\Local\\Temp\\dwprojref\\gog_game",
+                      "GameName":  "gog game",
+                      "MatchName":  "gog game",
+                      "Setup":  "C:\\Users\\lazar\\AppData\\Local\\Temp\\dwprojref\\gog_game\\setup_gog_game_1.0_(12345).exe",
+                      "Kind":  "Game",
+                      "Source":  "GOG",
+                      "Parent":  -1,
+                      "Manual":  null,
+                      "Extras":  null
+                  },
+                  {
+                      "Folder":  "C:\\Users\\lazar\\AppData\\Local\\Temp\\dwprojref\\Portable Game",
+                      "GameName":  "Portable Game",
+                      "MatchName":  "Portable Game",
+                      "Setup":  "C:\\Users\\lazar\\AppData\\Local\\Temp\\dwprojref\\Portable Game\\PortableGame.exe",
+                      "Kind":  "Game",
+                      "Source":  "Files",
+                      "Parent":  -1,
+                      "Manual":  null,
+                      "Extras":  null
+                  }
+              ],
+    "Label":  "REFERENCE DISC",
+    "IconPath":  "C:\\art\\icon.ico",
+    "IconIsIco":  true,
+    "Menu":  true,
+    "BgPath":  "C:\\art\\background.jpg",
+    "BgAsIs":  false,
+    "CoverPath":  "C:\\art\\cover.png",
+    "DiscArtPath":  "C:\\art\\disc-face.png",
+    "PanelSide":  "Right",
+    "Divider":  false,
+    "ShowTitle":  true,
+    "TitleText":  "REFERENCE DISC",
+    "WindowBorder":  true,
+    "ButtonStyle":  "Minimal",
+    "MusicFile":  null,
+    "Buttons":  [
+                    "Play",
+                    "Install",
+                    "Manual",
+                    "Extras",
+                    "Exit"
+                ],
+    "ManualPath":  null,
+    "ExtrasPath":  null,
+    "ExtraItems":  [
+
+                   ],
+    "MediaKey":  "",
+    "LinuxInfo":  true,
+    "LegacyFs":  false,
+    "OutDir":  "C:\\Users\\lazar\\AppData\\Local\\Temp\\dwprojref\\out"
+}

@@ -196,6 +196,23 @@ Three things to expect rather than be surprised by:
 seen the results. Anything that does need fixing is fixed the way everything
 here is: a test that fails first, then the fix, in a pull request.
 
+**Level with Windows 0.9.1 for what this port does, as of 2026-10-02**, which is
+not the same as having everything 0.9.1 has. Two things came across and two
+deliberately did not.
+
+Came across: a disc built from folders of game files now shows **Play from disc**
+and no Install, because the executable is the game. Windows found that by burning
+a disc and looking at the screen, and the port carried the same template and the
+same bug. And the project file is at **schema 10**, carrying `CoverPath` and
+`DiscArtPath`. Nothing here prints anything; they are read and written so that a
+project opened and saved on Linux does not come back with somebody's choice
+quietly gone.
+
+Did not come across: **printing** and **burning**. Printing means rendering the
+whole format table with Pillow; burning on Linux is a different world of
+`growisofs`, `cdrecord` and `wodim`. Both are projects rather than ports, and
+neither is worth starting while this is paused and nobody is running it.
+
 **Caught up with Windows 0.8.0 (2026-09-26), and finished since:** a game no longer has to be a GOG
 download. `folder_info` in `games.py` takes any folder of game files and keeps
 its shape, `layout.py` places each file by its path under that folder rather

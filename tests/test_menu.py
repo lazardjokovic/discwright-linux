@@ -10,14 +10,22 @@ import pytest
 from discwright.menu import html_text, js_string, menu_hta
 
 FIX = Path(__file__).parent / "fixtures" / "menu"
-WINDOWS = FIX / "windows-0.8.0"
+# Menus the Windows app itself wrote, at the version the port is level with.
+# The old set is kept beside it: it is what 0.8.0 produced, and the diff
+# between the two is the record of what changed in the menu.
+WINDOWS = FIX / "windows-0.9.1"
 CASES = {c["name"]: c["cfg"] for c in json.loads((FIX / "cases.json").read_text(encoding="ascii"))["cases"]}
 
 
 def build(cfg: dict) -> bytes:
     """menu_hta called with what New-MenuHta was given for the same case."""
+    # Every field New-MenuHta reads has to come through here, or the port is
+    # compared against a menu built from more than it was given. Source was
+    # missed when it was added, and the two menus came out the same length with
+    # different bytes: files:0 against files:1.
     games = [{"name": g["Name"], "match_name": g["MatchName"], "setup": g["Setup"],
               "folder": g["Folder"], "manual": g["Manual"], "extras": g["Extras"],
+              "source": g.get("Source", "GOG"),
               "add_ons": [{"name": a["Name"], "setup": a["Setup"]} for a in g["AddOns"]]}
              for g in cfg["Games"]]
     return menu_hta(cfg["GameName"], games, cfg["Buttons"],
@@ -177,3 +185,43 @@ def test_the_chooser_asks_for_the_folder_when_there_is_no_installer():
     text = build(CASES["a-folder-of-files"]).decode("ascii")
     assert "GAMES[i].s ? fso.FileExists" in text
     assert "fso.FolderExists(fso.BuildPath(root,GAMES[i].d))" in text
+
+
+# ---- the files flag, which decides Play from disc ------------------------------------
+
+def test_writes_the_flag_the_menu_reads():
+    hta = menu_hta("DISC", [{"name": "Gothic", "match_name": "Gothic",
+                             "setup": "Games/01 - Gothic/gothic.exe", "folder": "Games/01 - Gothic",
+                             "manual": "", "extras": "", "source": "Files", "add_ons": []}],
+                   ["Play", "Install", "Exit"])
+    assert b"files:1" in hta
+    assert b"files:0" not in hta
+
+
+def test_calls_a_gog_download_an_installer():
+    hta = menu_hta("DISC", [{"name": "Alan Wake", "match_name": "Alan Wake",
+                             "setup": "setup_alan_wake.exe", "folder": "",
+                             "manual": "", "extras": "", "source": "GOG", "add_ons": []}],
+                   ["Play", "Install", "Exit"])
+    assert b"files:0" in hta
+    assert b"files:1" not in hta
+
+
+def test_an_entry_with_no_source_is_a_gog_download():
+    # Nothing should reach here without one, and if it does the old behaviour is
+    # the safe answer: that is what every disc built before Source existed was.
+    hta = menu_hta("DISC", [{"name": "Alpha", "match_name": "Alpha", "setup": "setup.exe",
+                             "folder": "", "manual": "", "extras": "", "add_ons": []}],
+                   ["Play", "Install", "Exit"])
+    assert b"files:0" in hta
+
+
+def test_the_template_plays_a_files_entry_from_the_disc():
+    # Lifted verbatim from the Windows app by tools/menu_template.py, so this
+    # checks the lift happened rather than that the port invented anything.
+    tpl = (Path(__file__).parent.parent / "src" / "discwright" / "menu.hta.in").read_text(encoding="ascii")
+    assert "Play from disc" in tpl
+    assert 'if(has("Install") && !g.files){' in tpl
+    assert 'setEnabled("btn_Play", (g.files ? true : parentOn)' in tpl
+    # And a GOG disc still says what it always said.
+    assert "isn't installed yet" in tpl
