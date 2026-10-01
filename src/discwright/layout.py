@@ -265,6 +265,14 @@ def menu_games(entries: Sequence[GameInfo]) -> list[dict]:
             # the menu rather than only by browsing the disc. Empty is the disc
             # root, which is where a one-game disc puts everything.
             "folder": disc_entry_folder(entries, i),
+            # Where the entry came from, because the menu cannot work it out and
+            # the right button depends on it. A GOG folder holds an installer,
+            # so the disc offers Install and Play waits until something is
+            # installed. A folder of game files holds the game, so there is
+            # nothing to install and Play runs it off the disc. Without this the
+            # menu calls every entry an installer, which is what a disc burned
+            # on Windows showed.
+            "source": "Files" if e.source == "Files" else "GOG",
             "add_ons": add_ons,
             "manual": manual,
             "extras": extras,

@@ -12,6 +12,11 @@ from test_stage import MB, sparse, src, write  # noqa: F401  (src is a fixture)
 
 FIX = Path(__file__).parent / "fixtures" / "projects"
 WINDOWS_V9 = FIX / "windows-0.8.0.json"      # 0.8.0's own, a GOG game and a folder of files
+# 0.9.1's own, at schema 10. The keys this writes are checked against a real
+# file the Windows app wrote rather than against a list typed out here, so a
+# key added there and missed here is a failing test rather than a project that
+# loses somebody's settings on the way through Linux.
+WINDOWS_V10 = FIX / "windows-0.9.1.json"
 WINDOWS_V8 = FIX / "windows-0.7.1.json"      # off the demo disc, schema 8
 WINDOWS_V5 = FIX / "windows-0.4.2.json"      # a real one, three schemas older
 
@@ -38,12 +43,12 @@ def settings(src: Path, out: Path, **kw) -> DiscSettings:
 def test_writes_the_schema_windows_writes(src, tmp_path):
     p = save_project(settings(src, tmp_path), tmp_path)
     assert p.name == PROJECT_FILE
-    assert loaded(p)["Version"] == SCHEMA == loaded(WINDOWS_V9)["Version"]
+    assert loaded(p)["Version"] == SCHEMA == loaded(WINDOWS_V10)["Version"]
 
 
 def test_writes_the_keys_windows_writes(src, tmp_path):
     ours = loaded(save_project(settings(src, tmp_path), tmp_path))
-    theirs = loaded(WINDOWS_V9)
+    theirs = loaded(WINDOWS_V10)
     assert sorted(ours) == sorted(theirs)
     assert sorted(ours["Games"][0]) == sorted(theirs["Games"][0])
 
@@ -256,3 +261,50 @@ def test_reads_a_real_windows_file_of_both_kinds(src):
     assert (p.schema, p.app_version) == (9, "0.8.0")
     assert [e.source for e in p.entries] == ["GOG", "Files"]
     assert [e.name for e in p.entries] == ["Alan Wake", "Portable Game"]
+
+
+# ---- the two pictures the Windows app prints from -------------------------------------
+#
+# Nothing here prints anything. They are read and written anyway: a project is
+# shared between the two tools, and a key dropped on the way through Linux would
+# delete somebody's choice with no error and no mention of it.
+
+
+def test_keeps_the_printed_cover_and_disc_face_through_a_round_trip(src, tmp_path):
+    s = settings(src, tmp_path, cover_path="D:/art/cover.png", disc_art_path="D:/art/face.png")
+    p = save_project(s, tmp_path)
+    assert loaded(p)["CoverPath"] == "D:/art/cover.png"
+    assert loaded(p)["DiscArtPath"] == "D:/art/face.png"
+
+    back = read_project(p)
+    assert back.cover_path == "D:/art/cover.png"
+    assert back.disc_art_path == "D:/art/face.png"
+
+
+def test_keeps_them_when_a_windows_project_is_opened_and_saved_again(tmp_path):
+    # The real thing: a file the Windows app wrote at schema 10, read here and
+    # written back out. This is the path that used to lose them.
+    import shutil
+    work = tmp_path / "proj"
+    work.mkdir()
+    shutil.copy(WINDOWS_V10, work / PROJECT_FILE)
+
+    first = loaded(work / PROJECT_FILE)
+    # The fixture has to carry real paths, or this test passes on null == null
+    # and proves nothing. It did exactly that until the reference file was made
+    # again with them set.
+    assert first["CoverPath"] and first["DiscArtPath"]
+
+    back = read_project(work / PROJECT_FILE)
+    s, _missing = settings_from_project(back)
+    again = save_project(s, work)
+    after = loaded(again)
+    assert after["CoverPath"] == first["CoverPath"]
+    assert after["DiscArtPath"] == first["DiscArtPath"]
+
+
+def test_an_older_project_reads_back_with_no_pictures(tmp_path):
+    # Schema 9 and earlier had no such keys, and those discs printed nothing.
+    back = read_project(WINDOWS_V9)
+    assert back.cover_path is None
+    assert back.disc_art_path is None

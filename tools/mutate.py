@@ -293,6 +293,21 @@ MUTATIONS = [
      "own_root_dirs.add(dest.relative_to(stage_dir).parts[0])", "pass"),
     ("the folder left out of the menu's own games list", "menu.py",
      "+ '\",d:\"' + js_string(g.get(\"folder\") or \"\")", "+ '\",d:\"' + js_string(\"\")"),
+    # A disc of game files told the menu it was a GOG download, which is the
+    # defect Windows found by burning one: Play greyed out with "use Install
+    # first" on a disc where nothing can be installed.
+    ("every entry called a GOG download in the menu", "menu.py",
+     '("1" if g.get("source") == "Files" else "0")', '"0"'),
+    ("every entry called a folder of files in the menu", "menu.py",
+     '("1" if g.get("source") == "Files" else "0")', '"1"'),
+    ("the entry's source left out of the menu's games list", "layout.py",
+     '"source": "Files" if e.source == "Files" else "GOG",', '"source": "GOG",'),
+    # The project is shared with the Windows app. A key dropped here deletes
+    # somebody's choice with no error and nothing said.
+    ("the printed cover dropped when the project is written", "project.py",
+     '"CoverPath": _text(s.cover_path),', '"CoverPath": None,'),
+    ("the printed disc face dropped when the project is read", "project.py",
+     'disc_art_path=_text(j.get("DiscArtPath")),', 'disc_art_path=None,'),
 ]
 
 

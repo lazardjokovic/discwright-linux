@@ -38,7 +38,7 @@ from .games import GameInfo, add_on_info, folder_info, game_info
 from .settings import DiscSettings
 
 PROJECT_FILE = "discproject.json"
-SCHEMA = 9
+SCHEMA = 10
 
 
 @dataclass
@@ -64,6 +64,12 @@ class Project:
     menu: bool = False
     bg_path: str | None = None
     bg_as_is: bool = False
+    # Pictures for the printed cover and disc face. Nothing on Linux prints
+    # anything yet, and these are still read and written: a project is shared
+    # between the two tools, and dropping a key on the way through would delete
+    # somebody's choice without saying so. Carried, not used.
+    cover_path: str | None = None
+    disc_art_path: str | None = None
     panel_side: str = "Right"
     divider: bool = False
     show_title: bool = False
@@ -125,6 +131,8 @@ def save_project(s: DiscSettings, out_dir: str | Path) -> Path:
         "Menu": bool(s.menu),
         "BgPath": _text(s.bg_path),
         "BgAsIs": bool(s.bg_as_is),
+        "CoverPath": _text(s.cover_path),
+        "DiscArtPath": _text(s.disc_art_path),
         "PanelSide": s.panel_side,
         "Divider": bool(s.divider),
         "ShowTitle": bool(s.show_title),
@@ -197,6 +205,8 @@ def read_project(path: str | Path) -> Project | None:
         menu=bool(j.get("Menu")),
         bg_path=_text(j.get("BgPath")),
         bg_as_is=bool(j.get("BgAsIs")),
+        cover_path=_text(j.get("CoverPath")),
+        disc_art_path=_text(j.get("DiscArtPath")),
         panel_side=str(j.get("PanelSide") or "Right"),
         divider=bool(j.get("Divider")),
         show_title=bool(j.get("ShowTitle")),
@@ -270,6 +280,8 @@ def settings_from_project(p: Project) -> tuple[DiscSettings, list[str]]:
         menu=p.menu,
         bg_path=_local(p.bg_path),
         bg_as_is=p.bg_as_is,
+        cover_path=p.cover_path,
+        disc_art_path=p.disc_art_path,
         panel_side=p.panel_side,
         divider=p.divider,
         show_title=p.show_title,

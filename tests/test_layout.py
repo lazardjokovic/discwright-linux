@@ -288,3 +288,26 @@ def test_a_lone_folder_of_files_keeps_the_disc_root(loose_folder):
     # the menu's folder for it is the root: empty.
     entries = [files_ent(loose_folder)]
     assert menu_games(entries)[0]["folder"] == ""
+
+
+# ---- a disc of game files plays, it does not install ----------------------------------
+#
+# Windows found this by burning a disc and looking at the screen: Play greyed out
+# saying "use Install first" on a disc where nothing can be installed, because the
+# executable is the game. This port carried the same template and the same bug, and
+# nothing here knew to ask.
+
+
+def test_tells_the_menu_which_entries_are_a_folder_of_game_files(tmp_path):
+    folder = tmp_path / "gothic"
+    (folder / "data").mkdir(parents=True)
+    (folder / "gothic.exe").write_bytes(b"MZ")
+    (folder / "data" / "textures.pak").write_bytes(b"x")
+
+    games = menu_games([files_ent(folder, setup=folder / "gothic.exe"), ent("Beta")])
+    assert [g["source"] for g in games] == ["Files", "GOG"]
+
+
+def test_calls_everything_else_a_gog_download(tmp_path):
+    # Every project written before Source existed, and every GOG folder since.
+    assert menu_games([ent("Alpha")])[0]["source"] == "GOG"

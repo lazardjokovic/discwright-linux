@@ -87,6 +87,11 @@ $null = Save-Project @{
     Games = @($gog, $loose); Label = 'REFERENCE DISC'
     IconPath = 'C:\art\icon.ico'; IconIsIco = $true; Menu = $true
     BgPath = 'C:\art\background.jpg'; BgAsIs = $false; PanelSide = 'Right'
+    # Schema 10's two pictures, set to real paths rather than left empty. The
+    # port does not print anything and carries them anyway, so that a project
+    # opened and saved on Linux does not come back with somebody's choice
+    # quietly gone. A reference file with nulls in it would let that through.
+    CoverPath = 'C:\art\cover.png'; DiscArtPath = 'C:\art\disc-face.png'
     Divider = $false; ShowTitle = $true; TitleText = 'REFERENCE DISC'
     WindowBorder = $true; ButtonStyle = 'Minimal'; MusicFile = $null
     Buttons = @('Play', 'Install', 'Manual', 'Extras', 'Exit')

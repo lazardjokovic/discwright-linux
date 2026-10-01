@@ -13,7 +13,8 @@
             "Folder": "",
             "Manual": "",
             "Extras": "",
-            "AddOns": []
+            "AddOns": [],
+            "Source": "GOG"
           }
         ],
         "Buttons": [
@@ -52,7 +53,8 @@
                 "Name": "Adventure Pack",
                 "Setup": "Games\\01 - The Witcher Enhanced Edition\\Add-ons\\02 - Adventure Pack\\setup_adventure_pack.exe"
               }
-            ]
+            ],
+            "Source": "GOG"
           },
           {
             "Name": "The Witcher 2",
@@ -61,7 +63,8 @@
             "Folder": "Games\\02 - The Witcher 2",
             "Manual": "",
             "Extras": "",
-            "AddOns": []
+            "AddOns": [],
+            "Source": "GOG"
           }
         ],
         "Buttons": [
@@ -94,7 +97,8 @@
                 "Name": "Line\nbreak\ttab\u0007bell \ud83c\udfae",
                 "Setup": "Games\\01 - STAR WARS Empire At War\\Add-ons\\01 - x\\y.exe"
               }
-            ]
+            ],
+            "Source": "GOG"
           },
           {
             "Name": "\u017b\u00f3\u0142w",
@@ -103,7 +107,8 @@
             "Folder": "Games\\02 - Zolw",
             "Manual": "",
             "Extras": "",
-            "AddOns": []
+            "AddOns": [],
+            "Source": "GOG"
           }
         ],
         "Buttons": [
@@ -133,7 +138,8 @@
             "Folder": "",
             "Manual": "",
             "Extras": "",
-            "AddOns": []
+            "AddOns": [],
+            "Source": "GOG"
           }
         ],
         "Buttons": [],
@@ -157,7 +163,8 @@
             "Folder": "Games\\01 - Alan Wake",
             "Manual": "",
             "Extras": "",
-            "AddOns": []
+            "AddOns": [],
+            "Source": "GOG"
           },
           {
             "Name": "Portable Game",
@@ -166,7 +173,8 @@
             "Folder": "Games\\02 - Portable Game",
             "Manual": "",
             "Extras": "",
-            "AddOns": []
+            "AddOns": [],
+            "Source": "GOG"
           }
         ],
         "Buttons": [
@@ -180,6 +188,37 @@
         "ManualFile": "",
         "PanelSide": "Right",
         "IconName": "MIXEDDISC.ico",
+        "WindowBorder": true,
+        "ButtonStyle": "Minimal"
+      }
+    },
+    {
+      "name": "a-game-played-from-disc",
+      "cfg": {
+        "GameName": "GOTHIC",
+        "Games": [
+          {
+            "Name": "Gothic",
+            "MatchName": "Gothic",
+            "Setup": "Games\\01 - Gothic\\gothic.exe",
+            "Folder": "Games\\01 - Gothic",
+            "Manual": "",
+            "Extras": "",
+            "AddOns": [],
+            "Source": "Files"
+          }
+        ],
+        "Buttons": [
+          "Play",
+          "Install",
+          "Manual",
+          "Extras",
+          "Exit"
+        ],
+        "MusicFile": "",
+        "ManualFile": "Alan Wake manual.pdf",
+        "PanelSide": "Right",
+        "IconName": "ALANWAKE.ico",
         "WindowBorder": true,
         "ButtonStyle": "Minimal"
       }
