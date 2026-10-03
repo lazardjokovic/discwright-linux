@@ -16,7 +16,9 @@ WINDOWS_V9 = FIX / "windows-0.8.0.json"      # 0.8.0's own, a GOG game and a fol
 # file the Windows app wrote rather than against a list typed out here, so a
 # key added there and missed here is a failing test rather than a project that
 # loses somebody's settings on the way through Linux.
-WINDOWS_V10 = FIX / "windows-0.9.1.json"
+# The project the Windows app writes now. The older ones are kept beside it:
+# what a file written here has to stay readable by.
+WINDOWS_V12 = FIX / "windows-0.10.0.json"
 WINDOWS_V8 = FIX / "windows-0.7.1.json"      # off the demo disc, schema 8
 WINDOWS_V5 = FIX / "windows-0.4.2.json"      # a real one, three schemas older
 
@@ -43,12 +45,12 @@ def settings(src: Path, out: Path, **kw) -> DiscSettings:
 def test_writes_the_schema_windows_writes(src, tmp_path):
     p = save_project(settings(src, tmp_path), tmp_path)
     assert p.name == PROJECT_FILE
-    assert loaded(p)["Version"] == SCHEMA == loaded(WINDOWS_V10)["Version"]
+    assert loaded(p)["Version"] == SCHEMA == loaded(WINDOWS_V12)["Version"]
 
 
 def test_writes_the_keys_windows_writes(src, tmp_path):
     ours = loaded(save_project(settings(src, tmp_path), tmp_path))
-    theirs = loaded(WINDOWS_V10)
+    theirs = loaded(WINDOWS_V12)
     assert sorted(ours) == sorted(theirs)
     assert sorted(ours["Games"][0]) == sorted(theirs["Games"][0])
 
@@ -287,7 +289,7 @@ def test_keeps_them_when_a_windows_project_is_opened_and_saved_again(tmp_path):
     import shutil
     work = tmp_path / "proj"
     work.mkdir()
-    shutil.copy(WINDOWS_V10, work / PROJECT_FILE)
+    shutil.copy(WINDOWS_V12, work / PROJECT_FILE)
 
     first = loaded(work / PROJECT_FILE)
     # The fixture has to carry real paths, or this test passes on null == null

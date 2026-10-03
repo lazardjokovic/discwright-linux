@@ -268,6 +268,8 @@ class DiscWindow(Gtk.ApplicationWindow):
         box.append(row)
         box.append(self._check("Name the disc on Linux too: its name and icon on a Linux desktop",
                                "linux_info", "linux_info"))
+        box.append(self._check("Checksum the disc: a list of what every file on it should hash to",
+                               "checksums", "linux_info"))
         return self._step(5, "Extra content", box)
 
     def _step_output(self) -> Gtk.Frame:

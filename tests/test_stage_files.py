@@ -65,7 +65,8 @@ def test_puts_nothing_where_a_flat_copy_would_have_put_it(portable, src, tmp_pat
 def test_carries_every_file_and_nothing_else(portable, src, tmp_path):
     st, _ = stage(settings_for([folder_info(portable)], src, tmp_path / "out"), quiet)
     theirs = {p.relative_to(portable).as_posix() for p in portable.rglob("*") if p.is_file()}
-    disc_own = {"PORTABLE.ico", "autorun.inf"}
+    # The disc's own files, which are not the game's and are not expected back.
+    disc_own = {"PORTABLE.ico", "autorun.inf", "Start Here.hta"}
     assert staged_files(st, skip=disc_own) == theirs
 
 

@@ -15,11 +15,12 @@ from pathlib import Path, PureWindowsPath
 from typing import Callable
 
 from .autorun import autorun_inf
+from .checksums import checksum_list, checksum_file_name
 from .background import compose_background
 from .icons import _write, check_background, check_icon, convert_to_ico, convert_to_png
 from .layout import (disc_entry_extras, disc_entry_folder, disc_icon_name, entry_file_relative,
                      is_reserved_name, menu_games)
-from .menu import menu_hta
+from .menu import menu_hta, menu_launcher, menu_launcher_name
 from .settings import DiscSettings
 from .xdg import xdg_volume_info
 
@@ -291,7 +292,13 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
         _write(stage_dir / "AUTORUN" / "menu.hta",
                menu_hta(s.label, on_menu, s.buttons, music_file=music_name, manual_file=manual_name,
                         panel_side=s.panel_side, icon_name=ico_name,
-                        window_border=bool(s.window_border), button_style=s.button_style))
+                        window_border=bool(s.window_border), button_style=s.button_style,
+                        show_caption=bool(s.show_caption)))
+        # The file to double-click when AutoPlay does not offer itself. It
+        # starts the menu rather than being a second copy of it, so it only
+        # goes on a disc that has a menu to start.
+        _write(stage_dir / menu_launcher_name(), menu_launcher())
+        log(f"Menu launcher at the disc root: {menu_launcher_name()}")
 
     if s.extra_items:
         log("Adding extra content...")
@@ -342,5 +349,15 @@ def stage(s: DiscSettings, log: Log = print) -> tuple[Path, Path | None]:
             log(f"  NOTE: the disc's own {name} replaced the game's file of that name.")
     if "AUTORUN" in own_root_dirs:
         log("  NOTE: this game brings an AUTORUN folder; the disc's menu files sit in it too.")
+
+    # Last, because it hashes what is on the disc and everything has to be on
+    # it by now: the games, the menu, the icon, the launcher.
+    if s.checksums:
+        log("Hashing the disc ...")
+        data = checksum_list(stage_dir, s.label)
+        (stage_dir / checksum_file_name()).write_bytes(data)
+        listed = sum(1 for line in data.decode("ascii").splitlines()
+                     if line and not line.startswith("#"))
+        log(f"Checksum list written: {checksum_file_name()} ({listed} files)")
 
     return stage_dir, aside

@@ -22,7 +22,9 @@ import unicodedata
 from pathlib import Path, PureWindowsPath
 from typing import Sequence
 
+from .checksums import CHECKSUM_FILE
 from .games import GameInfo
+from .menu import menu_launcher_name
 
 PROJECT_FILE = "discproject.json"
 
@@ -71,6 +73,7 @@ def is_reserved_name(name: str, icon_name: str = "disc.ico") -> bool:
         return True
     png = str(PureWindowsPath(icon_name).with_suffix(".png"))
     reserved = {"autorun.inf", ".xdg-volume-info", "disc.ico", "disc.png", icon_name, png,
+                menu_launcher_name(), CHECKSUM_FILE,
                 "AUTORUN", "Extras", "Games", "Add-ons", PROJECT_FILE}
     return folded in {r.casefold() for r in reserved}
 

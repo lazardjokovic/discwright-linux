@@ -120,6 +120,10 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--no-linux-name", action="store_true",
                    help="do not write the files that give the disc its name and icon on a Linux "
                         "desktop.")
+    c.add_argument("--checksums", action="store_true",
+                   help="write checksums.sha256 at the disc root: the SHA-256 of every other "
+                        "file, so a copy taken off the disc can be proved to be what went on. "
+                        "Costs one pass over the data.")
 
     b.add_argument("--stage-only", action="store_true",
                    help="lay the disc out as a folder and stop, without writing the ISO.")
@@ -248,6 +252,7 @@ def _settings(args, entries: list[GameInfo], label: str) -> DiscSettings:
         extras_path=Path(args.extras) if args.extras else None,
         extra_items=[Path(p) for p in args.extra],
         linux_info=not args.no_linux_name,
+        checksums=bool(args.checksums),
     )
 
 

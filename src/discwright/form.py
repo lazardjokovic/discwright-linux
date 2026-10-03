@@ -121,6 +121,7 @@ class Form:
     extra_items: list[Path] = field(default_factory=list)
     out_dir: Path | None = None
     linux_info: bool = True
+    checksums: bool = False
     window_border: bool = True
     button_style: str = "Minimal"
     building: bool = False
@@ -351,7 +352,8 @@ class Form:
             buttons=[b for b in BUTTONS if b in self.buttons],
             manual_path=self.manual if "Manual" in self.buttons else None,
             extras_path=self.extras if "Extras" in self.buttons else None,
-            extra_items=list(self.extra_items), linux_info=self.linux_info)
+            extra_items=list(self.extra_items), linux_info=self.linux_info,
+            checksums=self.checksums)
 
     @classmethod
     def from_project(cls, path: str | Path) -> tuple[Form | None, list[str]]:
@@ -368,7 +370,7 @@ class Form:
                 buttons=list(s.buttons), music_on=s.music_file is not None, music=s.music_file,
                 manual=s.manual_path, extras=s.extras_path, extra_items=list(s.extra_items),
                 out_dir=s.out_dir, linux_info=s.linux_info, window_border=s.window_border,
-                button_style=s.button_style)
+                button_style=s.button_style, checksums=s.checksums)
         return f, problems
 
 

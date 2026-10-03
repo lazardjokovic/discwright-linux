@@ -1,0 +1,34 @@
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>DiscWright</title>
+<hta:application id="launcher" showInTaskbar="no" scroll="no" caption="no"
+                 border="none" sysmenu="no" singleinstance="yes" windowState="minimize" />
+</head>
+<body>
+<script language="JScript">
+var BS=String.fromCharCode(92);
+// Where this file is, from its own URL. AutoRun can start a disc file with no
+// drive letter, and a relative path cannot be turned into the menu's path.
+function here(){
+  var u=""; try{ u=String(document.URL); }catch(e){ u=""; }
+  u=u.replace(/^file:/i,"").split("/").join(BS);
+  try{ u=decodeURIComponent(u); }catch(e){}
+  var n=0; while(u.charAt(n)==BS) n++;
+  if(n){ var rest=u.substring(n);
+         if(/^[A-Za-z]:/.test(rest)) u=rest;
+         else if(n>=3) u=BS+BS+rest; }
+  return u;
+}
+try{
+  var fso=new ActiveXObject("Scripting.FileSystemObject");
+  var sh=new ActiveXObject("WScript.Shell");
+  var dir=fso.GetParentFolderName(here());
+  var menu=fso.BuildPath(fso.BuildPath(dir,"AUTORUN"),"menu.hta");
+  if(fso.FileExists(menu)) sh.Run('mshta "'+menu+'"',1,false);
+  else alert("The menu is missing from this disc: "+menu);
+}catch(e){ alert(e.message); }
+window.close();
+</script>
+</body>
+</html>

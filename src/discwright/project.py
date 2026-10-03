@@ -38,7 +38,15 @@ from .games import GameInfo, add_on_info, folder_info, game_info
 from .settings import DiscSettings
 
 PROJECT_FILE = "discproject.json"
-SCHEMA = 10
+# 11 adds Checksums, whether the disc carries a list of what its files hash
+# to. 12 adds ShowCaption, whether the menu prints the game name above its
+# buttons. Both numbers follow the Windows app, which owns this format: a
+# project written there has to open here and mean the same thing.
+#
+# Absent means off for Checksums and ON for ShowCaption. The second is the
+# odd one on purpose: every project written before that setting described a
+# menu that printed the name, and reopening one must not quietly stop it.
+SCHEMA = 12
 
 
 @dataclass
@@ -86,6 +94,8 @@ class Project:
     media_key: str = ""
     linux_info: bool = False
     legacy_fs: bool = False
+    checksums: bool = False
+    show_caption: bool = True
     out_dir: str | None = None
     schema: int = 0
     app_version: str = ""
@@ -147,6 +157,8 @@ def save_project(s: DiscSettings, out_dir: str | Path) -> Path:
         "MediaKey": str(s.media_key or ""),
         "LinuxInfo": bool(s.linux_info),
         "LegacyFs": bool(s.legacy_fs),
+        "Checksums": bool(s.checksums),
+        "ShowCaption": bool(s.show_caption),
         "OutDir": str(out_dir),
     }
     path = out_dir / PROJECT_FILE
@@ -221,6 +233,9 @@ def read_project(path: str | Path) -> Project | None:
         media_key=str(j.get("MediaKey") or ""),
         linux_info=bool(j.get("LinuxInfo")),
         legacy_fs=bool(j.get("LegacyFs")),
+        checksums=bool(j.get("Checksums")),
+        # Absent reads as on, unlike every other flag here.
+        show_caption=bool(j.get("ShowCaption", True)),
         out_dir=_text(j.get("OutDir")),
         schema=int(j.get("Version") or 0),
         app_version=str(j.get("AppVersion") or ""),
@@ -296,5 +311,7 @@ def settings_from_project(p: Project) -> tuple[DiscSettings, list[str]]:
         media_key=p.media_key,
         linux_info=p.linux_info,
         legacy_fs=p.legacy_fs,
+        checksums=p.checksums,
+        show_caption=p.show_caption,
     )
     return s, problems

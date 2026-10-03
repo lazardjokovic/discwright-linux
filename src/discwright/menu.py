@@ -144,3 +144,61 @@ def menu_hta(label: str, games: Sequence[dict], buttons: Sequence[str], *,
     # and a question mark for anything outside ASCII. The escapes above leave
     # nothing outside it except _NET_ALSO_KEEPS in the application name.
     return (html.replace("\n", "\r\n")).encode("ascii", errors="replace")
+
+# The one file on the disc meant to be double-clicked. AutoPlay is switched off
+# on a great many machines, and the menu sits in AUTORUN where nobody browsing a
+# disc would think to look for it.
+#
+# A function rather than a constant, matching the Windows side, because the name
+# is reserved and two places need it.
+def menu_launcher_name() -> str:
+    return "Start Here.hta"
+
+
+def menu_launcher() -> bytes:
+    """Start Here.hta, byte for byte what the Windows app writes.
+
+    No backslash appears anywhere in the script, deliberately. The Windows
+    version carried three and its generator ate all three: a separator eaten
+    into a filename, a pattern that ended up matching a plus sign, and a
+    newline escape that became a real newline and split a string in half.
+    Built from fromCharCode and BuildPath instead there is nothing left to
+    eat, and this port inherits that rather than deriving it again.
+    """
+    return _LAUNCHER.replace("\n", "\r\n").encode("ascii")
+
+
+_LAUNCHER = """<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>DiscWright</title>
+<hta:application id="launcher" showInTaskbar="no" scroll="no" caption="no"
+                 border="none" sysmenu="no" singleinstance="yes" windowState="minimize" />
+</head>
+<body>
+<script language="JScript">
+var BS=String.fromCharCode(92);
+// Where this file is, from its own URL. AutoRun can start a disc file with no
+// drive letter, and a relative path cannot be turned into the menu's path.
+function here(){
+  var u=""; try{ u=String(document.URL); }catch(e){ u=""; }
+  u=u.replace(/^file:/i,"").split("/").join(BS);
+  try{ u=decodeURIComponent(u); }catch(e){}
+  var n=0; while(u.charAt(n)==BS) n++;
+  if(n){ var rest=u.substring(n);
+         if(/^[A-Za-z]:/.test(rest)) u=rest;
+         else if(n>=3) u=BS+BS+rest; }
+  return u;
+}
+try{
+  var fso=new ActiveXObject("Scripting.FileSystemObject");
+  var sh=new ActiveXObject("WScript.Shell");
+  var dir=fso.GetParentFolderName(here());
+  var menu=fso.BuildPath(fso.BuildPath(dir,"AUTORUN"),"menu.hta");
+  if(fso.FileExists(menu)) sh.Run('mshta "'+menu+'"',1,false);
+  else alert("The menu is missing from this disc: "+menu);
+}catch(e){ alert(e.message); }
+window.close();
+</script>
+</body>
+</html>"""
