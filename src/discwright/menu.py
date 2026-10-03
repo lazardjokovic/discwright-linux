@@ -95,7 +95,7 @@ def _games_js(games: Sequence[dict]) -> str:
 def menu_hta(label: str, games: Sequence[dict], buttons: Sequence[str], *,
              music_file: str = "", manual_file: str = "", panel_side: str = "Right",
              icon_name: str = "", window_border: bool = True,
-             button_style: str = "Minimal") -> bytes:
+             button_style: str = "Minimal", show_caption: bool = True) -> bytes:
     """The menu, as the bytes of menu.hta.
 
     games is layout.menu_games(): each game's name, the name it registers under,
@@ -130,6 +130,10 @@ def menu_hta(label: str, games: Sequence[dict], buttons: Sequence[str], *,
         "BTNS": "[" + ",".join('"' + js_string(b) + '"' for b in buttons) + "]",
         "MANUAL": js_string(manual_file),
         "MUSIC": js_string(music_file),
+        # Whether the menu prints the game's name above its buttons. True when
+        # nobody said otherwise: every disc built before the option existed
+        # printed it, and the Windows side reads an absent setting the same way.
+        "SHOWCAP": "true" if show_caption else "false",
     }
     # One pass over the template, so text filled in is never filled in again.
     # Windows chains eleven replaces, and a game named "Game %%BTNS%% Edition"

@@ -222,6 +222,48 @@
         "WindowBorder": true,
         "ButtonStyle": "Minimal"
       }
+    },
+    {
+      "name": "a-folder-with-no-installer",
+      "why": "A folder of game files added with \"no installer\": nothing to run and nothing to install, so the menu offers the folder. The combination that was missing here, and the one that carried a bug on both platforms until 0.10.0.",
+      "cfg": {
+        "GameName": "NO INSTALLER",
+        "Games": [
+          {
+            "Name": "Arcanum",
+            "MatchName": "Arcanum",
+            "Setup": "",
+            "Folder": "Games\\01 - Arcanum",
+            "Manual": "",
+            "Extras": "",
+            "AddOns": [],
+            "Source": "Files"
+          },
+          {
+            "Name": "Gothic",
+            "MatchName": "Gothic",
+            "Setup": "Games\\02 - Gothic\\gothic.exe",
+            "Folder": "Games\\02 - Gothic",
+            "Manual": "",
+            "Extras": "",
+            "AddOns": [],
+            "Source": "Files"
+          }
+        ],
+        "Buttons": [
+          "Play",
+          "Install",
+          "Manual",
+          "Extras",
+          "Exit"
+        ],
+        "MusicFile": "",
+        "ManualFile": "Alan Wake manual.pdf",
+        "PanelSide": "Right",
+        "IconName": "NOINSTALLER.ico",
+        "WindowBorder": true,
+        "ButtonStyle": "Minimal"
+      }
     }
   ]
 }
