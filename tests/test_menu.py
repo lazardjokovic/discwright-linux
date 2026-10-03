@@ -11,9 +11,13 @@ from discwright.menu import html_text, js_string, menu_hta
 
 FIX = Path(__file__).parent / "fixtures" / "menu"
 # Menus the Windows app itself wrote, at the version the port is level with.
-# The old set is kept beside it: it is what 0.8.0 produced, and the diff
-# between the two is the record of what changed in the menu.
-WINDOWS = FIX / "windows-0.9.1"
+# The old sets are kept beside it: the diff between two of them is the record
+# of what changed in the menu, and 0.10.0 changed a good deal. A folder of
+# game files with no installer is offered Open Folder rather than a Play
+# button that could never work, a long name wraps instead of being cut at
+# twenty characters, the menu works out the disc from where it actually sits,
+# and the name above the buttons can be turned off.
+WINDOWS = FIX / "windows-0.10.0"
 CASES = {c["name"]: c["cfg"] for c in json.loads((FIX / "cases.json").read_text(encoding="ascii"))["cases"]}
 
 
@@ -225,3 +229,102 @@ def test_the_template_plays_a_files_entry_from_the_disc():
     assert 'setEnabled("btn_Play", (g.files ? true : parentOn)' in tpl
     # And a GOG disc still says what it always said.
     assert "isn't installed yet" in tpl
+
+
+# ---- what the menu does with an entry that has nothing to run ------------------------
+
+def eval_js(tmp_path, source: str) -> str:
+    """Run a snippet of the menu's own script and hand back what it printed.
+
+    Node rather than cscript: this suite runs on Linux, where nothing has mshta.
+    The menu is ES3 and Node parses it unchanged, which is already how
+    test_the_menus_script_parses works.
+    """
+    js = tmp_path / "probe.js"
+    js.write_text(source, encoding="ascii")
+    run = subprocess.run(["node", str(js)], capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    return run.stdout.strip()
+
+
+def function_of(script: str, name: str) -> str:
+    """One top-level function out of the menu's script, by name."""
+    m = re.search(r"(?sm)^(  function " + re.escape(name) + r"\(.*?\n  \})", script)
+    assert m, f"{name} was not found in the menu's script"
+    return m.group(1)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="needs Node to run the menu's script")
+def test_a_folder_with_no_installer_is_offered_the_folder(tmp_path):
+    # The bug this answers, found on Windows and sitting here untouched: a game
+    # added with "no installer" was given a Play button that could never work,
+    # because doPlay builds its path from an empty setup and lands on the disc
+    # root, which is a folder rather than a file. The Open Folder button meant
+    # to replace it was written behind !g.files, so the one kind of entry that
+    # can be given no installer never saw it.
+    script = script_of(build(CASES["a-folder-with-no-installer"]))
+    out = eval_js(tmp_path, """
+var GAMES=[{ n:"Arcanum", files:1, s:"", d:"Games/01 - Arcanum", a:[], m:"Arcanum" }];
+var cur=0, CAPTURED="";
+function has(b){ return ",Play,Install,Exit,".indexOf(","+b+",") >= 0; }
+function setPanel(h,cap){ CAPTURED=h; }
+function capFor(n){ return ""; }
+function btnHtml(id,cls,label,fn,tip){ return "|"+label; }
+""" + function_of(script, "renderGame") + """
+renderGame();
+console.log(CAPTURED);
+""")
+    buttons = [b for b in out.split("|") if b]
+    assert "Open Folder" in buttons
+    assert "Play from disc" not in buttons
+    assert "Play" not in buttons
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="needs Node to run the menu's script")
+def test_a_folder_with_an_executable_still_plays_from_the_disc(tmp_path):
+    # The case that was already right, kept that way.
+    script = script_of(build(CASES["a-game-played-from-disc"]))
+    out = eval_js(tmp_path, """
+var GAMES=[{ n:"Gothic", files:1, s:"Games/01 - Gothic/gothic.exe", d:"Games/01 - Gothic", a:[], m:"Gothic" }];
+var cur=0, CAPTURED="";
+function has(b){ return ",Play,Install,Exit,".indexOf(","+b+",") >= 0; }
+function setPanel(h,cap){ CAPTURED=h; }
+function capFor(n){ return ""; }
+function btnHtml(id,cls,label,fn,tip){ return "|"+label; }
+""" + function_of(script, "renderGame") + """
+renderGame();
+console.log(CAPTURED);
+""")
+    buttons = [b for b in out.split("|") if b]
+    assert "Play from disc" in buttons
+    assert "Open Folder" not in buttons
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="needs Node to run the menu's script")
+def test_a_long_name_wraps_rather_than_losing_its_tail(tmp_path):
+    # Cut at twenty characters before 0.10.0, so "The Witcher 3 Wild Hunt -
+    # Game of the Year Edition" reached the disc as "THE WITCHER 3 WILD ...".
+    script = script_of(build(CASES["one-game"]))
+    out = eval_js(tmp_path,
+                  function_of(script, "fitStyle") + "\n" +
+                  re.search(r"(?m)^  (function clip\(s\).*)$", script).group(1) + """
+var w = "The Witcher 3 Wild Hunt - Game of the Year Edition";
+console.log(clip(w) === w);
+console.log(fitStyle(w));
+console.log(clip("Hollow Knight") === "Hollow Knight");
+console.log(clip(new Array(40).join("ab")).length <= 64);
+""")
+    survives, size, short, capped = out.splitlines()
+    assert survives == "true", "fifty characters should survive whole"
+    assert "12px" in size, "a name that long should step down a size"
+    assert short == "true", "a short name is untouched"
+    assert capped == "true", "and something past two lines is still cut, ellipsis included"
+
+
+def test_the_menu_lets_a_name_wrap_at_all():
+    # Both of these made wrapping impossible by construction: the buttons were
+    # nowrap, and every space in a label was replaced with a non-breaking one.
+    script = script_of(build(CASES["one-game"]))
+    assert "white-space:nowrap" not in build(CASES["one-game"]).decode("ascii")
+    assert 'replace(/ /g,"&nbsp;")' not in script
+    assert "offsetHeight/16" in script, "the line count is measured, not counted"
