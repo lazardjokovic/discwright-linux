@@ -63,12 +63,20 @@ here, in a window, with a command line for scripting it:
 - the disc label, `autorun.inf`, and the files that name the disc on Linux
 - the disc icon from any picture
 - the menu and its background: the same menu Windows puts on the disc, byte for byte
+- `Start Here.hta` at the disc root, for the many machines where AutoPlay is off
+  and the menu one level down in `AUTORUN` is never found
+- `checksums.sha256` when asked for: the SHA-256 of every other file on the disc,
+  in the format `sha256sum` reads, so a copy taken off it can be proved to be what
+  went on
 - the ISO, written with xorriso, which Windows reads as the same disc
 - the project file a disc is saved as, shared with the Windows app
 
 A whole disc has been built and compared with one Windows built from the same
 settings: same label, same name in Explorer, ten of its twelve files byte for byte
 and the other two the same pictures. See [docs/xorriso-spike.md](docs/xorriso-spike.md).
+That comparison was made before the launcher and the checksum list existed, so a
+disc built today carries more than those twelve. The pieces added since are each
+compared against the Windows bytes in the test suite rather than by eye.
 
 What is **not** here: anything that makes the disc do something on Linux, which
 is a short list and an honest one. See the [roadmap](ROADMAP.md).
