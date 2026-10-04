@@ -14,6 +14,7 @@ from discwright.background import compose_background
 from discwright.xdg import xdg_volume_info
 from discwright.games import add_on_info, game_info
 from discwright.settings import DiscSettings
+from discwright.menu import menu_launcher
 from discwright.stage import StagingError, stage
 
 MB = 1 << 20
@@ -86,10 +87,12 @@ def quiet(_msg):
 def test_lays_a_one_game_disc_out_flat(src, tmp_path):
     st, aside = stage(settings(src, tmp_path / "out"), quiet)
     assert aside is None
+    # "Start Here.hta" is the launcher, for the many machines where AutoPlay
+    # is switched off and the menu one level down in AUTORUN is never found.
     assert listing(st) == [
         "ALPHA.ico", "AUTORUN/ALPHA.ico", "AUTORUN/bg.png", "AUTORUN/menu.hta",
         "Extras/Alpha Manual.pdf", "Extras/deep/notes.txt", "Extras/wallpaper.txt",
-        "autorun.inf", "setup_alpha_1.0-1.bin", "setup_alpha_1.0.exe",
+        "Start Here.hta", "autorun.inf", "setup_alpha_1.0-1.bin", "setup_alpha_1.0.exe",
     ]
 
 
@@ -483,3 +486,54 @@ def test_stages_what_windows_staged_for_the_same_disc():
         assert abs(ours_ink[0] - theirs_ink[0]) <= 2 and abs(ours_ink[1] - theirs_ink[1]) <= 2, (ours_ink, theirs_ink)
     finally:
         shutil.rmtree(out, ignore_errors=True)
+
+
+# ---- what 0.10.0 added to every disc, and to one that asks ---------------------
+
+def test_puts_the_launcher_at_the_disc_root(src, tmp_path):
+    # AutoPlay is off on a great many machines, and the menu sits one level down
+    # in AUTORUN where nobody browsing a disc would think to open it.
+    st, _ = stage(settings(src, tmp_path / "out"), quiet)
+    launcher = st / "Start Here.hta"
+    assert launcher.is_file()
+    assert launcher.read_bytes() == menu_launcher()
+    # An addition, not a move: AutoPlay must behave exactly as before.
+    assert (st / "AUTORUN" / "menu.hta").is_file()
+    assert b"shellexecute=AUTORUN" in (st / "autorun.inf").read_bytes()
+
+
+def test_leaves_the_launcher_off_a_disc_with_no_menu(src, tmp_path):
+    # It starts the menu, so a disc without one has nothing for it to start.
+    st, _ = stage(settings(src, tmp_path / "out", menu=False), quiet)
+    assert not (st / "Start Here.hta").exists()
+
+
+def test_checksums_the_disc_when_asked(src, tmp_path):
+    st, _ = stage(settings(src, tmp_path / "out", checksums=True), quiet)
+    listed = st / "checksums.sha256"
+    assert listed.is_file()
+
+    # Every file on the disc except the list itself, and each hash right.
+    on_disc = {p.relative_to(st).as_posix() for p in st.rglob("*")
+               if p.is_file() and p.name != "checksums.sha256"}
+    lines = [l for l in listed.read_text("ascii").splitlines()
+             if l and not l.startswith("#")]
+    assert {l.split(" *", 1)[1] for l in lines} == on_disc
+    for line in lines:
+        digest, rel = line.split(" *", 1)
+        assert digest == hashlib.sha256((st / rel).read_bytes()).hexdigest()
+
+
+def test_leaves_the_disc_unchecksummed_unless_asked(src, tmp_path):
+    # Off by default, like the other things a disc can also carry: what every
+    # disc holds is not a decision to make on somebody's behalf.
+    st, _ = stage(settings(src, tmp_path / "out"), quiet)
+    assert not (st / "checksums.sha256").exists()
+
+
+def test_the_list_covers_the_launcher_too(src, tmp_path):
+    # Written last, after everything else is on the disc.
+    st, _ = stage(settings(src, tmp_path / "out", checksums=True), quiet)
+    body = (st / "checksums.sha256").read_text("ascii")
+    assert "*Start Here.hta" in body
+    assert "*AUTORUN/menu.hta" in body

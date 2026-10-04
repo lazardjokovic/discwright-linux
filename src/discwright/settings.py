@@ -46,3 +46,11 @@ class DiscSettings:
     media_key: str = ""
     linux_info: bool = False
     legacy_fs: bool = False
+    # Whether the disc carries a list of what every file on it hashes to. Off
+    # unless asked for: it costs a pass over the data, and what every disc
+    # carries is not a decision to make on somebody's behalf.
+    checksums: bool = False
+    # Whether the menu prints the game's name above its buttons. On unless
+    # turned off, the opposite of the flags above, because every disc built
+    # before the option existed printed it.
+    show_caption: bool = True

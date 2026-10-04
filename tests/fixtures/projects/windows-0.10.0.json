@@ -1,0 +1,64 @@
+﻿{
+    "Version":  12,
+    "AppVersion":  "0.10.0",
+    "SavedUtc":  "2026-10-03T22:49:06",
+    "SourceFolder":  "C:\\Users\\lazar\\AppData\\Local\\Temp\\dwprojref\\gog_game",
+    "GameName":  "gog game",
+    "Games":  [
+                  {
+                      "Folder":  "C:\\Users\\lazar\\AppData\\Local\\Temp\\dwprojref\\gog_game",
+                      "GameName":  "gog game",
+                      "MatchName":  "gog game",
+                      "Setup":  null,
+                      "Kind":  "Game",
+                      "Source":  "GOG",
+                      "Parent":  0,
+                      "Manual":  null,
+                      "Extras":  null
+                  },
+                  {
+                      "Folder":  "C:\\Users\\lazar\\AppData\\Local\\Temp\\dwprojref\\Portable Game",
+                      "GameName":  "Portable Game",
+                      "MatchName":  "Portable Game",
+                      "Setup":  null,
+                      "Kind":  "Game",
+                      "Source":  "Files",
+                      "Parent":  0,
+                      "Manual":  null,
+                      "Extras":  null
+                  }
+              ],
+    "Label":  "REFERENCE DISC",
+    "IconPath":  "C:\\art\\icon.ico",
+    "IconIsIco":  true,
+    "Menu":  true,
+    "BgPath":  "C:\\art\\background.jpg",
+    "BgAsIs":  false,
+    "CoverPath":  "C:\\art\\cover.png",
+    "DiscArtPath":  "C:\\art\\disc-face.png",
+    "PanelSide":  "Right",
+    "Divider":  false,
+    "ShowTitle":  true,
+    "TitleText":  "REFERENCE DISC",
+    "WindowBorder":  true,
+    "ButtonStyle":  "Minimal",
+    "MusicFile":  null,
+    "Buttons":  [
+                    "Play",
+                    "Install",
+                    "Manual",
+                    "Extras",
+                    "Exit"
+                ],
+    "ManualPath":  null,
+    "ExtrasPath":  null,
+    "ExtraItems":  [
+
+                   ],
+    "MediaKey":  "",
+    "LinuxInfo":  true,
+    "LegacyFs":  false,
+    "Checksums":  false,
+    "ShowCaption":  true,
+    "OutDir":  "C:\\Users\\lazar\\DiscWright-Lab\\projfix2"
+}
