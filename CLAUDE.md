@@ -194,10 +194,25 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - Fixed so far in shared code: a place on the disc lands in a real folder on
   Linux (`BuildContext.On`), and a name on the disc is held to Windows' own
   forbidden characters (`WindowsFileNames`).
-- Next: the tests written in Windows paths, the root of a disc assumed to be a
-  drive letter (settled with the Linux recorder, not before), then the Linux
-  edges: pictures, the installer's name read from its version resource, the
-  image through xorriso, and the Avalonia window.
+- **`app/src/DiscWright.Linux`** holds the Linux answers, each behind the port
+  the Windows one is behind: `VersionResourceFacts` (an installer's name, which
+  .NET cannot read on Linux), `XorrisoImageMaker` (the ISO, with `IRunPrograms`
+  as the seam its tests play xorriso back through), `SkiaImages` (the icon and
+  the menu background, with SkiaSharp, the first dependency). `JolietNames` in
+  `Core` refuses names Windows could not read off such a disc.
+- The file system, the stage writer and the hasher need no Linux version: the
+  Windows ones are plain .NET and pass their tests on Linux through `Machine`.
+- **The tests written in Windows paths stay as they are until the move.** They
+  are most of `waiting-on-linux.txt`. Rewriting them means editing 56 of the
+  Windows app's test files here while another session changes them there. New
+  tests are written in the machine's own paths and run on both systems.
+- **A run on the VM sends what is committed** (`git archive HEAD:app`), never
+  the working folder. An ignored file once passed there and failed in CI.
+- Next: one test that builds a whole disc on Linux, from a folder of game
+  files to an ISO, with all of the above wired together. Then mount that ISO
+  on Windows and see its menu run, which nobody has done with this code. Then
+  the Avalonia window. The root of a disc assumed to be a drive letter waits
+  for the Linux recorder, and burning waits for a real machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.
