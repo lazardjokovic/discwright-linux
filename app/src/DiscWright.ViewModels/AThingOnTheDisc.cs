@@ -1,0 +1,486 @@
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using DiscWright.Core;
+
+namespace DiscWright.ViewModels;
+
+/// <summary>
+/// One row of the tree of what goes on the disc: a game, a folder inside it,
+/// a file, or an add-on.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A tick that can be taken off. Everything underneath a row follows it, and a
+/// row follows what is underneath it: a folder with some of its files left out
+/// is neither on nor off, and saying it is either would be a lie about what
+/// will be written.
+/// </para>
+/// <para>
+/// The tree holds <strong>everything that was found</strong> and never forgets
+/// a row that was turned off, because turning it back on has to put the same
+/// file back. What will actually be written is read off the tree each time it
+/// changes, so there is one source of truth and no second list to drift.
+/// </para>
+/// </remarks>
+public sealed class AThingOnTheDisc : INotifyPropertyChanged
+{
+    private readonly List<AThingOnTheDisc> _inside = [];
+    private readonly Action? _tell;
+    private readonly long _own;
+    private readonly int _files;
+    private readonly string? _aside;
+    private AThingOnTheDisc? _above;
+    private bool _on = true;
+    private bool? _opened;
+
+    /// <summary>A row with nothing under it: a file, or an add-on.</summary>
+    /// <param name="name">What to show.</param>
+    /// <param name="bytes">How big it is.</param>
+    /// <param name="what">
+    /// What kind of thing it is, where that matters: the installer and an
+    /// add-on are both worth naming, an ordinary file is not.
+    /// </param>
+    /// <param name="itsPath">
+    /// Where it is, as the thing that will be built needs to name it. For a
+    /// file that is its path relative to the game folder; for an add-on it is
+    /// the full path it was found at.
+    /// </param>
+    /// <param name="tell">Called whenever any tick anywhere below changes.</param>
+    /// <param name="aside">
+    /// One more line for the hover, when there is something worth saying
+    /// that the name and the path do not: for a patch, what it adds against
+    /// the disc's installer, so the dialog's reason is not gone at OK.
+    /// </param>
+    /// <param name="files">
+    /// How many files the row stands for: one, except for a folder of a
+    /// game's own taken whole, which is one row and every file inside it.
+    /// </param>
+    public AThingOnTheDisc(
+        string name, long bytes, string? what, string itsPath, Action? tell = null, string? aside = null, int files = 1)
+    {
+        Name = name;
+        _own = bytes;
+        _files = files;
+        What = what;
+        ItsPath = itsPath;
+        _tell = tell;
+        _aside = aside;
+        Inside = new ReadOnlyCollection<AThingOnTheDisc>(_inside);
+    }
+
+    /// <inheritdoc/>
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>What to show for it.</summary>
+    public string Name { get; private set; }
+
+    /// <summary>
+    /// Whether this row is being renamed right now, which only a game's own
+    /// row ever is. The window swaps the name for a box while it is so.
+    /// </summary>
+    public bool IsBeingRenamed { get; private set; }
+
+    /// <summary>
+    /// Opens the row for renaming. Only a game's own row: a file keeps the
+    /// name it has on disk, because the disc will carry that name whatever
+    /// the list says.
+    /// </summary>
+    internal void BeginRenaming()
+    {
+        if (!IsAWholeGame || IsBeingRenamed)
+        {
+            return;
+        }
+
+        IsBeingRenamed = true;
+        Announce(nameof(IsBeingRenamed));
+    }
+
+    /// <summary>Shuts the row again, whatever happened in it.</summary>
+    internal void StopRenaming()
+    {
+        if (!IsBeingRenamed)
+        {
+            return;
+        }
+
+        IsBeingRenamed = false;
+        Announce(nameof(IsBeingRenamed));
+    }
+
+    /// <summary>
+    /// The new name, said so the row on the window follows. The screen is
+    /// the one that calls this, after it has renamed the game the row
+    /// stands for, so the two cannot disagree.
+    /// </summary>
+    internal void AnswerTo(string name)
+    {
+        Name = name;
+        Announce(nameof(Name));
+    }
+
+    private void Announce(string what) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(what));
+
+    /// <summary>
+    /// What kind of thing it is, or nothing for an ordinary file.
+    /// </summary>
+    public string? What { get; }
+
+    /// <summary>
+    /// Whether it is one of its game's own, which one click turns from the
+    /// manual into an extra or back.
+    /// </summary>
+    public bool CanBeEither => What is TheTreeOfWhatGoesOn.TheManual or TheTreeOfWhatGoesOn.AnExtra;
+
+    /// <summary>What clicking what it is would do, said on hover.</summary>
+    public string? WhatItCouldBe => What switch
+    {
+        TheTreeOfWhatGoesOn.TheManual => "Make it one of the game's extras instead",
+        TheTreeOfWhatGoesOn.AnExtra => "Make it the game's manual instead",
+        _ => null
+    };
+
+    /// <summary>
+    /// Where it is. A file's path relative to its game folder, or an add-on's
+    /// own path.
+    /// </summary>
+    public string ItsPath { get; }
+
+    /// <summary>
+    /// What hovering the row says: its name in full, and where it came from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The row has a fixed width and trims what will not fit, so a long name
+    /// is readable nowhere else. It goes first, because the name is what was
+    /// clipped and what somebody is hovering to read.
+    /// </para>
+    /// <para>
+    /// Then where it is, when that says something the name does not. An
+    /// add-on is the case that needs it most: the row shows a tidy version of
+    /// what the patch calls itself, and the file on disk is called something
+    /// else entirely, which is the name somebody looking for it will see.
+    /// </para>
+    /// <para>
+    /// Worked out here rather than by a converter in the window, so a test
+    /// with no window in it can ask what the row would say.
+    /// </para>
+    /// </remarks>
+    public string InFull
+    {
+        get
+        {
+            string said = ItsPath.Length == 0 || string.Equals(ItsPath, Name, StringComparison.Ordinal)
+                ? Name
+                : Name + (char)10 + ItsPath;
+
+            return _aside is null ? said : said + (char)10 + _aside;
+        }
+    }
+
+    /// <summary>Everything directly under it.</summary>
+    public ReadOnlyCollection<AThingOnTheDisc> Inside { get; }
+
+    /// <summary>
+    /// How big it is: its own size, or everything under it added up.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Of everything, not of what is ticked. A folder that shrinks as rows are
+    /// turned off would make it impossible to see how much is being left
+    /// behind, which is the question somebody turning rows off is asking.
+    /// </para>
+    /// <para>
+    /// Worked out rather than added up as rows arrive. A folder is put under
+    /// its parent before anything goes in it, so a running total taken at that
+    /// moment is a total of nothing.
+    /// </para>
+    /// </remarks>
+    public long Bytes => _inside.Count == 0 ? _own : _inside.Sum(each => each.Bytes);
+
+    /// <summary>
+    /// How many files are on the disc for it: its own count for a row with
+    /// nothing under it, and the sum of what is under it otherwise.
+    /// </summary>
+    public int Files => _inside.Count == 0 ? _files : _inside.Sum(each => each.Files);
+
+    /// <summary>How big it is, in words, for the row to show.</summary>
+    /// <remarks>
+    /// Said here rather than through a converter in the window. A converter
+    /// would be a second place for the same decision to live, and this can be
+    /// asked a question by a test that has no window in it.
+    /// </remarks>
+    public string HowBig => ByteSize.Describe(Bytes);
+
+    /// <summary>Whether it has anything under it.</summary>
+    public bool HasThingsInside => _inside.Count > 0;
+
+    /// <summary>
+    /// Whether the row is open on the window, showing what is under it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A game starts open and the folders inside it start shut. Every row
+    /// used to open, and a folder of game files is three hundred rows of
+    /// them, so one such game filled the panel and the game under it was
+    /// below the fold.
+    /// </para>
+    /// <para>
+    /// On the row rather than only on the window, because taking a row off
+    /// rebuilds the branch it was in, and open state that lived in the
+    /// window's own rows died with them: pressing the cross inside an open
+    /// folder snapped the folder shut under the mouse. The rebuild carries
+    /// this across, in <see cref="TheTreeOfWhatGoesOn.Remembering"/>.
+    /// </para>
+    /// </remarks>
+    public bool IsOpened
+    {
+        get => _opened ?? IsAWholeGame;
+        set
+        {
+            if (value == IsOpened)
+            {
+                return;
+            }
+
+            _opened = value;
+            Announce(nameof(IsOpened));
+        }
+    }
+
+    /// <summary>How many rows sit above it: nought for a game.</summary>
+    public int HowDeep => _above is null ? 0 : _above.HowDeep + 1;
+
+    /// <summary>
+    /// How much room the name is given, so that what follows the name starts
+    /// at the same place on every row.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A tree indents a row by its depth, and the row is laid out left to
+    /// right from wherever it was indented to, so a file three folders down
+    /// had its size nearly sixty pixels right of a game's. Four depths on the
+    /// window meant four columns of numbers and no way to compare any of them,
+    /// which is a list of sizes that cannot be read down.
+    /// </para>
+    /// <para>
+    /// Taking the indent back off the name is what fixes it: the name is the
+    /// one thing on the row that can lose a little width without losing
+    /// anything, because it already trims and says itself in full on hover.
+    /// </para>
+    /// <para>
+    /// <strong>Pixels, in a view model, on purpose.</strong> Nothing may
+    /// reference the window project, so a number that lives in the window is a
+    /// number no test can ask about, and this one is the whole of whether the
+    /// sizes line up. It is here for the same reason <see cref="HowBig"/> and
+    /// <see cref="InFull"/> are.
+    /// </para>
+    /// </remarks>
+    public double HowWideTheNameIs =>
+        Math.Max(TheLeastANameGets, TheNameGets - (HowDeep * EachLevelIndentsBy));
+
+    /// <summary>What the name gets on a row that is not indented at all.</summary>
+    /// <remarks>
+    /// It was 250 until the cross that takes a row off joined the row on
+    /// 2026-11-09. The cross's width and margin came out of the name,
+    /// because the name is the one thing on the row that can lose a little
+    /// width without losing anything, and the row width guard holds the
+    /// whole sum to the panel.
+    /// <para>
+    /// Then 240 until 2026-11-13, when it gave up another 16. xniwo found on
+    /// 2.0.1 that with enough games for the list to scroll, the cross was
+    /// gone from every row, discwright#98: the row ran 10 pixels past the
+    /// visible edge, under the scrollbar. The guard had counted the whole
+    /// 920 of the window as the window's inside, when its frame takes 16 of
+    /// them, measured on the test machine as a list 480 wide where the guard
+    /// worked out 496.
+    /// </para>
+    /// </remarks>
+    private const double TheNameGets = 224;
+
+    /// <summary>
+    /// How far a tree pushes a row in for each level it is down, in pixels.
+    /// </summary>
+    /// <remarks>
+    /// Measured rather than remembered. Four rows nested one inside the next,
+    /// laid out by WPF with the template it gives a tree row and nothing of
+    /// ours, put their headers at 22, 41, 60 and 79: nineteen a level.
+    /// </remarks>
+    private const double EachLevelIndentsBy = 19;
+
+    /// <summary>
+    /// What the name keeps however deep the row is.
+    /// </summary>
+    /// <remarks>
+    /// Thirteen folders down the sum above reaches nothing, and a width of
+    /// less than nothing is not a width WPF will take. Past that depth the
+    /// sizes stop lining up, which is the small loss, rather than the window
+    /// falling over, which is not.
+    /// </remarks>
+    private const double TheLeastANameGets = 60;
+
+    /// <summary>
+    /// Whether it goes on the disc. Nothing, for a folder with some of its
+    /// contents left out.
+    /// </summary>
+    public bool? IsOn
+    {
+        get
+        {
+            if (_inside.Count == 0)
+            {
+                return _on;
+            }
+
+            bool all = _inside.TrueForAll(each => each.IsOn == true);
+            if (all)
+            {
+                return true;
+            }
+
+            return _inside.TrueForAll(each => each.IsOn == false) ? false : null;
+        }
+
+        set
+        {
+            // A box with no answer is what a mixed folder shows, never
+            // something anybody sets. Clicking a mixed folder turns all of it
+            // on, which is the useful half of the gesture.
+            bool wanted = value ?? true;
+
+            if (_inside.Count == 0)
+            {
+                if (_on == wanted)
+                {
+                    return;
+                }
+
+                _on = wanted;
+            }
+            else
+            {
+                foreach (AThingOnTheDisc each in _inside)
+                {
+                    each.SetQuietly(wanted);
+                }
+            }
+
+            Changed();
+            TellTheWayUp();
+            TheGameItIsIn._tell?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// The game this row is in, which is itself when it is the game.
+    /// </summary>
+    /// <remarks>
+    /// Remove takes a game off the disc, and the row somebody had selected
+    /// when they pressed it may be a file three folders down. Removing that
+    /// file instead would be a different thing wearing the same button.
+    /// </remarks>
+    public AThingOnTheDisc TheGameItIsIn => _above is null ? this : _above.TheGameItIsIn;
+
+    /// <summary>Whether this row is a game rather than something in one.</summary>
+    public bool IsAWholeGame => _above is null;
+
+    /// <summary>Puts something under it.</summary>
+    public AThingOnTheDisc Holding(AThingOnTheDisc thing)
+    {
+        thing._above = this;
+        _inside.Add(thing);
+        return this;
+    }
+
+    /// <summary>
+    /// Every row under it with nothing under them, itself included when it is
+    /// one, whether ticked or not.
+    /// </summary>
+    /// <remarks>
+    /// The <c>yield break</c> below cannot be shown to matter by any test, and
+    /// that is the honest answer rather than a missing one: what follows it is
+    /// a loop over the rows inside, and there are none, so leaving it out
+    /// yields exactly the same nothing. It stays because stopping where the
+    /// answer is complete is what the method means.
+    /// </remarks>
+    public IEnumerable<AThingOnTheDisc> EveryThing()
+    {
+        if (_inside.Count == 0)
+        {
+            yield return this;
+            yield break;
+        }
+
+        foreach (AThingOnTheDisc each in _inside)
+        {
+            foreach (AThingOnTheDisc deeper in each.EveryThing())
+            {
+                yield return deeper;
+            }
+        }
+    }
+
+    /// <summary>Everything under it that is ticked.</summary>
+    public IEnumerable<AThingOnTheDisc> EverythingOn() => EveryThing().Where(each => each._on);
+
+    /// <summary>
+    /// Every row of the branch: itself, every folder and every file.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="EveryThing"/> walks down to the rows with nothing under
+    /// them, which is right for everything that reads ticks. The rebuild
+    /// wants the folders too, because a folder is where being open means
+    /// anything.
+    /// </remarks>
+    public IEnumerable<AThingOnTheDisc> EveryRow()
+    {
+        yield return this;
+
+        foreach (AThingOnTheDisc each in _inside)
+        {
+            foreach (AThingOnTheDisc deeper in each.EveryRow())
+            {
+                yield return deeper;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sets the tick without telling the game, so a change to many rows is
+    /// one announcement rather than one per row. The caller reads the ticks
+    /// as the answer once, afterwards.
+    /// </summary>
+    internal void SetQuietly(bool on)
+    {
+        if (_inside.Count == 0)
+        {
+            if (_on != on)
+            {
+                _on = on;
+                Changed();
+            }
+
+            return;
+        }
+
+        foreach (AThingOnTheDisc each in _inside)
+        {
+            each.SetQuietly(on);
+        }
+
+        Changed();
+    }
+
+    private void TellTheWayUp()
+    {
+        for (AThingOnTheDisc? up = _above; up is not null; up = up._above)
+        {
+            up.Changed();
+        }
+    }
+
+    private void Changed([CallerMemberName] string? _ = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsOn)));
+}

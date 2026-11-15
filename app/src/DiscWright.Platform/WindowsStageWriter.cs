@@ -1,0 +1,119 @@
+using System.Text;
+
+using DiscWright.Core;
+
+namespace DiscWright.Platform;
+
+/// <summary>
+/// Puts things into the folder that becomes a disc, on the real disk.
+/// </summary>
+public sealed class WindowsStageWriter : IStageWriter
+{
+    /// <summary>
+    /// The same bite the hasher reads in, for the same reason: larger stopped
+    /// helping and starts costing memory on a machine doing something else.
+    /// </summary>
+    private const int Bite = 1024 * 1024;
+
+    /// <summary>
+    /// UTF-8 with no byte order mark. A mark turns up as three characters in
+    /// front of the first line of anything not expecting one, and the checksum
+    /// list is read by tools that are not.
+    /// </summary>
+    private static readonly UTF8Encoding Utf8WithoutAMark = new(false);
+
+    public void MakeFolder(string path) => Directory.CreateDirectory(path);
+
+    /// <summary>
+    /// The only destructive thing this program does, so it is deliberately
+    /// narrow: it refuses anything that is not a staging folder this program
+    /// named.
+    /// </summary>
+    /// <remarks>
+    /// A guard rather than trust. The path comes from inside this program
+    /// today, and the day somebody wires an output folder straight through to
+    /// it by mistake, the mistake is a thrown exception rather than somebody's
+    /// documents.
+    /// </remarks>
+    public void EmptyTheFolder(string path)
+    {
+        // The rule itself is in Core, so the fake the tests use obeys the
+        // same one. It did not once, and a preview that wrote nothing at
+        // all passed eighteen tests.
+        if (!WhatMayBeEmptied.Allows(path, Path.GetTempPath()))
+        {
+            throw new ArgumentException(
+                $"Refusing to empty {path}: only a staging folder called \"disc\" or \"disc DN\", or a preview "
+                    + "folder under the temporary folder, may be emptied.",
+                nameof(path));
+        }
+
+        if (Directory.Exists(path))
+        {
+            // Moved aside first, and only then deleted. Windows refuses to
+            // move a folder that anything holds open, the working folder of a
+            // menu started from it included, and a refused move has changed
+            // nothing. A recursive delete took every file it could and then
+            // failed on the folder, leaving the last build half gone behind a
+            // "Something went wrong" (xniwo, discwright#98, 15 November).
+            string aside = path.TrimEnd('\\', '/') + ".going-" + Guid.NewGuid().ToString("N")[..8];
+
+            try
+            {
+                Directory.Move(path, aside);
+            }
+            catch (Exception held) when (held is IOException or UnauthorizedAccessException)
+            {
+                throw new TheFolderIsInUse(path, held.Message, held);
+            }
+
+            Directory.Delete(aside, recursive: true);
+        }
+
+        Directory.CreateDirectory(path);
+    }
+
+    public void Copy(string source, string destination) =>
+        File.Copy(source, destination, overwrite: true);
+
+    public void CopyPart(string source, long offset, long bytes, string destination)
+    {
+        using FileStream from = new(source, FileMode.Open, FileAccess.Read, FileShare.Read, Bite, FileOptions.SequentialScan);
+        using FileStream to = new(destination, FileMode.Create, FileAccess.Write, FileShare.None, Bite);
+
+        from.Seek(offset, SeekOrigin.Begin);
+
+        byte[] buffer = new byte[Bite];
+        long left = bytes;
+
+        while (left > 0)
+        {
+            // Trimmed to what is left, not to the buffer. Reading a whole
+            // megabyte when 300 KB was asked for is how a part that copied
+            // perfectly comes back as damaged.
+            int want = (int)Math.Min(buffer.Length, left);
+            int read = from.Read(buffer, 0, want);
+
+            if (read <= 0)
+            {
+                throw new IOException($"{source} ended {left} bytes before the part did.");
+            }
+
+            to.Write(buffer, 0, read);
+            left -= read;
+        }
+    }
+
+    /// <inheritdoc />
+    public void WriteBytes(string path, byte[] bytes) => File.WriteAllBytes(path, bytes);
+
+    public void WriteText(string path, string text) =>
+        File.WriteAllText(path, text, Utf8WithoutAMark);
+
+    /// <summary>
+    /// The one file written in the system ANSI codepage, because AutoRun reads
+    /// it that way and has no Unicode mode at all.
+    /// </summary>
+    public void WriteAutorunText(string path, string text) =>
+        File.WriteAllText(path, text, WindowsAutorunEncoding.ForAutorunFiles);
+}

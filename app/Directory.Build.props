@@ -1,0 +1,50 @@
+<Project>
+
+  <PropertyGroup>
+    <!--
+      What this build calls itself, which until now was nothing at all: with no
+      version set, .NET stamps 1.0.0 on everything, and a program that cannot
+      say which version it is cannot tell whether a newer one exists.
+
+      2.0.0, the first release of the C# app. It ran as 0.12.0 while it was
+      being built beside the PowerShell app, carrying on from that one's 0.11,
+      and took the round number on 2026-11-11 when it became the app called
+      DiscWright. The release workflow refuses a tag that disagrees with this.
+
+      2.0.1 on 2026-11-12: Update from the app, Needs N discs, and the disc
+      check moving from its first megabyte.
+
+      2.0.2 on 2026-11-12: what a set burned and installed on an older laptop
+      turned up, and what taking the Microsoft Store screenshots did.
+
+      2.0.3 on 2026-11-13: the version the Microsoft Store is sent, knowing
+      when it is the Store's copy, and drawn sharp on every screen scale.
+
+      2.0.4 on 2026-11-15: each game's own manual and extras, and a game's
+      add-ons scrolling in its menu.
+    -->
+    <Version>2.0.4</Version>
+
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!--
+      A warning nobody fixes is a warning everybody learns to scroll past, so
+      there are none: a warning stops the build. EnforceCodeStyleInBuild makes
+      the naming rules in .editorconfig part of that, which is what turns the
+      conventions from a document into something the compiler checks.
+    -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+
+    <!--
+      InvariantGlobalization is deliberately NOT set. This app carries file
+      names in Cyrillic and Japanese, and warns about a disc label AutoRun will
+      read in the system codepage, so culture data is something it needs rather
+      than something it can trade away for a smaller publish.
+    -->
+  </PropertyGroup>
+
+</Project>

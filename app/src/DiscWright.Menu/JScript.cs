@@ -1,0 +1,127 @@
+using System.Globalization;
+using System.Text;
+
+namespace DiscWright.Menu;
+
+/// <summary>
+/// Turning a value into something safe to put inside the menu's script.
+/// </summary>
+/// <remarks>
+/// A game's name is written by somebody else and lands inside a JScript string
+/// literal in an HTA. That is three different sets of rules at once, and
+/// getting any of them wrong breaks a disc that is already burned.
+/// </remarks>
+public static class JScript
+{
+    /// <summary>
+    /// A string, quoted and escaped, ready to be pasted into the menu.
+    /// </summary>
+    public static string Literal(string? value)
+    {
+        if (value is null)
+        {
+            return "\"\"";
+        }
+
+        StringBuilder safe = new(value.Length + 2);
+        safe.Append('"');
+
+        foreach (char character in value)
+        {
+            switch (character)
+            {
+                case '\\':
+                    safe.Append("\\\\");
+                    break;
+
+                case '"':
+                    safe.Append("\\\"");
+                    break;
+
+                // The one that is not about JScript at all. A name containing
+                // "</script>" would END THE SCRIPT BLOCK, because the HTA is
+                // parsed as markup before any of it is script, and the rest of
+                // the menu would be shown as text. Escaping the angle bracket
+                // means the parser never sees the tag while JScript still reads
+                // the same character.
+                case '<':
+                    safe.Append("\\x3C");
+                    break;
+
+                case '>':
+                    safe.Append("\\x3E");
+                    break;
+
+                case '&':
+                    safe.Append("\\x26");
+                    break;
+
+                default:
+                    // Control characters are removed rather than escaped. A
+                    // newline inside a literal is an unterminated string, the
+                    // whole HTA fails to parse, and the disc opens to nothing.
+                    // The window cannot produce one, but a project file read
+                    // off disk can carry one, and that is the path that reaches
+                    // a build.
+                    if (character < ' ' || character == '\u007F')
+                    {
+                        break;
+                    }
+
+                    // Anything past plain ASCII is written as its code. The
+                    // menu is a file with no byte order mark and no charset,
+                    // so mshta reads it in the machine's ANSI codepage, and
+                    // the UTF-8 bytes of "\u2026" came out on the owner's
+                    // laptop as "\u00E2\u20AC\u00A6" on the button. A name
+                    // with an accent in it would have done the same. As
+                    // "\\u2026" the file holds only ASCII and JScript reads
+                    // back exactly the character that was meant, on any
+                    // codepage. A character outside the first plane is two
+                    // UTF-16 units in a .NET string and two escapes here,
+                    // which is how JScript holds it too.
+                    if (character > '\u007E')
+                    {
+                        safe.Append(CultureInfo.InvariantCulture, $"\\u{(int)character:X4}");
+                        break;
+                    }
+
+                    safe.Append(character);
+                    break;
+            }
+        }
+
+        safe.Append('"');
+
+        return safe.ToString();
+    }
+
+    /// <summary>A whole number, written the same way on every machine.</summary>
+    /// <remarks>
+    /// Invariant, unlike every size a person reads. This is code, and a
+    /// thousands separator or a decimal comma in the middle of it would be a
+    /// syntax error on a Serbian machine and nowhere else.
+    /// </remarks>
+    public static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+    /// <inheritdoc cref="Number(int)"/>
+    public static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// A list of name and value pairs, written as a JScript object.
+    /// </summary>
+    /// <remarks>
+    /// The values are written exactly as given, so whatever builds them has
+    /// already decided how each one is escaped. Passing a raw string in here
+    /// would be the one place a game's name could reach the menu unescaped,
+    /// which is why this takes what is already safe rather than strings.
+    /// </remarks>
+    public static string Fields(params (string Name, string Value)[] fields) =>
+        "{" + string.Join(", ", fields.Select(field => field.Name + ": " + field.Value)) + "}";
+
+    /// <summary>A list of already-written values, as a JScript array.</summary>
+    public static string ArrayOf(IEnumerable<string> written) => "[" + string.Join(", ", written) + "]";
+
+    /// <summary>A list of strings, as a JScript array.</summary>
+    public static string ListOf(IEnumerable<string> values) =>
+        "[" + string.Join(", ", values.Select(Literal)) + "]";
+}

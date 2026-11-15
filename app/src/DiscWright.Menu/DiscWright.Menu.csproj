@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\DiscWright.Core\DiscWright.Core.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <!-- Carried inside the assembly so the writer cannot be handed a stale copy
+         from beside the exe, and so the file the cscript tests run is the file
+         that ends up on the disc. A test asserts the two are identical. -->
+    <EmbeddedResource Include="menu.js" />
+    <EmbeddedResource Include="menu.hta.template" />
+    <EmbeddedResource Include="start-here.hta" />
+    <EmbeddedResource Include="menu.ico" />
+  </ItemGroup>
+
+</Project>

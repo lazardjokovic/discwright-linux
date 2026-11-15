@@ -1,0 +1,174 @@
+<!--
+    Shown when the folder somebody picked held more than the game.
+
+    It exists because the alternative was silence: the recogniser takes the
+    installer and its parts, and a patch and a README sitting beside them were
+    dropped with no sign that anything had gone. Losing a file quietly is the
+    worst way to lose it.
+-->
+<Window x:Class="DiscWright.App.WhatElseIsInThere"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="There is more in that folder"
+        Height="460" Width="700"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource Page}"
+        FontFamily="{StaticResource Face}"
+        AutomationProperties.AutomationId="WhatElseIsInThere">
+
+    <Grid Margin="24,20,24,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,14">
+            <TextBlock Style="{StaticResource Title}"
+                       FontSize="17"
+                       Text="{Binding Headline}"
+                       AutomationProperties.AutomationId="Headline" />
+            <TextBlock Style="{StaticResource Aside}"
+                       Margin="0,4,0,0"
+                       Text="The game itself is already going on. These were beside it. Anything left unticked stays off the disc." />
+
+            <!-- Said once, above the rows, only when patches are among the
+                 files: what a patch is, and what this disc's installer
+                 already carries, so the ticks' defaults have their reason
+                 in sight. The owner's ask on 2026-11-09. -->
+            <TextBlock Style="{StaticResource Aside}"
+                       Margin="0,4,0,0"
+                       TextWrapping="Wrap"
+                       Text="{Binding AboutPatches}"
+                       Visibility="{Binding AboutPatches, Converter={StaticResource WhenAnything}}"
+                       AutomationProperties.AutomationId="AboutPatches" />
+
+            <!-- For the person keeping everything: the patch defaults
+                 untick what the installer covers, and an archive disc
+                 wants it anyway. Grey when there is nothing left to
+                 tick. -->
+            <Button Content="Tick them all"
+                    Style="{StaticResource Quietly}"
+                    Margin="0,6,0,0"
+                    HorizontalAlignment="Right"
+                    IsEnabled="{Binding CanTickThemAll}"
+                    Click="TickThemAll"
+                    AutomationProperties.AutomationId="TickThemAll" />
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Background="{DynamicResource Panel}"
+                BorderBrush="{DynamicResource Edge}"
+                BorderThickness="1"
+                CornerRadius="4">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="6,8">
+                <ItemsControl ItemsSource="{Binding Files}" AutomationProperties.AutomationId="Files">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="8,7">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- The reason line sits beside the box
+                                     rather than inside it. Inside, the
+                                     box's content is measured with no
+                                     width to speak of, wrapping never
+                                     fires, and "so it adds nothing to
+                                     this disc" was clipped to "so it
+                                     adds", which reads as the exact
+                                     opposite of what it says. Caught by
+                                     photograph, like every clipping
+                                     before it. -->
+                                <StackPanel Grid.Column="0">
+                                    <!-- The name goes through a TextBlock,
+                                         not as a bare string: handed a
+                                         string, the box reads the first
+                                         underscore as an access key and
+                                         swallows it, and every GOG file
+                                         name is full of underscores.
+                                         patch_a_game read as patcha_game
+                                         on the photograph. -->
+                                    <CheckBox Margin="0"
+                                              IsChecked="{Binding Wanted}"
+                                              AutomationProperties.AutomationId="{Binding Name}">
+                                        <TextBlock Text="{Binding Name}" />
+                                    </CheckBox>
+                                    <TextBlock Style="{StaticResource Aside}"
+                                               TextWrapping="Wrap"
+                                               Margin="24,2,0,0"
+                                               Text="{Binding Explains}" />
+                                </StackPanel>
+
+                                <TextBlock Grid.Column="1"
+                                           Style="{StaticResource Aside}"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,14,0"
+                                           Text="{Binding Size}" />
+
+                                <!-- The guess is a starting point, not a
+                                     ruling: an .exe beside a game is usually
+                                     something that installs onto it, but a
+                                     standalone tool is not. -->
+                                <ComboBox Grid.Column="2"
+                                          Width="210"
+                                          VerticalAlignment="Center"
+                                          SelectedIndex="{Binding Treatment}"
+                                          IsEnabled="{Binding Wanted}"
+                                          AutomationProperties.AutomationId="{Binding WhatToDoWithIt}">
+                                    <!-- In the order of WhatBecomesOfIt, which
+                                         the selected index is cast to. -->
+                                    <ComboBoxItem Content="The game's manual" />
+                                    <ComboBoxItem Content="One of the game's extras" />
+                                    <ComboBoxItem Content="Attach as an add-on" />
+                                    <ComboBoxItem Content="Beside the installer, no button" />
+                                </ComboBox>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <StackPanel Grid.Row="2">
+        <!-- Only when several folders are being added together, so a
+             compilation is asked once rather than once a game, which xniwo
+             met adding nine (discwright#98). -->
+        <CheckBox Margin="0,12,0,0"
+                  IsChecked="{Binding TheSameForTheRest}"
+                  Visibility="{Binding TheSameForTheRestSays, Converter={StaticResource WhenAnything}}"
+                  AutomationProperties.AutomationId="TheSameForTheRest">
+            <TextBlock Text="{Binding TheSameForTheRestSays}" />
+        </CheckBox>
+
+        <Grid Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0"
+                    Content="None of them"
+                    Style="{StaticResource Ordinary}"
+                    Click="NoneOfThem"
+                    AutomationProperties.AutomationId="NoneOfThem" />
+
+            <!-- Grey with nothing ticked: it would put nothing on, which
+                 is the other button's job, said honestly instead of a
+                 press that does the opposite of its words. -->
+            <Button Grid.Column="2"
+                    Content="Put these on too"
+                    Style="{StaticResource TheButton}"
+                    Click="TakeThem"
+                    IsDefault="True"
+                    IsEnabled="{Binding AnyWanted}"
+                    AutomationProperties.AutomationId="TakeThem" />
+        </Grid>
+        </StackPanel>
+    </Grid>
+</Window>

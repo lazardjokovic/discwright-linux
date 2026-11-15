@@ -1,0 +1,1260 @@
+﻿<!--
+    The main window.
+
+    It holds no decisions. Every question it asks is answered by MakeADisc,
+    which has no WPF in it, so what is here is only arrangement: where things
+    sit, what they are called, and which of them is bound to what.
+
+    Everything an automated test touches carries an AutomationId, set here and
+    never left to the framework to invent. v1 is WinForms and its window suite
+    fought UI Automation the whole way, which is the single largest reason this
+    is WPF.
+-->
+<!--
+    Drawn at 920 by 740, and resizable in height. It was fixed at that size,
+    which an older laptop at 1366 by 768 does not have room for once the
+    taskbar has its share, so it only just fitted, with no way to make it
+    smaller. Now the games list takes whatever height there is and the
+    column on the right scrolls, so the window can be made as short as its
+    MinHeight, and OnThisScreen opens it at the room there is when the drawn
+    size does not fit.
+
+    Not in width. The games list lines its sizes up at a fixed width
+    (AThingOnTheDisc.HowWideTheNameIs), so narrower cut the sizes off and
+    wider left them stranded in the middle of the list, both seen on the
+    test machine. So the width is held at what was drawn, and the maximise
+    button is taken off, because maximised is wider.
+-->
+<Window x:Class="DiscWright.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DiscWright"
+        Icon="DiscWright.ico"
+        Loaded="ListenForDiscs"
+        Height="740" Width="920"
+        MinHeight="560" MinWidth="920" MaxWidth="920"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Page}"
+        FontFamily="{StaticResource Face}"
+        AutomationProperties.AutomationId="TheWindow">
+
+    <Grid Margin="28,16,28,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ================================================== the top line -->
+        <!-- A rule under it, so the space to the right of the name reads as a
+             header bar rather than as somewhere a thing used to be. The same
+             hairline as the strip under the list of what goes on the disc. -->
+        <Border Grid.Row="0"
+                Margin="0,0,0,12"
+                Padding="0,0,0,10"
+                BorderBrush="{DynamicResource Edge}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="28" />
+                    <ColumnDefinition Width="340" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <!-- The version beside the name, not under the line about
+                         discs: on its own underneath, "2.0.0" could as easily
+                         have been about the disc being made. -->
+                    <!-- The name, and which build it is. Nothing else on this
+                         row: whether there is a newer one is a different thought
+                         from what this one is called, and it has its own line. -->
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="DiscWright" Style="{StaticResource Title}" />
+
+                        <TextBlock Style="{StaticResource Aside}"
+                                   Margin="8,0,0,4"
+                                   VerticalAlignment="Bottom"
+                                   Text="{Binding ThisBuild}"
+                                   AutomationProperties.AutomationId="ThisBuild" />
+                    </StackPanel>
+
+                    <!-- THE PROGRAM'S OWN LINKS, ON ONE LINE. Stacked one under
+                         another they made this corner four rows tall beside a
+                         column of buttons two rows tall, and the owner, on
+                         2026-11-10, saw the empty space it left between the name
+                         and Start a new disc, and every row below pushed down by
+                         the one Open the log added. Side by side with a dot
+                         between, the way the totals bar under the list reads.
+                         A WrapPanel, so a long answer from the update link
+                         wraps rather than running under the buttons. -->
+                    <WrapPanel Margin="0,4,0,0">
+                        <!-- Never hidden and never disabled. It is the only way
+                             to ask, and one that vanished after its first press
+                             would be a capability that works once. What it says
+                             is the screen's decision, so the window cannot word
+                             it differently. -->
+                        <Button Content="{Binding WhatTheVersionLinkSays}"
+                                Style="{StaticResource Quietly}"
+                                Click="CheckForANewVersion"
+                                AutomationProperties.AutomationId="CheckForANewVersion" />
+
+                        <!-- The release page, once the link above has become
+                             Update. Before that the link itself opens the page,
+                             so this is only there when it would otherwise be
+                             lost. -->
+                        <TextBlock Text="·" Style="{StaticResource Aside}" Margin="7,0" VerticalAlignment="Center"
+                                   Visibility="{Binding TheUpdateOnOffer, Converter={StaticResource WhenSo}}" />
+
+                        <Button Content="What's new"
+                                Style="{StaticResource Quietly}"
+                                Click="OpenWhatsNew"
+                                Visibility="{Binding TheUpdateOnOffer, Converter={StaticResource WhenSo}}"
+                                AutomationProperties.AutomationId="WhatsNew" />
+
+                        <TextBlock Text="·" Style="{StaticResource Aside}" Margin="7,0" VerticalAlignment="Center" />
+
+                        <!-- About the program, not about the disc being made.
+                             One quiet control cycling three answers rather than
+                             a dropdown, because it is touched once. Its words
+                             come from ChoosingTheLook, whose DataContext the
+                             window sets, so the screen stays ignorant of
+                             themes. -->
+                        <Button x:Name="HowItDresses"
+                                Content="{Binding InWords}"
+                                Style="{StaticResource Quietly}"
+                                Click="ChooseTheNextLook"
+                                ToolTip="Light, dark, or whatever Windows wears. Following Windows is the default."
+                                AutomationProperties.AutomationId="Appearance" />
+
+                        <TextBlock Text="·" Style="{StaticResource Aside}" Margin="7,0" VerticalAlignment="Center" />
+
+                        <!-- Asked for by the owner on 2026-11-10 after a night
+                             of rebuilding a failed set from screenshots. Opens
+                             today's file in whatever opens text, or the folder
+                             when today has nothing in it yet. -->
+                        <Button Content="Open the log"
+                                Style="{StaticResource Quietly}"
+                                Click="OpenTheLog"
+                                ToolTip="What DiscWright did and what the drives said, one file a day. It stays on this PC."
+                                AutomationProperties.AutomationId="OpenTheLog" />
+                    </WrapPanel>
+
+                    <!-- The answer to the update link, under the links rather
+                         than among them, and only when there is one: the longest
+                         of these sentences is wider than the gap before the
+                         buttons. The answer lands here rather than in a message
+                         box, which was the only box in the program not reporting
+                         a problem. -->
+                    <TextBlock Style="{StaticResource Aside}"
+                               Margin="0,4,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding WhatTheVersionSays}"
+                               Visibility="{Binding WhatTheVersionSays, Converter={StaticResource WhenAnything}}"
+                               AutomationProperties.AutomationId="WhatTheVersionSays" />
+                </StackPanel>
+
+                <!-- About the whole window rather than about one more game, which
+                     is why it sits up here and not beside Add a game. -->
+                <!-- Side by side rather than stacked. Two of these one above the
+                     other was eighty pixels of button beside sixty of title, and
+                     the whole top of the window was the taller of them. -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0"
+                                Content="Start a new disc"
+                                IsEnabled="{Binding CanStartAgain}"
+                                Style="{StaticResource Ordinary}"
+                                HorizontalAlignment="Stretch"
+                                Margin="0,0,5,0"
+                                Click="StartANewDisc"
+                                AutomationProperties.AutomationId="StartANewDisc" />
+
+                        <Button Grid.Column="1"
+                                Content="Open one you built"
+                                IsEnabled="{Binding NothingIsRunning}"
+                                Style="{StaticResource Ordinary}"
+                                HorizontalAlignment="Stretch"
+                                Margin="5,0,0,0"
+                                Click="OpenADisc"
+                                AutomationProperties.AutomationId="OpenADisc" />
+                    </Grid>
+
+                    <!-- The quiet third of the pair above. Saving writes the
+                         same discproject.json a build leaves behind, into the
+                         folder named under WHERE TO SAVE THE ISO, so Open one
+                         you built finds it the same way. Quiet rather than a
+                         third box because the row above is already as wide as
+                         its column, and because saving is the small act next
+                         to the two big ones. -->
+                    <Button Content="Save it for later, without building"
+                            Style="{StaticResource Quietly}"
+                            HorizontalAlignment="Right"
+                            Margin="0,6,0,0"
+                            IsEnabled="{Binding CanSaveItForLater}"
+                            ToolTip="Writes discproject.json into the folder under WHERE TO SAVE THE ISO. Open one you built brings it back."
+                            Click="SaveItForLater"
+                            AutomationProperties.AutomationId="SaveItForLater" />
+
+                    <!-- Where it went, left where it can be read again, the
+                         same manners as the line about the last burn. -->
+                    <TextBlock Style="{StaticResource Aside}"
+                               Margin="0,4,0,0"
+                               TextWrapping="Wrap"
+                               TextAlignment="Right"
+                               Text="{Binding HowTheSaveWent}"
+                               Visibility="{Binding HowTheSaveWent, Converter={StaticResource WhenAnything}}"
+                               AutomationProperties.AutomationId="HowTheSaveWent" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ===================================================== the middle -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="28" />
+                <ColumnDefinition Width="340" />
+            </Grid.ColumnDefinitions>
+
+            <!-- What goes on it -->
+            <DockPanel Grid.Column="0">
+                <!-- Alone on its row, like WHAT IT IS CALLED across the way.
+                     The preview button used to share this row, which made the
+                     header as tall as the button and spent that height on
+                     nothing; the button now sits on the toolbar below, and
+                     the list got the difference. -->
+                <TextBlock DockPanel.Dock="Top"
+                           Style="{StaticResource Step}"
+                           Text="WHAT GOES ON IT" />
+
+                <!-- Said under the tree rather than beside a row, because
+                     it is about the disc and not about one file. Leaving the
+                     installer off is allowed, so the one thing that cannot be
+                     left to be discovered is a disc that will not install
+                     anything. -->
+                <!-- Two pieces of text rather than one sentence, because a
+                     TextBlock has one colour and these are two different
+                     kinds of statement.
+
+                     Leaving a file off is not a mistake. It is the thing
+                     somebody just deliberately did, so it is said in ordinary
+                     ink. A window where everything is amber is a window where
+                     amber means nothing, including on the tray line. -->
+                <!-- What the recogniser noticed about the folder a game came
+                     out of. An unfinished download is the one that matters:
+                     it builds an ISO that looks perfect and fails when the
+                     installer is run off the burned disc.
+
+                     Here rather than in a box when the game is added, because
+                     a box is dismissed and the burn is an hour later. -->
+                <TextBlock DockPanel.Dock="Bottom"
+                           Margin="0,2,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource WorryInk}"
+                           Text="{Binding WhatTheDownloadsSay}"
+                           Visibility="{Binding WhatTheDownloadsSay, Converter={StaticResource WhenAnything}}"
+                           AutomationProperties.AutomationId="WhatTheDownloadsSay" />
+
+                <TextBlock DockPanel.Dock="Bottom"
+                           Margin="0,2,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource WorryInk}"
+                           Text="{Binding APatchWithNothingToPatch}"
+                           Visibility="{Binding APatchWithNothingToPatch, Converter={StaticResource WhenAnything}}"
+                           AutomationProperties.AutomationId="APatchWithNothingToPatch" />
+
+                <!-- Two rows reading alike here are two menu buttons reading
+                     alike on the burned disc. A notice and never a refusal:
+                     two editions of one game are an ordinary thing to burn,
+                     and what was asked for (discwright#98) was being told,
+                     not being stopped. -->
+                <TextBlock DockPanel.Dock="Bottom"
+                           Margin="0,2,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource WorryInk}"
+                           Text="{Binding WhoWearsTheSameName}"
+                           Visibility="{Binding WhoWearsTheSameName, Converter={StaticResource WhenAnything}}"
+                           AutomationProperties.AutomationId="WhoWearsTheSameName" />
+
+                <!-- What the opened project named that is no longer where it
+                     left it, discwright#98. The games that did not come back
+                     cannot be rows, so this line is their only trace. It used
+                     to be a box, and a box is gone at OK while the games are
+                     still gone an hour later. -->
+                <TextBlock DockPanel.Dock="Bottom"
+                           Margin="0,2,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource WorryInk}"
+                           Text="{Binding WhatDidNotComeBack}"
+                           Visibility="{Binding WhatDidNotComeBack, Converter={StaticResource WhenAnything}}"
+                           AutomationProperties.AutomationId="WhatDidNotComeBack" />
+
+                <TextBlock DockPanel.Dock="Bottom"
+                           Margin="0,2,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource WorryInk}"
+                           Text="{Binding WhyThatMatters}"
+                           Visibility="{Binding WhyThatMatters, Converter={StaticResource WhenAnything}}"
+                           AutomationProperties.AutomationId="WhyThatMatters" />
+
+                <!-- A disc that copies a folder rather than starting it is a
+                     thing somebody may well mean to make, so this is ordinary
+                     ink beside the amber. What it is not is something to find
+                     out by burning the disc and pressing the button. -->
+                <TextBlock DockPanel.Dock="Bottom"
+                           Style="{StaticResource Aside}"
+                           Margin="0,8,0,0"
+                           TextWrapping="Wrap"
+                           Text="{Binding WhatWillNotStartItself}"
+                           Visibility="{Binding WhatWillNotStartItself, Converter={StaticResource WhenAnything}}"
+                           AutomationProperties.AutomationId="WhatWillNotStartItself" />
+
+                <!-- Above the list, not under it. These act on the list, so
+                     they stay inside this panel's column rather than joining
+                     the project pair top right, but under the list they were
+                     the last thing in reading order and the first thing a
+                     new window needs: on an empty window the one thing to do
+                     sat below a large blank box. A toolbar above its list is
+                     also where every file window on this system puts one.
+                     Above the panel rather than inside it, because a button
+                     inside is covered by the tree and cannot be clicked,
+                     which is recorded on the empty-list words below. -->
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Two buttons, and the row can never crowd again. There
+                         were four at the worst, two kinds of Remove among
+                         them, and the preview was pushed off the edge and
+                         then stepped down a line, patched rather than
+                         designed, the owner's words on 2026-11-09. Removing
+                         is a gesture on the row itself now, the cross at its
+                         right edge, and clearing out the unticked rows is a
+                         link on the sentence under the list that counts
+                         them. -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <Button Content="Add a game"
+                                IsEnabled="{Binding NothingIsRunning}"
+                                Style="{StaticResource Ordinary}"
+                                Click="AddAGame"
+                                AutomationProperties.AutomationId="AddAGame" />
+                    </StackPanel>
+
+                    <!-- A real button, not something that looks like a link.
+                         Pressing it opens a window, which is what a button
+                         does. It lived on the header row above and made that
+                         row button-tall; on the toolbar it is level with what
+                         is done to the list, and still dead unless there is a
+                         menu to preview, so it cannot show something that is
+                         not going to be on the disc. -->
+                    <!-- It says it opens one window per disc, because a set
+                         opens several and the second can land exactly behind
+                         the first. Somebody looked at disc 1 of 2, took it for
+                         the whole answer, and had no way of knowing the other
+                         window was there; later the same windows, opened
+                         with no warning, read as a bug. A set asks first
+                         now, and this hover says so. -->
+                    <Button Grid.Column="1"
+                            Content="See what it will look like"
+                            Style="{StaticResource Ordinary}"
+                            HorizontalAlignment="Right"
+                            Margin="8,0,0,0"
+                            IsEnabled="{Binding CanPreview}"
+                            Click="PreviewTheMenu"
+                            ToolTip="A set asks first: one window, or one per disc. Every disc carries the manual and the extras."
+                            AutomationProperties.AutomationId="PreviewTheMenu" />
+                </Grid>
+
+                <!-- A drop target as well as a panel, discwright#98: the
+                     folder, or the setup exe pulled straight out of a
+                     Downloads window, lands on the same road the Add a game
+                     button takes. The tree declares the same three
+                     attributes below, because AllowDrop is per element and
+                     a tree that covers the panel without it would refuse
+                     the drop over exactly the place that looks like the
+                     list. -->
+                <Border Background="{DynamicResource Panel}"
+                        BorderBrush="{DynamicResource Edge}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        AllowDrop="True"
+                        DragOver="SayWhetherADropWouldLand"
+                        Drop="SomethingWasDropped">
+                    <Grid>
+                        <!-- The list, and a line under it that adds the list
+                             up. Two rows rather than one, so the total sits
+                             inside the panel it is about rather than floating
+                             under it among the lines about what was left off. -->
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Said once, on an empty list, and gone the moment
+                             there is anything to show.
+
+                             The words and nothing else. A second Add a game
+                             button sat beside them for a day, on the argument
+                             that the one thing there is to do should not be
+                             under a large empty box, and it could not be
+                             pressed: the tree is drawn over this cell, so a
+                             mouse reached the tree and never the button.
+                             Automation could invoke it perfectly well, which
+                             is exactly the shape of a thing that looks tested
+                             and is not. The button under the list is the only
+                             one, and it was always the one that worked. -->
+                        <TextBlock Style="{StaticResource Aside}"
+                                   VerticalAlignment="Top"
+                                   Margin="16,16,16,0"
+                                   TextWrapping="Wrap"
+                                   Visibility="{Binding Games.Count, Converter={StaticResource WhenNone}}"
+                                   AutomationProperties.AutomationId="NothingYet"
+                                   Text="Nothing yet. Add the folder a game was downloaded into, or the folder it is installed in. Dropping one here works too, the installer's own exe included." />
+
+                        <!-- A tree, because a game is not one thing.
+                             It is an installer, its parts, whatever folders
+                             came with it and the patches that were taken on
+                             beside it, and the only way to leave one of those
+                             off used to be to not add the game at all.
+
+                             Every row carries a tick. Everything under a row
+                             follows it, and a row follows what is under it, so
+                             a folder with some of its files left out shows
+                             neither on nor off rather than lying about what
+                             will be written. -->
+                        <TreeView x:Name="Games"
+                                  SelectedItemChanged="WhatIsPickedChanged"
+                                  MouseDoubleClick="RenameWhatIsPicked"
+                                  KeyDown="TheListKeys"
+                                  ItemsSource="{Binding WhatGoesOnIt}"
+                                  BorderThickness="0"
+                                  Background="Transparent"
+                                  Padding="4"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                  IsEnabled="{Binding NothingIsRunning}"
+                                  AllowDrop="True"
+                                  DragOver="SayWhetherADropWouldLand"
+                                  Drop="SomethingWasDropped"
+                                  AutomationProperties.AutomationId="Games">
+                            <!-- Without this a row answers to whatever the
+                                 thing in it prints as, which here is the whole
+                                 record: every file, every size. A reader would
+                                 say all of it aloud, and a window test would
+                                 see it instead of a name. -->
+                            <TreeView.ItemContainerStyle>
+                                <!-- On top of the row's own look, not instead
+                                     of it: a container style with no BasedOn
+                                     replaces the implicit style wholesale, and
+                                     the rows would go back to the system's
+                                     brushes while every other control wears
+                                     the palette. -->
+                                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                    <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+
+                                    <!-- A game is open and the folders inside
+                                         it are shut, which is the row's own
+                                         IsOpened default. The state lives on
+                                         the row rather than here, because
+                                         taking a row off rebuilds its branch,
+                                         and open state the window kept alone
+                                         died with the old rows: the folder
+                                         the cross was pressed in snapped
+                                         shut under the mouse. Two way, so
+                                         what somebody opens by hand reaches
+                                         the row and survives the rebuild. -->
+                                    <Setter Property="IsExpanded" Value="{Binding IsOpened, Mode=TwoWay}" />
+                                </Style>
+                            </TreeView.ItemContainerStyle>
+
+                            <TreeView.ItemTemplate>
+                                <HierarchicalDataTemplate ItemsSource="{Binding Inside}">
+                                    <!-- Laid out left to right with the
+                                         name given a width, rather than a
+                                         grid with a column pushed to the
+                                         right.
+
+                                         A TreeViewItem's header sits in an
+                                         Auto column of its own template, so it
+                                         is only ever as wide as what is in it
+                                         and HorizontalContentAlignment has
+                                         nothing to stretch into. A row with a
+                                         long file name in it simply grew past
+                                         the panel and everything after the
+                                         name was clipped, with no scrollbar
+                                         and nothing else to say so. Tried,
+                                         photographed, and still wrong.
+
+                                         Bounding the name fixes it for good:
+                                         the row cannot outgrow the panel
+                                         whatever is in it. -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,3">
+                                        <CheckBox VerticalAlignment="Center"
+                                                  Margin="0,0,7,0"
+                                                  IsThreeState="{Binding HasThingsInside}"
+                                                  IsChecked="{Binding IsOn, Mode=TwoWay}"
+                                                  AutomationProperties.Name="{Binding Name}" />
+
+                                        <!-- Narrowed by however far the tree has
+                                             already pushed this row in, which
+                                             is what puts every size in one
+                                             column. Worked out by the row
+                                             rather than here, because nothing
+                                             may reference this project and a
+                                             number in this file is a number
+                                             no test can ask about. -->
+                                        <TextBlock Width="{Binding HowWideTheNameIs}"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding Name}"
+                                                   TextWrapping="NoWrap"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Visibility="{Binding IsBeingRenamed, Converter={StaticResource WhenNot}}"
+                                                   AutomationProperties.HelpText="{Binding InFull}"
+                                                   ToolTip="{Binding InFull}" />
+
+                                        <!-- The name again, open for typing,
+                                             only while the row is being
+                                             renamed. Its text is set as it
+                                             appears and read as it closes,
+                                             in the code behind, so a rename
+                                             abandoned with Escape leaves no
+                                             stale text for next time. Its
+                                             width too: it stands in for the
+                                             name and only ever instead of
+                                             it, and the row width guard sums
+                                             every width declared here, so a
+                                             second declaration would count a
+                                             column that is never shown
+                                             twice. -->
+                                        <TextBox VerticalAlignment="Center"
+                                                 Visibility="{Binding IsBeingRenamed, Converter={StaticResource WhenSo}}"
+                                                 IsVisibleChanged="AwakenTheRenameBox"
+                                                 KeyDown="TheRenameKeys"
+                                                 LostFocus="TheRenameBoxLostItsFocus"
+                                                 AutomationProperties.AutomationId="RenameBox" />
+
+                                        <!-- The installer and a patch are
+                                             worth naming. An ordinary file is
+                                             not, and this is empty for one. -->
+                                        <!-- One of the game's own says what
+                                             it is as a link, and a click
+                                             makes the manual an extra or the
+                                             extra the manual, so one put in
+                                             the wrong place is one click from
+                                             the right one. -->
+                                        <Grid Width="70" Margin="8,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource Aside}"
+                                                       Text="{Binding What}"
+                                                       Visibility="{Binding CanBeEither, Converter={StaticResource WhenNot}}" />
+                                            <Button Style="{StaticResource AsALink}"
+                                                    HorizontalAlignment="Left"
+                                                    Content="{Binding What}"
+                                                    ToolTip="{Binding WhatItCouldBe}"
+                                                    AutomationProperties.HelpText="{Binding WhatItCouldBe}"
+                                                    Visibility="{Binding CanBeEither, Converter={StaticResource WhenSo}}"
+                                                    Click="SwapWhatItIs"
+                                                    AutomationProperties.AutomationId="SwapWhatItIs" />
+                                        </Grid>
+
+                                        <!-- Up against its own right edge, so
+                                             the figures end under each other
+                                             and the column can be read down.
+                                             Left aligned, "4.37 GB" and
+                                             "817 bytes" start together and end
+                                             nowhere near each other, and
+                                             comparing two rows meant reading
+                                             both of them in full. -->
+                                        <TextBlock Style="{StaticResource Aside}"
+                                                   Width="76"
+                                                   TextAlignment="Right"
+                                                   VerticalAlignment="Center"
+                                                   Margin="4,0,2,0"
+                                                   Text="{Binding HowBig}" />
+
+                                        <!-- The row's own way off the list,
+                                             shown while the row is under the
+                                             mouse and hidden rather than
+                                             collapsed otherwise, so the
+                                             columns stand still. Removing
+                                             used to be select it, then walk
+                                             up to a Remove button, a
+                                             two-step the owner called
+                                             strange twice in one session.
+                                             The tick stays what it always
+                                             was, on this disc or off it; the
+                                             cross is off the list. -->
+                                        <Button Margin="4,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Style="{StaticResource OffTheRow}"
+                                                Click="TakeOffThisRow"
+                                                ToolTip="Take it off the list"
+                                                AutomationProperties.Name="Take it off the list"
+                                                AutomationProperties.AutomationId="TakeOffThisRow" />
+                                    </StackPanel>
+                                </HierarchicalDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+
+                        <!-- What the whole list comes to.
+                             Every row shows its own size and a game shows the
+                             sum of what is under it, and there was nowhere at
+                             all that said what the lot came to: with four
+                             games on the window somebody had to add them up
+                             by eye to know whether it would fit.
+
+                             It follows the ticks, because what is going on
+                             the disc is what is ticked, and a total that
+                             counted rows somebody had just turned off would
+                             be worse than no total. -->
+                        <!-- The sentence that counts what is unticked lives
+                             here too, with its link, since 2026-11-09: in
+                             its own corner under the panel it was quiet
+                             enough that the owner called it not that
+                             visible, and the eye that checks the size is
+                             already on this bar. Wrapped, because the three
+                             pieces together can outgrow the panel's width
+                             and a bar that clips is worse than one that
+                             takes a second line. -->
+                        <Border Grid.Row="1"
+                                BorderBrush="{DynamicResource Edge}"
+                                BorderThickness="0,1,0,0"
+                                Padding="10,6"
+                                Visibility="{Binding Games.Count, Converter={StaticResource WhenSome}}">
+                            <StackPanel>
+                            <WrapPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Aside}"
+                                           Text="{Binding WhatIsOnIt}"
+                                           AutomationProperties.AutomationId="WhatIsOnIt" />
+
+                                <!-- Only between the two sentences, never
+                                     leading the line: with everything
+                                     unticked the total says nothing at all,
+                                     and a separator with nothing on its
+                                     left is a smudge. -->
+                                <TextBlock Text="·" Margin="6,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource Aside}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding WhatIsOnIt, Converter={StaticResource WhenAnything}}" Value="Visible" />
+                                                        <Condition Binding="{Binding WhatIsLeftOff, Converter={StaticResource WhenAnything}}" Value="Visible" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <TextBlock Style="{StaticResource Aside}"
+                                           Text="{Binding WhatIsLeftOff}"
+                                           Visibility="{Binding WhatIsLeftOff, Converter={StaticResource WhenAnything}}"
+                                           AutomationProperties.AutomationId="WhatIsLeftOff" />
+
+                                <!-- The sentence's own remedy, the way every
+                                     remedy here goes since discwright#123,
+                                     and in link ink rather than Quietly's
+                                     grey because grey in this corner is
+                                     what was being missed. It carries no
+                                     count of its own, the count is an inch
+                                     to the left. -->
+                                <Button Content="{Binding WhatTakingTheLeftOffOnesSays}"
+                                        Style="{StaticResource AsALink}"
+                                        Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        IsEnabled="{Binding NothingIsRunning}"
+                                        Visibility="{Binding WhatTakingTheLeftOffOnesSays, Converter={StaticResource WhenAnything}}"
+                                        Click="TakeOffWhatIsLeftOff"
+                                        AutomationProperties.AutomationId="TakeOffWhatIsLeftOff" />
+                            </WrapPanel>
+
+                            <!-- The picked game's own manual and extras, for
+                                 goodies kept apart from the installer. Only
+                                 while a game is picked, and named, so it is
+                                 plain which game they go to. -->
+                            <WrapPanel Orientation="Horizontal"
+                                       Margin="0,4,0,0"
+                                       Visibility="{Binding ThePickedGame, Converter={StaticResource WhenAnything}}">
+                                <TextBlock Style="{StaticResource Aside}"
+                                           Text="{Binding ThePickedGame, StringFormat={}{0}:}"
+                                           AutomationProperties.AutomationId="ThePickedGame" />
+                                <Button Content="Add a manual"
+                                        Style="{StaticResource AsALink}"
+                                        Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        IsEnabled="{Binding NothingIsRunning}"
+                                        Click="AddAManualToThePickedGame"
+                                        AutomationProperties.AutomationId="AddAManual" />
+                                <TextBlock Style="{StaticResource Aside}" Text="·" Margin="6,0" />
+                                <Button Content="Add extras"
+                                        Style="{StaticResource AsALink}"
+                                        VerticalAlignment="Center"
+                                        IsEnabled="{Binding NothingIsRunning}"
+                                        Click="AddExtrasToThePickedGame"
+                                        AutomationProperties.AutomationId="AddExtras" />
+                            </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+            </DockPanel>
+
+            <!-- What it is called, and where it goes.
+
+                 In a scroller because this column has twice grown past the
+                 bottom of a window drawn for what was in it before, and both
+                 times the answer was a taller window. A scrollbar appears only
+                 when it is needed and nothing can be lost again. -->
+            <ScrollViewer Grid.Column="2"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="0,0,6,0">
+            <StackPanel>
+                <TextBlock Style="{StaticResource Step}" Text="WHAT IT IS CALLED" />
+                <TextBox x:Name="TheName"
+                         Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
+                         CharacterCasing="Upper"
+                         MaxLength="32"
+                         IsEnabled="{Binding NothingIsRunning}"
+                         AutomationProperties.AutomationId="Label" />
+                <TextBlock Style="{StaticResource Aside}"
+                           Margin="0,5,0,0"
+                           Text="What This PC shows when the disc goes in." />
+
+                <TextBlock Style="{StaticResource Step}" Margin="0,16,0,6" Text="WHAT SIZE OF DISC" />
+                <!-- What is actually in the tray, said under the size that
+                     was asked for. A worry and never a refusal: planning a DVD
+                     with last week's CD still in the drive is an ordinary thing
+                     to be doing. -->
+                <ComboBox ItemsSource="{Binding DiscSizes}"
+                          SelectedItem="{Binding TheSizeChosen}"
+                          DisplayMemberPath="InWords"
+                          IsEnabled="{Binding NothingIsRunning}"
+                          AutomationProperties.AutomationId="DiscSize">
+                    <!-- DisplayMemberPath sets what is SHOWN, and nothing
+                         else. Without this a row still answers to whatever
+                         the thing in it prints as, which here is
+                         "Medium { Key = CD, Name = CD-R 700 MB, Capacity =
+                         730144440 }". A reader would say all of that aloud.
+                         The same slip as the games list, in a second place. -->
+                    <ComboBox.ItemContainerStyle>
+                        <!-- BasedOn, because naming a container style of our
+                             own would otherwise take the themed one's place
+                             entirely, and these rows would highlight in
+                             system colours again. -->
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding InWords}" />
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
+                </ComboBox>
+
+                <TextBlock Margin="0,4,0,0"
+                           TextWrapping="Wrap"
+                           Text="{Binding AboutTheDiscInTheDrive}"
+                           Visibility="{Binding AboutTheDiscInTheDrive, Converter={StaticResource WhenAnything}}"
+                           AutomationProperties.AutomationId="AboutTheDiscInTheDrive">
+                    <!-- The style goes here and not in Resources, and there is
+                         no Style attribute as well. An implicit style sitting
+                         in an element's own Resources applies to its children
+                         and never to itself, and a Style attribute would win
+                         over it anyway, so the trigger below would have been
+                         dead markup that looked right. -->
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Aside}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding TheDiscIsADifferentSize}" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource WorryInk}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- Whether this needs somebody in the room.
+
+                     A line of its own was still a line, on a window where
+                     every row was being counted. It is on the drive picker
+                     now: the warning is about a drive, the picker is where a
+                     drive is chosen, and hovering it is where somebody
+                     already goes to ask what the drives are doing.
+
+                     It is still said before anything is written, because said
+                     afterwards it is said to an empty chair, and the burn
+                     itself stops and asks when a tray needs a push. -->
+
+                <!-- Beside the size, because it is the answer to "that will
+                     not fit". In More options it was a setting somebody had to
+                     already know about to go looking for.
+
+                     It used to reword every row of the dropdown above, so that
+                     ticking it left a list reading "CD-R 700 MB, split across
+                     discs" six times over and no plain sizes in the one list
+                     whose job is to offer sizes. The fact belongs here, where
+                     the box is. -->
+                <CheckBox Margin="0,8,0,0"
+                          Content="Split a file too big for one disc"
+                          IsChecked="{Binding CutFiles}"
+                          IsEnabled="{Binding NothingIsRunning}"
+                          AutomationProperties.AutomationId="CutFiles" />
+
+                <!-- What it will actually do, with these files and this size
+                     of disc, rather than a number written into a label.
+
+                     The box said "across two discs" and the planner has never
+                     worked that way: it cuts a file into however many pieces
+                     the file and the disc come to between them, which for a
+                     DVD image on CDs is seven. The promise of two was the
+                     whole of the bug.
+
+                     It also says "Needs 2 discs" whenever the size chosen
+                     means more than one, with the box ticked or not, which
+                     the owner found missing on 2026-11-12. -->
+                <TextBlock Margin="22,2,0,0"
+                           TextWrapping="Wrap"
+                           Text="{Binding WhatSplittingWouldDo}"
+                           Visibility="{Binding WhatSplittingWouldDo, Converter={StaticResource WhenAnything}}"
+                           AutomationProperties.AutomationId="WhatSplittingWouldDo">
+                    <!-- The style goes here rather than as an attribute, the
+                         same way as the line under the size above it: an
+                         implicit style in an element's own Resources applies
+                         to its children and never to itself. -->
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Aside}" />
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- Chosen before anything is written, because being asked
+                     in the middle of a burn is being asked at the worst
+                     moment: the question arrives after somebody has walked
+                     away, and on a machine with two writers the answer decides
+                     whether the run needs a hand at all. -->
+                <TextBlock Style="{StaticResource Step}" Margin="0,16,0,6" Text="WHICH DRIVE" />
+                <Grid>
+                    <ComboBox ItemsSource="{Binding Drives}"
+                              SelectedItem="{Binding TheDrive}"
+                              ToolTip="{Binding WhatTheDrivesAreDoing}"
+                              IsEnabled="{Binding NothingIsRunning}"
+                              AutomationProperties.AutomationId="WhichDrive">
+                    <!-- A row answers to whatever is in it prints as, and a
+                         Recorder prints as "D: ASUS DRW-24D5MT, holding
+                         CD-RW", which is exactly what should be read out. -->
+                        <ComboBox.ItemContainerStyle>
+                            <!-- BasedOn for the same reason as the size
+                                 picker above: a bare container style would
+                                 shadow the themed one. -->
+                            <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                <Setter Property="AutomationProperties.Name" Value="{Binding}" />
+                            </Style>
+                        </ComboBox.ItemContainerStyle>
+                    </ComboBox>
+
+                    <!-- An empty box reads as broken. This says what it will
+                         do instead, and gets out of the way of the pointer. -->
+                    <!-- Dimmed with the box it stands in for. It is a sibling
+                         rather than a child, so holding the picker during a
+                         run left these words the one live looking thing in a
+                         column of dead ones. -->
+                    <TextBlock Style="{StaticResource Aside}"
+                               Margin="10,0,0,0"
+                               VerticalAlignment="Center"
+                               IsHitTestVisible="False"
+                               Opacity="{Binding NothingIsRunning, Converter={StaticResource HeldBack}}"
+                               Text="Whichever one is ready"
+                               Visibility="{Binding TheDrive, Converter={StaticResource WhenNothing}}"
+                               AutomationProperties.AutomationId="NoDriveChosen" />
+                </Grid>
+
+                <!-- Named for what lands there. "WHERE IT GOES" read as if it
+                     were about the disc, which is the one thing this folder
+                     never holds. -->
+                <TextBlock Style="{StaticResource Step}" Margin="0,16,0,6" Text="WHERE TO SAVE THE ISO" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0"
+                             Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="The disc is built into a folder here, with its ISO beside it."
+                             IsEnabled="{Binding NothingIsRunning}"
+                             AutomationProperties.AutomationId="OutputFolder" />
+                    <Button Grid.Column="1"
+                            Content="Browse"
+                            IsEnabled="{Binding NothingIsRunning}"
+                            Style="{StaticResource Ordinary}"
+                            Margin="8,0,0,0"
+                            Click="ChooseWhereItGoes"
+                            AutomationProperties.AutomationId="ChooseWhereItGoes" />
+                </Grid>
+
+                <!-- A window of its own. There are seven of these, most of
+                     them pictures, and a picture somebody chose is only really
+                     confirmed by seeing it again. Squeezed in beside the games
+                     list they were twelve pixel grey labels with a link next
+                     to them, quieter than anything else on the screen, for the
+                     two things almost everybody sets. -->
+                <Button Content="Artwork, music and extras"
+                        IsEnabled="{Binding NothingIsRunning}"
+                        Style="{StaticResource Ordinary}"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,18,0,0"
+                        Click="WhatElseGoesOnIt"
+                        AutomationProperties.AutomationId="OpenWhatElseGoesOnIt" />
+
+                <TextBlock Style="{StaticResource Aside}"
+                           Margin="0,5,0,0"
+                           TextWrapping="Wrap"
+                           Text="{Binding WhatElseIsChosen}"
+                           AutomationProperties.AutomationId="WhatElseIsChosen" />
+
+                <Expander Margin="0,16,0,0"
+                          Foreground="{DynamicResource Quiet}"
+                          FontSize="12"
+                          Header="More options"
+                          AutomationProperties.AutomationId="MoreOptions">
+                    <StackPanel Margin="4,10,0,0">
+                        <!-- On by default, and the only option here whose
+                             effect depends on a setting that is not ours. The
+                             tooltip says so, because a disc that does nothing
+                             when it goes in looks broken, and the reason is on
+                             the other person's machine. -->
+                        <CheckBox Content="A menu that opens when the disc goes in"
+                                  IsChecked="{Binding Menu}"
+                                  IsEnabled="{Binding NothingIsRunning}"
+                                  AutomationProperties.AutomationId="Menu">
+                            <CheckBox.ToolTip>
+                                <TextBlock TextWrapping="Wrap" MaxWidth="360">
+                                    A disc opens its menu by itself only where AutoRun is switched on, and
+                                    Windows has been turning that off for years. Where it is off, the disc
+                                    opens in Explorer instead and the menu is the AUTORUN folder.
+                                </TextBlock>
+                            </CheckBox.ToolTip>
+                        </CheckBox>
+
+                        <!-- Straight after the menu's box, because it belongs to
+                             it: a Start Here file opens the menu, so with no
+                             menu there is nothing for it to open and it is dead.
+                             Lined up with the others rather than stepped in: the
+                             owner, 2026-11-10, "it should not be under this,
+                             just aligned". Asked for by somebody testing v1
+                             (discwright#181). -->
+                        <CheckBox Content="A Start Here file at the top of the disc"
+                                  IsChecked="{Binding StartHere}"
+                                  AutomationProperties.AutomationId="StartHere">
+                            <CheckBox.Style>
+                                <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+                                    <Setter Property="IsEnabled" Value="{Binding NothingIsRunning}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Menu}" Value="False">
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </CheckBox.Style>
+                            <CheckBox.ToolTip>
+                                <TextBlock TextWrapping="Wrap" MaxWidth="360">
+                                    Start Here.hta opens the menu by hand on a computer where AutoRun is off,
+                                    which is most of them now. Without it the menu is still on the disc, in
+                                    the AUTORUN folder.
+                                </TextBlock>
+                            </CheckBox.ToolTip>
+                        </CheckBox>
+
+                        <!-- Said, because it was asked: xniwo ticked it off on
+                             2.0.1 and found nothing missing, discwright#98. Only
+                             the list is, and the check that reads it. -->
+                        <CheckBox Content="A list of what every file should be"
+                                  IsChecked="{Binding Checksums}"
+                                  IsEnabled="{Binding NothingIsRunning}"
+                                  AutomationProperties.AutomationId="Checksums">
+                            <CheckBox.ToolTip>
+                                <TextBlock TextWrapping="Wrap" MaxWidth="360">
+                                    Puts checksums.sha256 at the top of the disc, a fingerprint of every
+                                    file on it. The tick beside the music button in the disc's menu checks
+                                    the disc against it, and so can sha256sum anywhere, years from now.
+                                    Left off, everything else on the disc is the same; only that check is gone.
+                                </TextBlock>
+                            </CheckBox.ToolTip>
+                        </CheckBox>
+                        <CheckBox Content="Readable by Windows 98 and Mac OS 9"
+                                  IsChecked="{Binding LegacyFileSystems}"
+                                  IsEnabled="{Binding NothingIsRunning}"
+                                  AutomationProperties.AutomationId="LegacyFileSystems">
+                            <CheckBox.ToolTip>
+                                <TextBlock TextWrapping="Wrap" MaxWidth="360">
+                                    Adds the older ways of laying out a disc beside the modern one, for
+                                    computers older than Windows Vista. They cannot hold a file over 2 GB,
+                                    so with one of those on the disc they are left off and it still reads on
+                                    anything from Windows 2000 on.
+                                </TextBlock>
+                            </CheckBox.ToolTip>
+                        </CheckBox>
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ================================================ the bottom line
+
+             What it will make, anything worth saying about it, and the one
+             button. The refusal lives here rather than in a dialog, because a
+             refusal somebody reads before pressing anything is a sentence, and
+             the same refusal after a click is a wasted decision.
+        -->
+        <Border Grid.Row="2"
+                Margin="0,18,0,0"
+                Padding="18,14"
+                Background="{DynamicResource Panel}"
+                BorderBrush="{DynamicResource Edge}"
+                BorderThickness="1"
+                CornerRadius="4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,18,0">
+                    <TextBlock FontSize="14"
+                               FontWeight="SemiBold"
+                               Text="{Binding WhatItWillMake}"
+                               Visibility="{Binding IsWorking, Converter={StaticResource WhenNot}}"
+                               AutomationProperties.AutomationId="WhatItWillMake" />
+
+                    <!-- While it runs, the same line says what it is doing,
+                         because that is the only thing anybody wants from it
+                         then. -->
+                    <TextBlock FontSize="14"
+                               FontWeight="SemiBold"
+                               Text="{Binding Doing}"
+                               Visibility="{Binding IsWorking, Converter={StaticResource WhenSo}}"
+                               AutomationProperties.AutomationId="Doing" />
+
+                    <ProgressBar Height="14"
+                                 Margin="0,10,0,0"
+                                 Maximum="1"
+                                 Value="{Binding HowFar, Mode=OneWay}"
+                                 Visibility="{Binding IsWorking, Converter={StaticResource WhenSo}}"
+                                 AutomationProperties.AutomationId="HowFar" />
+
+                    <!-- What the two buttons actually mean. This program made
+                         nothing but an ISO once, and the words outlasted that
+                         by a long way: somebody reading "make the disc" has
+                         every reason to think it burns one. -->
+                    <TextBlock Style="{StaticResource Aside}"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap"
+                               Text="Building puts the discs on this PC. Burning writes one to a real disc."
+                               Visibility="{Binding IsWorking, Converter={StaticResource WhenNot}}"
+                               AutomationProperties.AutomationId="WhatTheButtonsMean" />
+
+                    <!-- The sentence under the list counts what is unticked,
+                         and in the second watching session the owner pressed
+                         Build not knowing whether the unticked row was going
+                         along: nothing at this button connected it to that
+                         sentence. This is the connection, at the exact
+                         moment the question is asked, without a dialog
+                         interrupting every build. It stays while the work
+                         runs, because it is just as true then. -->
+                    <TextBlock Style="{StaticResource Aside}"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding WhatBuildingGoesWithout}"
+                               Visibility="{Binding WhatBuildingGoesWithout, Converter={StaticResource WhenAnything}}"
+                               AutomationProperties.AutomationId="WhatBuildingGoesWithout" />
+
+                    <!-- What the image or the drive had to say that stopped
+                         nothing: the older file systems left off because one
+                         file is too big for them, and how many times the
+                         drive reported while it wrote. The screen worked both
+                         out from the first day, the tests heard both
+                         announced, and nothing on the window ever showed
+                         them, so the one warning that a disc asked to be
+                         readable on an old machine is not reached nobody. -->
+                    <TextBlock Style="{StaticResource Aside}"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding AboutTheImage}"
+                               Visibility="{Binding AboutTheImage, Converter={StaticResource WhenAnything}}"
+                               AutomationProperties.AutomationId="AboutTheImage" />
+
+                    <!-- How the last burn came out, left where it can be read
+                         again. It arrived in a message box and was gone at
+                         OK, and it is the one sentence somebody holding the
+                         disc wants to look at twice. Worry ink when the disc
+                         or the set is not right, the same ink as a disc of the
+                         wrong size, and the style sits here for the reason
+                         given beside that one. -->
+                    <TextBlock Margin="0,6,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding HowTheBurnWent}"
+                               Visibility="{Binding HowTheBurnWent, Converter={StaticResource WhenAnything}}"
+                               AutomationProperties.AutomationId="HowTheBurnWent">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Aside}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TheBurnWentBadly}" Value="True">
+                                        <Setter Property="Foreground" Value="{DynamicResource WorryInk}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <!-- Collapsed when there is nothing to say. An empty line
+                         still takes the height of a line, and two of them were
+                         most of the gap at the bottom of this window. -->
+                    <!-- The reason is the tooltip, and the numbers are drawn.
+                         A Refusal has always carried a headline, a sentence
+                         saying why, and its figures, and this window showed
+                         the headline alone: "One file is bigger than a whole
+                         disc" with no name of the file, no size, and no room
+                         left on a disc to compare it against. The sentence
+                         wants about 930 pixels and there are 655, which is
+                         the whole reason the figures exist, so the figures go
+                         on the window and the sentence goes where hovering
+                         finds it. -->
+                    <TextBlock Foreground="{DynamicResource RefusalInk}"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding WhyNot.Headline}"
+                               ToolTip="{Binding WhyNot.Because}"
+                               Visibility="{Binding WhyNot, Converter={StaticResource WhenAnything}}"
+                               AutomationProperties.AutomationId="WhyNot" />
+
+                    <!-- What to do about it, when the window can do it.
+                         Every refusal has carried one of these since they
+                         were written and none of them was ever shown, so a
+                         refusal that knew exactly how to be put right
+                         arrived as a red line and nothing else.
+
+                         Quiet rather than a button: the red line above is
+                         the thing to read, and this is the thing to press
+                         once it has been read. -->
+                    <Button Content="{Binding WhatTheWayOutIsCalled}"
+                            Style="{StaticResource Quietly}"
+                            Margin="0,4,0,0"
+                            IsEnabled="{Binding NothingIsRunning}"
+                            Visibility="{Binding WhatTheWayOutIsCalled, Converter={StaticResource WhenAnything}}"
+                            Click="TakeTheWayOut"
+                            AutomationProperties.AutomationId="TheWayOut" />
+
+                    <ItemsControl Margin="0,4,0,0"
+                                  ItemsSource="{Binding WhyNot.Figures}"
+                                  Visibility="{Binding WhyNot.Figures.Count, Converter={StaticResource WhenSome}}"
+                                  AutomationProperties.AutomationId="WhyNotFigures">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <!-- Wrapped, because two figures fit on this
+                                     line and a third would be drawn off the
+                                     end of a window nobody can widen. -->
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,18,0">
+                                    <TextBlock Style="{StaticResource Aside}"
+                                               Text="{Binding Label}"
+                                               AutomationProperties.Name="{Binding Label}" />
+                                    <TextBlock Margin="6,0,0,0"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Ink}"
+                                               Text="{Binding Value}"
+                                               AutomationProperties.Name="{Binding Value}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Foreground="{DynamicResource WorryInk}"
+                               FontSize="12"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding Worry.Headline}"
+                               ToolTip="{Binding Worry.Because}"
+                               Visibility="{Binding Worry, Converter={StaticResource WhenAnything}}"
+                               AutomationProperties.AutomationId="Worry" />
+
+                    <!-- A worry carries figures too, and the one that has
+                         them is the one that needs them most: it shows the
+                         name you typed beside the name the disc will really
+                         show, which is what makes the decision obvious. -->
+                    <ItemsControl Margin="0,4,0,0"
+                                  ItemsSource="{Binding Worry.Figures}"
+                                  Visibility="{Binding Worry.Figures.Count, Converter={StaticResource WhenSome}}"
+                                  AutomationProperties.AutomationId="WorryFigures">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,18,0">
+                                    <TextBlock Style="{StaticResource Aside}"
+                                               Text="{Binding Label}"
+                                               AutomationProperties.Name="{Binding Label}" />
+                                    <TextBlock Margin="6,0,0,0"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Ink}"
+                                               Text="{Binding Value}"
+                                               AutomationProperties.Name="{Binding Value}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- What to do about the worry, which is the one way out
+                         that was computed and never shown: "Rename the disc",
+                         beside the name the disc will really show. -->
+                    <Button Content="{Binding WhatTheWorrysWayOutIsCalled}"
+                            Style="{StaticResource Quietly}"
+                            Margin="0,4,0,0"
+                            IsEnabled="{Binding NothingIsRunning}"
+                            Visibility="{Binding WhatTheWorrysWayOutIsCalled, Converter={StaticResource WhenAnything}}"
+                            Click="TakeTheWorrysWayOut"
+                            AutomationProperties.AutomationId="TheWorrysWayOut" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Nothing to do with the disc being made. Somebody
+                         with a drawer of used rewritables wants them blank
+                         again, and the only way to erase one used to be to be
+                         half way through a burn and be asked. -->
+                    <Button Content="Erase a disc"
+                            Style="{StaticResource Ordinary}"
+                            Margin="0,0,10,0"
+                            IsEnabled="{Binding CanErase}"
+                            Click="EraseADisc"
+                            AutomationProperties.AutomationId="EraseADisc" />
+
+                    <Button Content="Burn to a disc"
+                            Style="{StaticResource Ordinary}"
+                            Margin="0,0,10,0"
+                            IsEnabled="{Binding CanBurn}"
+                            Click="BurnIt"
+                            AutomationProperties.AutomationId="BurnIt" />
+
+                    <Button Content="Build it"
+                            Style="{StaticResource TheButton}"
+                            IsEnabled="{Binding CanMakeIt}"
+                            Click="MakeTheDisc"
+                            AutomationProperties.AutomationId="MakeTheDisc" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
