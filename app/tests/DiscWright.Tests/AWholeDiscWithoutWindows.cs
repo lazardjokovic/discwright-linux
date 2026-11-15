@@ -68,8 +68,11 @@ public sealed class AWholeDiscWithoutWindows : IDisposable
         GameFolder game = TheGame();
 
         Assert.Equal(GameKind.GogInstaller, game.Kind);
-        Assert.StartsWith("Fixture Game", game.Name, StringComparison.Ordinal);
-        Assert.DoesNotContain("setup", game.Name, StringComparison.OrdinalIgnoreCase);
+        // The name inside the executable, with Inno's padding trimmed off.
+        // Worked out from the file's name instead it would be "Fixture Game",
+        // which is close enough to pass a careless test and is what a disc
+        // made on Linux would have been called without the reader.
+        Assert.Equal("Fixture Game: Directors Cut", game.Name);
     }
 
     [Fact]
