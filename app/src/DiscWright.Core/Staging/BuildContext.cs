@@ -105,6 +105,27 @@ public sealed record BuildContext(
         : null;
 
     /// <summary>Where a file on this disc goes, as a full path.</summary>
+    /// <remarks>
+    /// <para>
+    /// A place on the disc is written the way Windows writes it, because the
+    /// menu and AutoRun read it there. This is the one spot where it becomes a
+    /// path on the machine doing the building, so it is taken apart and put
+    /// together again in that machine's own way, never handed over whole.
+    /// </para>
+    /// <para>
+    /// Handed over whole it was right on Windows and wrong everywhere else.
+    /// Measured on Ubuntu on 2026-11-15: joining AUTORUN and a backslash and
+    /// menu.hta onto a stage wrote ONE file with a backslash in its name, so
+    /// the disc had no AUTORUN folder and nothing for Windows to open.
+    /// </para>
+    /// <para>
+    /// Both slashes count, since a file planned on Linux arrives with forward
+    /// ones. A file whose own name holds a backslash is taken apart too, which
+    /// is the right way to be wrong: Windows could not have read that name off
+    /// the disc in any case.
+    /// </para>
+    /// </remarks>
     public string On(string relativePath) =>
-        System.IO.Path.Combine(StageFolder, relativePath);
+        System.IO.Path.Combine(
+            [StageFolder, .. relativePath.Split([Separator, '/'], StringSplitOptions.RemoveEmptyEntries)]);
 }

@@ -10,6 +10,10 @@
 # insists each still fails. A test here that has started passing fails the run
 # until its line is taken out, so this list can only get shorter, and a fix
 # cannot land without the list saying so.
+#
+# Three came ON to the list the day a place on the disc started landing in a
+# real folder here: they look for a typed backslash in the path, and had been
+# passing on Linux only because the code was wrong in the same way.
 DiscWright.Tests.ADiscCheckedAgainstItsOwnList.Catches_a_file_that_came_back_different
 DiscWright.Tests.ADiscCheckedAgainstItsOwnList.Catches_a_file_that_is_not_on_the_disc_at_all
 DiscWright.Tests.ADiscCheckedAgainstItsOwnList.Catches_a_file_the_drive_will_not_read_back
@@ -30,11 +34,14 @@ DiscWright.Tests.PuttingTheMenuOnTheDisc.A_patch_the_installer_covers_gets_no_bu
 DiscWright.Tests.PuttingTheMenuOnTheDisc.Leaves_Start_Here_off_when_asked_and_keeps_the_menu
 DiscWright.Tests.PuttingTheMenuOnTheDisc.Tells_the_menu_where_the_manual_and_the_extras_are
 DiscWright.Tests.PuttingTheMenuOnTheDisc.The_music_lands_where_the_menu_looks_for_it
+DiscWright.Tests.PuttingTheMenuOnTheDisc.Wears_our_own_icon_when_the_disc_chose_none
 DiscWright.Tests.PuttingTheMenuOnTheDisc.Writes_a_way_in_at_the_top_of_the_disc
 DiscWright.Tests.PuttingTheMenuOnTheDisc.Writes_the_logic_and_the_shell_into_AUTORUN
 DiscWright.Tests.SeeingTheMenuFirst.A_games_own_shows_under_Manual_and_Extras_and_one_click_makes_the_manual_an_extra
 DiscWright.Tests.SeeingTheMenuFirst.Names_a_games_own_manual_that_has_moved_and_sends_nobody_to_the_artwork_window
+DiscWright.Tests.SeeingTheMenuFirst.Shows_the_disc_rather_than_a_menu_drawn_on_nothing
 DiscWright.Tests.SeeingTheMenuFirst.Shows_the_manual_and_the_extras_on_the_disc_that_has_them
+DiscWright.Tests.SeeingTheMenuFirst.Writes_the_logic_beside_it_or_the_menu_does_nothing
 DiscWright.Tests.TakingFoldersOnTests.A_folder_of_folders_of_games_goes_all_the_way_down
 DiscWright.Tests.TakingFoldersOnTests.A_folder_of_games_added_separately_puts_each_on_then_carries_what_was_loose
 DiscWright.Tests.TakingFoldersOnTests.Games_added_together_are_asked_once_when_the_same_answers_were_asked_for
