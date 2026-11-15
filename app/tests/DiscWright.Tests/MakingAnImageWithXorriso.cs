@@ -72,7 +72,7 @@ public sealed class MakingAnImageWithXorriso : IDisposable
         Assert.Equal(
             [
                 "-as", "mkisofs", "-input-charset", "UTF-8", "-iso-level", "3", "-J", "-joliet-long", "-r",
-                "-V", "HOLLOW_KNIGHT", "-o", Image + ".partial", Stage
+                "-V", "Hollow_Knight", "-o", Image + ".partial", Stage
             ],
             Assert.Single(xorriso.Runs));
         Assert.Equal("xorriso", xorriso.Started.Single());
@@ -86,7 +86,7 @@ public sealed class MakingAnImageWithXorriso : IDisposable
         await new XorrisoImageMaker(new WindowsFileSystem(), xorriso)
             .Make(Stage, Image, "Hollow Knight", false, 2, 3, null, default);
 
-        Assert.Contains("HOLLOW_KNIGHT_D2", Assert.Single(xorriso.Runs));
+        Assert.Contains("Hollow_Knight_D2", Assert.Single(xorriso.Runs));
     }
 
     [Fact]

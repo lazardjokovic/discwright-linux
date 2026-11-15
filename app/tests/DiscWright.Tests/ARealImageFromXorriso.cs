@@ -71,7 +71,9 @@ public sealed class ARealImageFromXorriso : IDisposable
             }.Order(StringComparer.Ordinal),
             onIt.Select(file => file.Path).Order(StringComparer.Ordinal));
 
-        Assert.Equal("HOLLOW_KNIGHT", TheJolietRecords.VolumeNameOf(image.Path));
+        // The volume name keeps the capitals it was given. It is not what
+        // Windows shows, which is the label in autorun.inf.
+        Assert.Equal("Hollow_Knight", TheJolietRecords.VolumeNameOf(image.Path));
 
         // Not only the name. The bytes at the place the record points to.
         TheJolietRecords.Recorded recorded = onIt.Single(file => file.Path == "setup_hollow_knight.exe");
@@ -96,7 +98,7 @@ public sealed class ARealImageFromXorriso : IDisposable
             .Make(Stage, Image, "The Witcher - Enhanced Edition", false, 2, 3, null, default);
 
         Assert.Equal(
-            "THE_WITCHER_E_D2",
+            "The_Witcher_E_D2",
             TheJolietRecords.VolumeNameOf(Assert.IsType<Outcome<MadeImage>.Ok>(made).Value.Path));
     }
 
@@ -119,7 +121,31 @@ public sealed class ARealImageFromXorriso : IDisposable
     }
 
     [Fact]
-    public async Task Says_so_in_xorrisos_words_when_the_image_has_nowhere_to_go()
+    public async Task Says_so_in_xorrisos_own_words_when_xorriso_fails()
+    {
+        if (!OperatingSystem.IsLinux() || !ThereIsAnXorrisoToRun())
+        {
+            return;
+        }
+
+        // A file that can be listed and cannot be opened, which is a thing
+        // only xorriso finds out, part way in.
+        Put("autorun.inf", "[autorun]"u8.ToArray());
+        Put("locked.bin", "nobody may read this"u8.ToArray());
+        File.SetUnixFileMode(Path.Combine(Stage, "locked.bin"), UnixFileMode.None);
+
+        Outcome<MadeImage> made = await Make("Hollow Knight");
+
+        Refusal refusal = Assert.IsType<Outcome<MadeImage>.No>(made).Refusal;
+
+        Assert.Equal("xorriso could not make the image", refusal.Headline);
+        Assert.Contains("locked.bin", refusal.Because, StringComparison.Ordinal);
+        Assert.False(File.Exists(Image));
+        Assert.False(File.Exists(Image + ".partial"));
+    }
+
+    [Fact]
+    public async Task Says_so_before_xorriso_is_started_when_the_image_has_nowhere_to_go()
     {
         if (!ThereIsAnXorrisoToRun())
         {
@@ -128,16 +154,16 @@ public sealed class ARealImageFromXorriso : IDisposable
 
         Put("autorun.inf", "[autorun]"u8.ToArray());
 
-        // A folder that is not there. xorriso finds that out, not DiscWright.
+        // A folder that is not there. The machine says so, in its own words,
+        // and that is a different sentence from xorriso failing.
         string nowhere = Path.Combine(_room, "not a folder", "x.iso");
 
         Outcome<MadeImage> made = await new XorrisoImageMaker(new WindowsFileSystem(), new RunningPrograms())
             .Make(Stage, nowhere, "Hollow Knight", false, 1, 1, null, default);
 
-        Refusal refusal = Assert.IsType<Outcome<MadeImage>.No>(made).Refusal;
-
-        Assert.Equal("xorriso could not make the image", refusal.Headline);
-        Assert.Contains("FAILURE", refusal.Because, StringComparison.Ordinal);
+        Assert.Equal(
+            "This machine could not make the image",
+            Assert.IsType<Outcome<MadeImage>.No>(made).Refusal.Headline);
     }
 
     [Fact]
