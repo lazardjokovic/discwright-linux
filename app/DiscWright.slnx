@@ -10,6 +10,7 @@
     <Project Path="src/DiscWright.ViewModels/DiscWright.ViewModels.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DiscWright.LinuxTests/DiscWright.LinuxTests.csproj" />
     <Project Path="tests/DiscWright.Tests/DiscWright.Tests.csproj" />
   </Folder>
 </Solution>
