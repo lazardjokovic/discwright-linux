@@ -452,4 +452,29 @@ public static class Refusals
             [new Figure("names to change", problems.Count.ToString(System.Globalization.CultureInfo.CurrentCulture))],
             null);
     }
+
+    /// <summary>
+    /// The program that makes the image is not on this machine.
+    /// </summary>
+    /// <remarks>
+    /// On Linux the image is made by a program of its own, and one that is not
+    /// installed is the likeliest thing to go wrong the first time somebody
+    /// runs DiscWright there. The figures are the lines to type, one for each
+    /// kind of system, handed in by whoever knows the program, because a
+    /// refusal that says "install it" and not how is half a sentence.
+    /// </remarks>
+    public static Refusal TheProgramThatMakesImagesIsNotInstalled(string program, IReadOnlyList<Figure> howToGetIt) =>
+        new($"{program} is not installed",
+            $"DiscWright makes the image with {program}, and it is not on this machine. "
+                + "Install it and build again. The disc folder is already made and nothing is lost.",
+            howToGetIt,
+            null);
+
+    /// <summary>The image could not be made, in the words of whoever was making it.</summary>
+    /// <remarks>
+    /// The Linux side of <see cref="WindowsCouldNotMakeTheImage"/>, which names
+    /// Windows because on Windows it is Windows speaking.
+    /// </remarks>
+    public static Refusal TheImageCouldNotBeMade(string who, string said) =>
+        new($"{who} could not make the image", "It said:" + Environment.NewLine + Environment.NewLine + said);
 }
