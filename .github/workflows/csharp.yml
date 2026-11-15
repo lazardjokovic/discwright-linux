@@ -68,6 +68,14 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Which SDK
         run: dotnet --info
+      # xorriso makes the image on Linux, and ARealImageFromXorriso runs the
+      # real one. A missing xorriso fails those tests rather than excusing
+      # them, so it is installed here by name and its version printed.
+      - name: xorriso
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xorriso
+          xorriso -version 2>&1 | head -1
       - name: Build
         run: dotnet build tests/DiscWright.LinuxTests/DiscWright.LinuxTests.csproj -c Release --nologo
       - name: The suite
