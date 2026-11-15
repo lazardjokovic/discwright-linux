@@ -42,6 +42,7 @@ Where to read next:
 |---|---|---|
 | `DiscWright.Core` | the rules, and pure: the planner, the refusals, the project file, the recognisers and the build steps | nothing of ours |
 | `DiscWright.Platform` | the answers only Windows can give: the real filesystem, hashes, icons, pictures, a file's version resource, what GitHub has released | `Core` |
+| `DiscWright.Machine` | the half of `Platform` that is plain .NET, compiled where it sits for a Linux DiscWright to reference: the real filesystem, the stage writer, hashes, the log, what GitHub has released | `Core` |
 | `DiscWright.Imaging` | making an image with IMAPI, which is wanted on its own and works with no drive in the machine | `Core` |
 | `DiscWright.Burning` | writing a disc, reading the recorders and erasing a rewritable, all behind an interface | `Core` |
 | `DiscWright.Menu` | the menu a disc carries, as text: the page, its script and its icon, all embedded so a stale copy cannot be handed to the writer | `Core` |

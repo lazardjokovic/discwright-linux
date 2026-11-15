@@ -64,33 +64,24 @@
   </ItemGroup>
 
   <!--
-    Waiting for the machine. These need DiscWright.Platform, which targets
-    Windows, though most of what they use from it is plain .NET: the file
-    system, the hasher, the log, the note about the look, the GitHub reader.
-    Each comes back as the thing it uses gets a home Linux can reference, or a
-    Linux counterpart. Every line taken off this list is a file of tests that
-    has started running on Linux.
+    Waiting for the machine. These need something in DiscWright.Platform that
+    is Windows and nothing else: a picture decoded, a file's version resource,
+    the copy that knows which package it is. Each comes back as the thing it
+    uses gets a Linux counterpart. Nine came back the day DiscWright.Machine
+    gave Linux the plain .NET half of Platform, and every line taken off this
+    list is a file of tests that has started running on Linux.
   -->
   <ItemGroup>
     <Compile Remove="../DiscWright.Tests/ARealFolder.cs" />
     <Compile Remove="../DiscWright.Tests/AskingIfThereIsANewerOne.cs" />
     <Compile Remove="../DiscWright.Tests/BuildingADisc.cs" />
-    <Compile Remove="../DiscWright.Tests/CheckingEveryFile.cs" />
     <Compile Remove="../DiscWright.Tests/EachGameHasItsOwn.cs" />
-    <Compile Remove="../DiscWright.Tests/EachGamesOwnComesBack.cs" />
-    <Compile Remove="../DiscWright.Tests/HashingAFileAndSayingHowFar.cs" />
     <Compile Remove="../DiscWright.Tests/KeepingALog.cs" />
-    <Compile Remove="../DiscWright.Tests/ListingOnlyTheFolderItself.cs" />
-    <Compile Remove="../DiscWright.Tests/ReadingTheDiscBack.cs" />
-    <Compile Remove="../DiscWright.Tests/ReopeningAProject.cs" />
     <Compile Remove="../DiscWright.Tests/TheExtras.cs" />
     <Compile Remove="../DiscWright.Tests/TheFixturesByHand.cs" />
-    <Compile Remove="../DiscWright.Tests/TheLookSomebodyChose.cs" />
     <Compile Remove="../DiscWright.Tests/TheReadme.cs" />
     <Compile Remove="../DiscWright.Tests/TheRealIconWriter.cs" />
-    <Compile Remove="../DiscWright.Tests/TidyingUpOldPreviews.cs" />
     <Compile Remove="../DiscWright.Tests/UpdatingFromTheApp.cs" />
-    <Compile Remove="../DiscWright.Tests/WhenThereIsNoInternet.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -98,6 +89,7 @@
     <ProjectReference Include="../../src/DiscWright.Staging/DiscWright.Staging.csproj" />
     <ProjectReference Include="../../src/DiscWright.Menu/DiscWright.Menu.csproj" />
     <ProjectReference Include="../../src/DiscWright.ViewModels/DiscWright.ViewModels.csproj" />
+    <ProjectReference Include="../../src/DiscWright.Machine/DiscWright.Machine.csproj" />
   </ItemGroup>
 
 </Project>

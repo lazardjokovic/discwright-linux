@@ -30,6 +30,12 @@ public class TheArchitecture
         ["DiscWright.Staging"] = ["DiscWright.Core", "DiscWright.Menu"],
         ["DiscWright.Menu"] = ["DiscWright.Core"],
         ["DiscWright.Platform"] = ["DiscWright.Core"],
+
+        // The half of Platform that is plain .NET, compiled a second time for
+        // net10.0 so a Linux DiscWright can have it. It holds no file of its
+        // own, and it must stay as far from the window and from Windows as
+        // Core is, or it stops being something Linux can reference.
+        ["DiscWright.Machine"] = ["DiscWright.Core"],
         ["DiscWright.Imaging"] = ["DiscWright.Core"],
         ["DiscWright.Burning"] = ["DiscWright.Core"],
 

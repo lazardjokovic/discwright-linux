@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The half of DiscWright.Platform that is not Windows at all.
+
+    Platform targets Windows, because pictures, the registry, the title bar and
+    a file's version resource are Windows answers. But nine of its files use
+    nothing except .NET itself: the real file system, the stage writer, the
+    hasher, the log, the two notes, the tidying of old previews and the reader
+    of GitHub's releases. A Linux DiscWright needs every one of them and cannot
+    reference a project that targets Windows.
+
+    So this project compiles those nine files where they sit, for net10.0.
+    Nothing has moved. Platform still compiles them too, the Windows app still
+    gets them from Platform, and no project references both, so each type
+    exists once in whatever is running. Targeting net10.0 is also the proof
+    that they are portable: a Windows call in any of them stops this build.
+
+    The files move here for good when this work goes into the Windows
+    repository. Until then, leaving them in place means catching up with
+    Windows main never has to follow a file that moved.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <RootNamespace>DiscWright.Platform</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../DiscWright.Platform/ANoteAboutTheLook.cs" />
+    <Compile Include="../DiscWright.Platform/ANoteOnDisk.cs" />
+    <Compile Include="../DiscWright.Platform/Sha256Hasher.cs" />
+    <Compile Include="../DiscWright.Platform/TheLogOnDisk.cs" />
+    <Compile Include="../DiscWright.Platform/TidyingOldPreviews.cs" />
+    <Compile Include="../DiscWright.Platform/WhatGitHubHasReleased.cs" />
+    <Compile Include="../DiscWright.Platform/WindowsAutorunEncoding.cs" />
+    <Compile Include="../DiscWright.Platform/WindowsFileSystem.cs" />
+    <Compile Include="../DiscWright.Platform/WindowsStageWriter.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../DiscWright.Core/DiscWright.Core.csproj" />
+  </ItemGroup>
+
+</Project>
