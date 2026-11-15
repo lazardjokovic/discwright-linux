@@ -4,6 +4,7 @@
     <Project Path="src/DiscWright.Burning/DiscWright.Burning.csproj" />
     <Project Path="src/DiscWright.Core/DiscWright.Core.csproj" />
     <Project Path="src/DiscWright.Imaging/DiscWright.Imaging.csproj" />
+    <Project Path="src/DiscWright.Linux/DiscWright.Linux.csproj" />
     <Project Path="src/DiscWright.Machine/DiscWright.Machine.csproj" />
     <Project Path="src/DiscWright.Menu/DiscWright.Menu.csproj" />
     <Project Path="src/DiscWright.Platform/DiscWright.Platform.csproj" />

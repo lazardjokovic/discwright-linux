@@ -90,6 +90,7 @@
     <ProjectReference Include="../../src/DiscWright.Menu/DiscWright.Menu.csproj" />
     <ProjectReference Include="../../src/DiscWright.ViewModels/DiscWright.ViewModels.csproj" />
     <ProjectReference Include="../../src/DiscWright.Machine/DiscWright.Machine.csproj" />
+    <ProjectReference Include="../../src/DiscWright.Linux/DiscWright.Linux.csproj" />
   </ItemGroup>
 
 </Project>

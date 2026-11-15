@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The answers a Linux machine gives where Platform, Imaging and Burning give
+    Windows ones. It targets net10.0 and references Core alone, so it is as far
+    from the window as they are, and nothing in it may be a Windows call.
+
+    It starts with one answer: what a Windows installer calls itself. More
+    arrive as each port gets its Linux side.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\DiscWright.Core\DiscWright.Core.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

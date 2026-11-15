@@ -23,4 +23,5 @@
 *.ico  binary
 *.pdf  binary
 *.iso  binary
+*.exe  binary
 *.ttf  binary

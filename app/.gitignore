@@ -59,3 +59,8 @@ tools/.a-fault-is-planted
 # The working notes for this repository's sessions. Kept out of the public
 # history by the 2.0 move, and kept as a local file from then on.
 CLAUDE.md
+
+# The two tiny executables the version resource reader is tested against.
+# They were compiled by Windows for exactly that, and a test that cannot find
+# them fails, which is how this line came to be written.
+!tests/DiscWright.Tests/fixtures/pe/*.exe

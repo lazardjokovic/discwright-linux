@@ -42,6 +42,7 @@ Where to read next:
 |---|---|---|
 | `DiscWright.Core` | the rules, and pure: the planner, the refusals, the project file, the recognisers and the build steps | nothing of ours |
 | `DiscWright.Platform` | the answers only Windows can give: the real filesystem, hashes, icons, pictures, a file's version resource, what GitHub has released | `Core` |
+| `DiscWright.Linux` | the answers a Linux machine gives where `Platform`, `Imaging` and `Burning` give Windows ones, starting with what a Windows installer calls itself | `Core` |
 | `DiscWright.Machine` | the half of `Platform` that is plain .NET, compiled where it sits for a Linux DiscWright to reference: the real filesystem, the stage writer, hashes, the log, what GitHub has released | `Core` |
 | `DiscWright.Imaging` | making an image with IMAPI, which is wanted on its own and works with no drive in the machine | `Core` |
 | `DiscWright.Burning` | writing a disc, reading the recorders and erasing a rewritable, all behind an interface | `Core` |
@@ -49,8 +50,8 @@ Where to read next:
 | `DiscWright.Staging` | assembling a whole disc, the image of one, and the preview of the menu before anything is burned | `Core`, `Menu` |
 | `DiscWright.ViewModels` | everything the window knows and can do, with no window in it | `Staging` |
 | `DiscWright.App` | the window. WPF, and nothing but the window: no arithmetic, no judgement, no refusal wording | `ViewModels`, `Platform`, `Imaging`, `Burning` |
-| `DiscWright.Tests` | the suite, and deliberately not the window | `Core`, `Staging`, `Menu`, `Platform`, `Imaging`, `Burning`, `ViewModels` |
-| `DiscWright.LinuxTests` | the same test files, compiled for Linux against the four projects that run there, with what cannot run yet left out by name | `Core`, `Staging`, `Menu`, `ViewModels`, `Machine` |
+| `DiscWright.Tests` | the suite, and deliberately not the window | `Core`, `Staging`, `Menu`, `Platform`, `Imaging`, `Burning`, `ViewModels`, `Linux` |
+| `DiscWright.LinuxTests` | the same test files, compiled for Linux against the four projects that run there, with what cannot run yet left out by name | `Core`, `Staging`, `Menu`, `ViewModels`, `Machine`, `Linux` |
 
 That third column is what each project **declares**, which is why `ViewModels` shows only `Staging`: it reaches `Core` through it and does not ask for it by name. `TheArchitecture` in the test project reads the same declared references and fails if any of this stops being true, because the compiler drops a reference nothing uses and a dependency that exists on paper is already a dependency. `TheReadme` holds this table to the project files, so a project added, renamed or newly referenced cannot leave the table saying what used to be true.
 
@@ -63,7 +64,7 @@ dotnet test --filter FullyQualifiedName~ThePlanner
 tools\Invoke-TestsOnTheVM.ps1
 ```
 
-**2052 tests, and about half a minute.** Every pull request runs that same suite on a hosted Windows runner, in Release, and publishes the one self-contained file the app ships as. `.github/workflows/checks.yml` says what it runs, what leaves itself out, and why.
+**2063 tests, and about half a minute.** Every pull request runs that same suite on a hosted Windows runner, in Release, and publishes the one self-contained file the app ships as. `.github/workflows/checks.yml` says what it runs, what leaves itself out, and why.
 
 **The test project does not reference `DiscWright.App`, on purpose**, so no test can press a button or open a window, and `dotnet test` does not compile the XAML. The window is covered three other ways instead: tests that read `MainWindow.xaml.cs` as text and fail when a case goes unhandled, tests that read the XAML as XML and hold the ids and the bindings in place, and `TheWindowChecksItself`, a stateful walk over the view models that presses Make, Burn, Erase and Open and asks the same two questions after every step, whether the window still adds up and whether it said what changed. Nearly every bug this rewrite has found came from that walk, from a planted fault, or from reaching code nothing reached. Not one came from an example based test.
 

@@ -26,6 +26,9 @@
     <ProjectReference Include="..\..\src\DiscWright.Imaging\DiscWright.Imaging.csproj" />
     <ProjectReference Include="..\..\src\DiscWright.Burning\DiscWright.Burning.csproj" />
     <ProjectReference Include="..\..\src\DiscWright.ViewModels\DiscWright.ViewModels.csproj" />
+    <!-- The Linux answers are plain .NET, so they are tested here as well as
+         on Linux, and here they can be compared with what Windows itself says. -->
+    <ProjectReference Include="..\..\src\DiscWright.Linux\DiscWright.Linux.csproj" />
   </ItemGroup>
 
 </Project>
