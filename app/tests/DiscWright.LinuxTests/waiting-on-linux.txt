@@ -14,6 +14,10 @@
 # Three came ON to the list the day a place on the disc started landing in a
 # real folder here: they look for a typed backslash in the path, and had been
 # passing on Linux only because the code was wrong in the same way.
+#
+# Two more came on with the first tests to touch a real disk here. One puts
+# its own file down with a typed backslash, so on Linux it is not where the
+# step looks. The other is the drive letter: a disc on Linux is not at D:.
 DiscWright.Tests.ADiscCheckedAgainstItsOwnList.Catches_a_file_that_came_back_different
 DiscWright.Tests.ADiscCheckedAgainstItsOwnList.Catches_a_file_that_is_not_on_the_disc_at_all
 DiscWright.Tests.ADiscCheckedAgainstItsOwnList.Catches_a_file_the_drive_will_not_read_back
@@ -24,6 +28,7 @@ DiscWright.Tests.ADiscCheckedAgainstItsOwnList.Notices_something_nobody_put_ther
 DiscWright.Tests.ADiscCheckedAgainstItsOwnList.Says_the_disc_is_the_disc_when_every_file_matches
 DiscWright.Tests.AddingTheSameFolderAgain.Something_to_keep_goes_back_with_the_game_and_an_add_on_goes_back_as_one
 DiscWright.Tests.AddingTheSameFolderAgain.The_same_folder_typed_differently_is_the_same_folder
+DiscWright.Tests.CheckingEveryFile.Counts_and_totals_what_it_hashed
 DiscWright.Tests.CopyingTheFiles.Asks_for_a_piece_of_a_file_that_is_too_big_for_one_disc
 DiscWright.Tests.CopyingTheFiles.Copies_what_is_on_this_disc_and_nothing_else
 DiscWright.Tests.CopyingTheFiles.Keeps_a_file_where_it_sat_inside_its_folder
@@ -37,6 +42,7 @@ DiscWright.Tests.PuttingTheMenuOnTheDisc.The_music_lands_where_the_menu_looks_fo
 DiscWright.Tests.PuttingTheMenuOnTheDisc.Wears_our_own_icon_when_the_disc_chose_none
 DiscWright.Tests.PuttingTheMenuOnTheDisc.Writes_a_way_in_at_the_top_of_the_disc
 DiscWright.Tests.PuttingTheMenuOnTheDisc.Writes_the_logic_and_the_shell_into_AUTORUN
+DiscWright.Tests.ReadingTheDiscBack.Names_a_drive_by_its_letter_and_anything_else_by_its_folder
 DiscWright.Tests.SeeingTheMenuFirst.A_games_own_shows_under_Manual_and_Extras_and_one_click_makes_the_manual_an_extra
 DiscWright.Tests.SeeingTheMenuFirst.Names_a_games_own_manual_that_has_moved_and_sends_nobody_to_the_artwork_window
 DiscWright.Tests.SeeingTheMenuFirst.Shows_the_disc_rather_than_a_menu_drawn_on_nothing

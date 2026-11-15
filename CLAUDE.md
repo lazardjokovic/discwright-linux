@@ -176,6 +176,34 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - **The commit line names the model that wrote the commit**, Fable in a Fable
   session and Opus in an Opus one.
 
+**Where the C# work has got to (2026-11-15):**
+
+- The plan, the first spike and the inventory of the Windows app are on the
+  original machine in `C:\Users\lazar\DiscWright-Lab\linux-plan`
+  (`ARCHITECTURE-linux.md`, `spike-1.md`, `inventory.md`).
+- **`app/tests/DiscWright.LinuxTests`** compiles the Windows suite's own test
+  files for Linux, where they sit. What it leaves out is listed in its project
+  file with reasons. `waiting-on-linux.txt` beside it names the tests that
+  compile and do not pass on Linux yet, and `the-suite.py` fails the run when
+  one of them starts passing, so a fix has to take its line out. Build that
+  project, then run `python3 the-suite.py`.
+- **`app/src/DiscWright.Machine`** is the plain .NET half of `Platform`,
+  compiled a second time for `net10.0` without moving a file.
+- **Files in `app/` are not moved or renamed**, so that catching up with
+  Windows `main` stays a clean diff. New things are added beside the old.
+- Fixed so far in shared code: a place on the disc lands in a real folder on
+  Linux (`BuildContext.On`), and a name on the disc is held to Windows' own
+  forbidden characters (`WindowsFileNames`).
+- Next: the tests written in Windows paths, the root of a disc assumed to be a
+  drive letter (settled with the Linux recorder, not before), then the Linux
+  edges: pictures, the installer's name read from its version resource, the
+  image through xorriso, and the Avalonia window.
+- The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
+  `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
+  there before every pull request.
+- **Typing a backslash into a shell heredoc halves it or breaks the script**,
+  here as in the Windows repo. Write the script to a file with forward slashes.
+
 Everything from here down is the Python port, kept as the record of what was
 measured.
 
