@@ -53,11 +53,12 @@ jobs:
           path: app/artifacts/test-results/*.trx
           if-no-files-found: ignore
 
-  # The four projects a Linux DiscWright shares with the Windows one. They
-  # target net10.0 and were measured building on Ubuntu unchanged on
-  # 2026-11-15. This keeps that true until there is a Linux suite to run.
-  linux-build:
-    name: linux build
+  # The Windows app's own test files, compiled for Linux against the four
+  # projects a Linux DiscWright shares with it. the-suite.py insists that
+  # everything off the waiting list passes and that everything on it still
+  # fails, so a fix cannot land without the list getting shorter.
+  linux-suite:
+    name: linux suite
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -67,8 +68,14 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Which SDK
         run: dotnet --info
-      - name: Build the shared projects
-        run: |
-          for project in Core Menu Staging ViewModels; do
-            dotnet build "src/DiscWright.$project/DiscWright.$project.csproj" -c Release --nologo
-          done
+      - name: Build
+        run: dotnet build tests/DiscWright.LinuxTests/DiscWright.LinuxTests.csproj -c Release --nologo
+      - name: The suite
+        run: python3 tests/DiscWright.LinuxTests/the-suite.py
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-test-results
+          path: app/artifacts/linux-test-results/*.trx
+          if-no-files-found: ignore

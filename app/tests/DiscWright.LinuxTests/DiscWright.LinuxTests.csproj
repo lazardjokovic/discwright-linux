@@ -1,0 +1,103 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Windows suite, run on Linux.
+
+    It has no test files of its own yet. It compiles the sources in
+    ../DiscWright.Tests where they sit, for net10.0, against the four projects
+    a Linux DiscWright shares with the Windows one. The files stay where they
+    are so that the Windows suite is still every test there is, and so that
+    catching up with Windows main never has to move a file.
+
+    Measured on Ubuntu 26.04 on 2026-11-15: 1645 cases compiled this way, 1328
+    passed untouched, and of the rest 245 wanted cscript or powershell, and 10
+    pointed at shared code that is really wrong on Linux.
+
+    What is left out is left out by name, below, in two groups, each with its
+    reason. What compiles and still fails is in waiting-on-linux.txt, and
+    the-suite.py holds that list to shrinking.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <RootNamespace>DiscWright.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../DiscWright.Tests/**/*.cs" Exclude="../DiscWright.Tests/obj/**;../DiscWright.Tests/bin/**" />
+  </ItemGroup>
+
+  <!--
+    Windows by nature. These test a thing that only exists there: the menu's
+    JScript under cscript, the packaging scripts under powershell, IMAPI, the
+    registry, the title bar, the machine's ANSI codepage, a drive made with
+    subst, mshta. They stay with the Windows suite for good.
+  -->
+  <ItemGroup>
+    <Compile Remove="../DiscWright.Tests/TheMenuScript.cs" />
+    <Compile Remove="../DiscWright.Tests/ThePageOnADiscOfASet.cs" />
+    <Compile Remove="../DiscWright.Tests/TheGeneratedDataBlock.cs" />
+    <Compile Remove="../DiscWright.Tests/MakingAWingetManifest.cs" />
+    <Compile Remove="../DiscWright.Tests/MakingARelease.cs" />
+    <Compile Remove="../DiscWright.Tests/WhatTheBurnerOffers.cs" />
+    <Compile Remove="../DiscWright.Tests/BurningARealDisc.cs" />
+    <Compile Remove="../DiscWright.Tests/TheDrivesOnThisMachine.cs" />
+    <Compile Remove="../DiscWright.Tests/MakingARealImage.cs" />
+    <Compile Remove="../DiscWright.Tests/TheSystemsOwnLook.cs" />
+    <Compile Remove="../DiscWright.Tests/TheRealAutorunEncoding.cs" />
+    <Compile Remove="../DiscWright.Tests/ListingADriveRoot.cs" />
+    <Compile Remove="../DiscWright.Tests/OnePreviewOnScreen.cs" />
+  </ItemGroup>
+
+  <!--
+    Waiting for the machine. These need DiscWright.Platform, which targets
+    Windows, though most of what they use from it is plain .NET: the file
+    system, the hasher, the log, the note about the look, the GitHub reader.
+    Each comes back as the thing it uses gets a home Linux can reference, or a
+    Linux counterpart. Every line taken off this list is a file of tests that
+    has started running on Linux.
+  -->
+  <ItemGroup>
+    <Compile Remove="../DiscWright.Tests/ARealFolder.cs" />
+    <Compile Remove="../DiscWright.Tests/AskingIfThereIsANewerOne.cs" />
+    <Compile Remove="../DiscWright.Tests/BuildingADisc.cs" />
+    <Compile Remove="../DiscWright.Tests/CheckingEveryFile.cs" />
+    <Compile Remove="../DiscWright.Tests/EachGameHasItsOwn.cs" />
+    <Compile Remove="../DiscWright.Tests/EachGamesOwnComesBack.cs" />
+    <Compile Remove="../DiscWright.Tests/HashingAFileAndSayingHowFar.cs" />
+    <Compile Remove="../DiscWright.Tests/KeepingALog.cs" />
+    <Compile Remove="../DiscWright.Tests/ListingOnlyTheFolderItself.cs" />
+    <Compile Remove="../DiscWright.Tests/ReadingTheDiscBack.cs" />
+    <Compile Remove="../DiscWright.Tests/ReopeningAProject.cs" />
+    <Compile Remove="../DiscWright.Tests/TheExtras.cs" />
+    <Compile Remove="../DiscWright.Tests/TheFixturesByHand.cs" />
+    <Compile Remove="../DiscWright.Tests/TheLookSomebodyChose.cs" />
+    <Compile Remove="../DiscWright.Tests/TheReadme.cs" />
+    <Compile Remove="../DiscWright.Tests/TheRealIconWriter.cs" />
+    <Compile Remove="../DiscWright.Tests/TidyingUpOldPreviews.cs" />
+    <Compile Remove="../DiscWright.Tests/UpdatingFromTheApp.cs" />
+    <Compile Remove="../DiscWright.Tests/WhenThereIsNoInternet.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/DiscWright.Core/DiscWright.Core.csproj" />
+    <ProjectReference Include="../../src/DiscWright.Staging/DiscWright.Staging.csproj" />
+    <ProjectReference Include="../../src/DiscWright.Menu/DiscWright.Menu.csproj" />
+    <ProjectReference Include="../../src/DiscWright.ViewModels/DiscWright.ViewModels.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -16,6 +16,7 @@
 
 # Tooling that only accepts LF
 *.sh text eol=lf
+*.py text eol=lf
 
 *.png  binary
 *.jpg  binary
