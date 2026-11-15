@@ -50,7 +50,7 @@ Where to read next:
 | `DiscWright.ViewModels` | everything the window knows and can do, with no window in it | `Staging` |
 | `DiscWright.App` | the window. WPF, and nothing but the window: no arithmetic, no judgement, no refusal wording | `ViewModels`, `Platform`, `Imaging`, `Burning` |
 | `DiscWright.Tests` | the suite, and deliberately not the window | `Core`, `Staging`, `Menu`, `Platform`, `Imaging`, `Burning`, `ViewModels` |
-| `DiscWright.LinuxTests` | the same test files, compiled for Linux against the four projects that run there, with what cannot run yet left out by name | `Core`, `Staging`, `Menu`, `ViewModels` |
+| `DiscWright.LinuxTests` | the same test files, compiled for Linux against the four projects that run there, with what cannot run yet left out by name | `Core`, `Staging`, `Menu`, `ViewModels`, `Machine` |
 
 That third column is what each project **declares**, which is why `ViewModels` shows only `Staging`: it reaches `Core` through it and does not ask for it by name. `TheArchitecture` in the test project reads the same declared references and fails if any of this stops being true, because the compiler drops a reference nothing uses and a dependency that exists on paper is already a dependency. `TheReadme` holds this table to the project files, so a project added, renamed or newly referenced cannot leave the table saying what used to be true.
 
