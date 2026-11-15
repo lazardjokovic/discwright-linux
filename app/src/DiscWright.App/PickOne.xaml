@@ -1,0 +1,105 @@
+﻿<!--
+    One out of several, where picking for somebody would be guessing.
+
+    Two things in this program refuse to guess rather than choose: which drive,
+    when two of them hold blanks, and which image, when a set is sitting in the
+    folder. Both end up here.
+-->
+<Window x:Class="DiscWright.App.PickOne"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DiscWright"
+        SizeToContent="Height"
+        Width="520"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource Page}"
+        FontFamily="{StaticResource Face}"
+        AutomationProperties.AutomationId="PickOne">
+
+    <StackPanel Margin="24,20,24,18">
+        <TextBlock Style="{StaticResource Title}"
+                   FontSize="17"
+                   Text="{Binding Headline}"
+                   TextWrapping="Wrap"
+                   AutomationProperties.AutomationId="Headline" />
+
+        <TextBlock Margin="0,8,0,0"
+                   Text="{Binding Because}"
+                   AutomationProperties.AutomationId="Because" />
+
+        <Border Margin="0,16,0,0"
+                Background="{DynamicResource Panel}"
+                BorderBrush="{DynamicResource Edge}"
+                BorderThickness="1"
+                CornerRadius="4">
+            <!-- NOTHING CHOOSES ITSELF HERE. SelectedIndex is absent on purpose,
+                 and on its own that is not enough: a Selector leaves
+                 IsSynchronizedWithCurrentItem null, WPF reads null as true once
+                 the items come from a binding, and a fresh view's current item is
+                 its first one, so the list selects row nought by itself and the
+                 only sign is the button going live.
+
+                 Caught in the running window rather than here: the markup had
+                 already lost SelectedIndex and the guard that checked for that
+                 passed while the dialog went on choosing a disc for somebody.
+
+                 Which row starts chosen is the code's business, per question,
+                 because for erasing the answer cannot be taken back. -->
+            <ListBox x:Name="TheList"
+                     ItemsSource="{Binding Choices}"
+                     SelectionChanged="SomethingWasChosen"
+                     IsSynchronizedWithCurrentItem="False"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     MaxHeight="220"
+                     Padding="4"
+                     MouseDoubleClick="TakeThatOne"
+                     AutomationProperties.AutomationId="Choices">
+                <!-- These rows are already plain words, so this changes
+                     nothing today. It is here because the rule is worth
+                     keeping absolute: the moment somebody binds this to
+                     objects instead, a reader would start announcing the
+                     whole of each one. -->
+                <ListBox.ItemContainerStyle>
+                    <!-- BasedOn, or this bare style would shadow the themed
+                         container and the chosen row would highlight in
+                         system colours. -->
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                        <Setter Property="AutomationProperties.Name" Value="{Binding}" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" Margin="6,7" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <Grid Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="1"
+                    Content="Cancel"
+                    Style="{StaticResource Ordinary}"
+                    Margin="0,0,8,0"
+                    Click="NoneOfThem"
+                    IsCancel="True"
+                    AutomationProperties.AutomationId="NoneOfThem" />
+
+            <Button Grid.Column="2"
+                    Content="Use that one"
+                    Style="{StaticResource TheButton}"
+                    Click="TakeThatOne"
+                    IsDefault="True"
+                    x:Name="TheButton"
+                    AutomationProperties.AutomationId="TakeThatOne" />
+        </Grid>
+    </StackPanel>
+</Window>

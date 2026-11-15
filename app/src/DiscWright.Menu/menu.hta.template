@@ -1,0 +1,1532 @@
+﻿<html>
+<head>
+<!-- An HTA is IE5 in quirks mode by default, and IE5 has no rgba: every
+     see-through colour in here would be dropped and come out solid. This
+     line is what makes the menu render in an engine that has it.
+
+     IE=9 RATHER THAN IE=edge, AND THE DIFFERENCE IS THE ICON. From document
+     mode 10 upwards the HTA host stops applying the icon= attribute on the
+     tag below, so the window wears Windows' blank default and the disc's own
+     picture never appears. Mode 9 applies it and still has rgba. Measured on
+     this machine, one mode at a time, by rendering a page in each and
+     photographing its title bar:
+
+         mode  5   icon yes   rgba no, dropped to the hex before it
+         mode  7   icon yes   rgba no
+         mode  8   icon yes   rgba no
+         mode  9   icon yes   rgba yes      <- the only one with both
+         mode 10   icon NO    rgba yes
+         mode 11   icon NO    rgba yes
+
+     Moving this line below the hta:application tag does not help; mode 10
+     and 11 ignore the attribute wherever it is.
+
+     It also moves the box model from quirks to standards, which is why the
+     panel below has to be told its width includes its padding. -->
+<meta http-equiv="X-UA-Compatible" content="IE=9" />
+<title>%%TITLE%%</title>
+<hta:application
+    id="discwright"
+    applicationname="%%APPNAME%%"
+    singleinstance="%%SINGLE%%"
+    icon="%%ICON%%"
+    border="thin"
+    borderstyle="normal"
+    caption="yes"
+    maximizebutton="no"
+    minimizebutton="yes"
+    scroll="no"
+    showintaskbar="yes"
+    innerborder="no"
+    contextmenu="no"
+    selection="no" />
+
+<script language="JScript" src="menu.js"></script>
+
+<script language="JScript">
+// Everything that differs from one disc to the next. menu.js is identical on
+// every disc and nothing is substituted into it; this block is the only
+// generated script on the disc.
+var DISC = %%DATA%%;
+
+// Which game is on screen. The chooser sets it, and the buttons read it.
+var showing = 0;
+
+
+// Where the disc is. Worked out once, from this page's own address, because
+// AutoRun can start a disc file with no drive letter at all.
+var WHERE = null;
+
+// The Media Player control, once there is one, and whether it is sounding.
+var player = null;
+var playing = false;
+
+function theDisc() {
+    if (WHERE === null) {
+        WHERE = theDiscIsAbove(document.URL);
+    }
+
+    return WHERE;
+}
+
+// Sized HERE, in the head, before the body exists.
+//
+// Done from body onload instead, mshta shows its own default window first and
+// only then resizes: measured on a real CD-RW at 4793 ms showing 1440x753, then
+// 7402 ms before the menu appeared at 760x480. Two and a half seconds of a
+// wrong-sized empty window, every time a disc went in.
+window.resizeTo(760, 480);
+window.moveTo(
+    Math.max(0, Math.floor((screen.availWidth - 760) / 2)),
+    Math.max(0, Math.floor((screen.availHeight - 480) / 2)));
+
+// The icon, set from here as well as asked for in the tag above.
+//
+// An HTA does not resolve a relative icon path, and a disc has no idea which
+// letter it will be given, so the attribute alone leaves this window wearing
+// Windows' default. The absolute path comes from the page's own address, the
+// same way the launcher at the top of the disc finds the menu.
+// The window sized again, now that there is a body to measure.
+//
+// The head above asks for 760 by 480 so that mshta does not show its own
+// default window first, and that is the outer size: the title bar comes out
+// of it, and the bottom of the stage was under the frame by about 38 pixels
+// on a real disc. The arithmetic is in menu.js, where cscript can check it.
+function fitTheWindow() {
+    try {
+        // The document's client size, not the body's. Everything on this page
+        // is positioned absolutely, so the body has no height of its own in
+        // standards mode and answered 0: measured, that asked for a window
+        // 960 tall, twice the stage.
+        var viewport = document.documentElement && document.documentElement.clientHeight
+            ? document.documentElement
+            : document.body;
+        var fit = sizeToShowAllOf(760, 480, viewport.clientWidth, viewport.clientHeight);
+
+        window.resizeTo(fit.width, fit.height);
+        window.moveTo(
+            Math.max(0, Math.floor((screen.availWidth - fit.width) / 2)),
+            Math.max(0, Math.floor((screen.availHeight - fit.height) / 2)));
+    } catch (cannotSize) {
+        // Nothing turns on it. A window with its bottom under the frame still
+        // works, which is how every disc before this one worked.
+    }
+}
+
+function wearTheRightIcon() {
+    try {
+        discwright.icon = onTheDisc(theDisc(), DISC.icon);
+    } catch (cannotSetIt) {
+        // Nothing turns on it. A window with the wrong icon still works.
+    }
+}
+
+function start() {
+    // Before anything is drawn, so that no button can be pressed in a
+    // preview before the script has been told it is one.
+    if (!DISC.onADisc) {
+        thisIsAPreview();
+    }
+
+    fitTheWindow();
+    wearTheRightIcon();
+    startTheMusic();
+    showTheCheck();
+
+    document.title = discTitle(DISC.game, DISC.discNumber, DISC.discsInSet);
+
+    // Read once, before anything is drawn. A disc of a set draws its button
+    // and its line from it.
+    SET = loadTheSet();
+
+    if (whichScreenToOpenOn(DISC.games) === "chooser") {
+        showChooser();
+    } else {
+        showGame(0);
+    }
+}
+
+// The list of games, when there is more than one on the disc.
+function showChooser() {
+    document.getElementById("gameScreen").style.display = "none";
+    document.getElementById("chooserScreen").style.display = "block";
+    document.getElementById("discName").innerText = DISC.game;
+
+    var rows = "";
+
+    for (var i = 0; i < DISC.games.length; i++) {
+        // The index is written into the attribute rather than the name,
+        // because a name is the one thing on this screen somebody else wrote.
+        rows += '<a class="btn" href="#" onclick="showGame(' + i + '); return false;"><span id="gameRow' + i + '"></span></a>';
+    }
+
+    document.getElementById("gameList").innerHTML = rows;
+
+    // The disc's own, on the screen that belongs to the whole disc.
+    document.getElementById("chooserManual").style.display = DISC.manual ? "block" : "none";
+    document.getElementById("chooserExtras").style.display = DISC.extras ? "block" : "none";
+
+    // Set as TEXT afterwards, never built into the markup above. A game called
+    // "Command & Conquer" would otherwise arrive as "Command  Conquer", and one
+    // with a bracket in it would arrive as something worse.
+    for (var j = 0; j < DISC.games.length; j++) {
+        document.getElementById("gameRow" + j).innerText = DISC.games[j].name;
+    }
+
+    fitTheGameList();
+}
+
+// The list gets the room above Exit and scrolls past it: see chooserListRoom.
+// Measured after the rows are in, because the heading above can wrap.
+function fitTheGameList() {
+    fitAboveWhatIsBelow("gameList", "chooserBelow");
+}
+
+// A list given the room the panel has left above what sits under it, and
+// scrolling past that. Its full height first, so a screen drawn after one with
+// a longer list is not left with that list's height.
+function fitAboveWhatIsBelow(listId, belowId) {
+    var list = document.getElementById(listId);
+    var below = document.getElementById(belowId);
+    var room;
+
+    var under = document.getElementById("underAll");
+    var panel = document.getElementById("panel").clientHeight;
+
+    list.style.height = "auto";
+    list.style.marginBottom = "";
+    under.style.height = "auto";
+
+    // What sits under the screen counts too: the bar and the line, which
+    // can run to many lines. Left out, a full list pushed them off the
+    // bottom of the panel with the result of the disc check in them
+    // (discwright#98, 15 November).
+    room = chooserListRoom(panel, 28, list.offsetTop, below.offsetHeight + 9 + (under.offsetHeight || 0));
+
+    // Cut short, a list ends in the middle of a button, whose own 9 pixels
+    // underneath are scrolled away with it. The 9 the room was worked out
+    // with goes under the list instead, so what follows sits as far below the
+    // cut as it would below a whole button, rather than touching it.
+    if (list.scrollHeight > room) {
+        list.style.height = room + "px";
+        list.style.marginBottom = "9px";
+    }
+
+    // And whatever the screen leaves goes to them, scrolling past it, so a
+    // long line never runs off the panel either. Two lines at least.
+    room = panel - 28 - under.offsetTop;
+
+    if (under.scrollHeight > room) {
+        under.style.height = (room < 32 ? 32 : room) + "px";
+    }
+}
+
+// The line under the screen, said, or taken away with null, and the screen
+// fitted again around it. Every sentence that lands there comes through here,
+// so none of them can change its height without the list making room.
+function sayUnderneath(words) {
+    var line = document.getElementById("stillWanted");
+
+    if (words === null) {
+        line.style.display = "none";
+    } else {
+        line.innerText = words;
+        line.style.display = "block";
+    }
+
+    fitThePanel();
+}
+
+// The screen showing fitted again, after the line under it changed.
+function fitThePanel() {
+    if (document.getElementById("gameScreen").style.display === "block") {
+        fitTheAddOns();
+    } else if (document.getElementById("chooserScreen").style.display === "block") {
+        fitTheGameList();
+    }
+}
+
+// One game's own screen.
+function showGame(index) {
+    var game = gameAt(DISC.games, index);
+
+    if (!game) {
+        showChooser();
+        return;
+    }
+
+    // Which one the buttons are about. Without this the one big button has no
+    // idea what it is for, which is how it came to do nothing at all.
+    showing = index;
+
+    document.getElementById("chooserScreen").style.display = "none";
+    document.getElementById("gameScreen").style.display = "block";
+    document.getElementById("gameName").innerText = game.name;
+
+    if (SET) {
+        showTheSet(game);
+    } else {
+        document.getElementById("doIt").innerText = whatToDoWith(game, isInstalled(game));
+    }
+
+    showAddOnsOf(game);
+
+    // Only what this disc can honour. A Manual button on a disc with no manual
+    // is a promise discovered by somebody who has already burned it. The
+    // game's own first, and the disc's when the game has none.
+    document.getElementById("manual").style.display = theManualFor(game, DISC) ? "block" : "none";
+    document.getElementById("extras").style.display = theExtrasFor(game, DISC) ? "block" : "none";
+
+    // Only offered when there is somewhere to go back to.
+    document.getElementById("back").style.display = DISC.games.length > 1 ? "block" : "none";
+
+    fitTheAddOns();
+}
+
+// A game's add-ons get the room above Manual, Extras, Back and Exit, and
+// scroll past it, the way the list of games does: see chooserListRoom. A base
+// game with seven DLC installers ran Exit off the bottom of the panel, and the
+// page itself never scrolls, so nothing under the add-ons could be reached
+// (a reader on Reddit, 2026-11-14). Measured after everything around them is
+// shown or hidden, so it is called again whenever Remove the copy comes or
+// goes above them.
+function fitTheAddOns() {
+    fitAboveWhatIsBelow("addOns", "gameBelow");
+}
+
+// The add-ons of one game, under it, and DEAD until the game is installed.
+//
+// Whether it is installed is a question for the machine the disc is in, and
+// menu.js asks it: GOG writes what it installs into the registry, and the disc
+// remembers the name it was registered under.
+function showAddOnsOf(game) {
+    var list = document.getElementById("addOns");
+    var chain = theUpdateChain(game.addOns || []);
+    var others = theOtherAddOns(game.addOns || []);
+    var installed = isInstalled(game);
+    var dead = canRunAddOnYet(installed) ? '' : ' dead';
+    var html = "", i;
+
+    // The patches are one button, since 2026-11-09: four patch buttons
+    // asked the person holding the disc to know the order, and the order
+    // is the menu's job. The chain runs by itself, oldest first.
+    if (chain.length > 0) {
+        html += '<a class="btn' + dead + '" href="#" onclick="runTheUpdate(); return false;">'
+             + '<span id="theUpdate"></span></a>';
+    }
+
+    for (i = 0; i < others.length; i++) {
+        html += '<a class="btn' + dead + '" href="#" onclick="runTheAddOn(' + i + '); return false;">'
+             + '<span id="addOn' + i + '"></span></a>';
+    }
+
+    list.innerHTML = html;
+
+    // Set as text afterwards, for the same reason the chooser does: the name
+    // came from somebody else's file.
+    if (chain.length > 0) {
+        document.getElementById("theUpdate").innerText = shortEnoughForAButton(whatTheUpdateButtonSays(game.addOns || []));
+        document.getElementById("theUpdate").parentNode.title = whatTheUpdateChainIs(game.addOns || []);
+    }
+
+    for (i = 0; i < others.length; i++) {
+        document.getElementById("addOn" + i).innerText = shortEnoughForAButton(withoutTheGamesName(others[i].name, game.name));
+        document.getElementById("addOn" + i).parentNode.title = others[i].name;
+    }
+
+    var buttons = (chain.length > 0 ? 1 : 0) + others.length;
+    var line = buttons > 0 ? whatAnAddOnSays(installed, buttons) : "";
+    document.getElementById("addOnNote").innerText = line;
+    document.getElementById("addOnNote").style.display = line === "" ? "none" : "block";
+}
+
+// The one big button.
+//
+// The starting itself is in menu.js, where cscript can run it against a real
+// executable. An HTA is invisible to UI Automation, so nothing can press a
+// button in this page: whatever lives here can never be tested.
+function doTheThing() {
+    var game = gameAt(DISC.games, showing);
+    var where = whereTheGameIs(game ? (game.match || game.name) : "");
+    var doing = whatPressingItDoes(game, where, theDisc());
+    var wrong;
+
+    // A disc of a set cannot install on its own. The game is put back
+    // together from every disc first, and installed from there. Unless it
+    // is already on the machine, in which case the button says Play and
+    // does that.
+    // Already at it. The button is drawn dead while a set copies, joins or
+    // waits for the next disc, and a press on it does nothing rather than
+    // starting a second copy over the first.
+    if (SET && restoring.busy) {
+        return;
+    }
+
+    // Nor while the disc is being checked: two readers on one disc slow
+    // each other down and either can be the one that reads it wrong.
+    if (checking) {
+        return;
+    }
+
+    if (SET && !where) {
+        restoreGo();
+        return;
+    }
+
+    if (!doing) {
+        alert("There is nothing on this disc for that button to start.");
+        return;
+    }
+
+    if (doing.act === "copy") {
+        copyItAndPlayIt(game, doing.run);
+        return;
+    }
+
+    wrong = startIt(doing.run, doing.from);
+
+    if (wrong) {
+        alert(wrong);
+        return;
+    }
+
+    // An installer is watched, and the menu stays to say what it left.
+    // Playing hands over to the game, and the menu has no further part in
+    // it: it gets out of the way rather than sitting on top of what started.
+    if (doing.act === "install") {
+        watchTheInstaller(game, doing.run);
+        return;
+    }
+
+    window.close();
+}
+
+// Copying a game off the disc onto the machine.
+//
+// WHAT IS LEFT HERE IS THE PAGE. Asking where it should go, drawing the
+// bar, and deciding what to do once it has arrived. The copying is
+// copyAGameOff in menu.js, which is run by the suite under cscript, because
+// 21 of the 35 functions that used to live in this file were named by no
+// test at all and the whole of this flow was among them. Both bugs case 7
+// found by hand were in code the suite could have caught.
+var copying = null;
+
+function copyItAndPlayIt(game, fromFolder) {
+    var files, chosen, destination, items;
+
+    try {
+        files = new ActiveXObject("Scripting.FileSystemObject");
+    } catch (noFiles) {
+        alert("This machine will not let the menu copy anything.");
+        return;
+    }
+
+    chosen = askWhereToPutIt(game);
+
+    if (!chosen) {
+        return;
+    }
+
+    destination = chosen;
+    items = whatThereIsToCopy(files, fromFolder, DISC.oursNotTheGame);
+
+    if (items.length === 0) {
+        alert("There is nothing in that folder to copy.");
+        return;
+    }
+
+    try {
+        if (!files.FolderExists(destination)) {
+            makeTheWholePath(files, destination);
+        }
+    } catch (cannotMake) {
+        alert("That folder could not be made: " + destination);
+        return;
+    }
+
+    copying = { done: 0, all: howMuchInAll(items), copying: "", startedAt: 0, rate: 0, ticking: false };
+
+    copyAGameOff({
+        files: files,
+        items: items,
+        from: fromFolder,
+        destination: destination,
+        say: function (progress) {
+            copying.copying = progress.copying;
+            copying.done = progress.done;
+            copying.all = progress.all;
+            copying.startedAt = progress.startedAt || 0;
+            copying.rate = progress.rate || 0;
+            copying.read = progress.read;
+            copying.bytes = progress.bytes;
+
+            if (copying.copying && !copying.ticking) {
+                keepTheGameBarMoving();
+            } else {
+                sayHowFarAlong();
+            }
+        },
+        after: function (bad, stuck) {
+            finishTheCopy(files, items, destination, game, bad, stuck);
+        }
+    });
+}
+
+// Where to put it. Offered, not decided: somebody with a small system disc and
+// a big one for games knows better than this menu does.
+function askWhereToPutIt(game) {
+    var home, suggested, picked;
+
+    try {
+        home = new ActiveXObject("WScript.Shell").ExpandEnvironmentStrings("%USERPROFILE%");
+    } catch (noShell) {
+        home = "";
+    }
+
+    suggested = whereToCopyTo(home, game ? game.name : "Game");
+
+    try {
+        picked = new ActiveXObject("Shell.Application")
+            .BrowseForFolder(0, "Where should " + (game ? game.name : "it") + " go?", 0);
+
+        if (!picked) {
+            return null;
+        }
+
+        // Tidied the way the suggestion is, or a game with a colon in its
+        // name, which is most of the ones with a subtitle, cannot be copied.
+        return onTheDisc(picked.Self.Path, folderNameFor(game ? game.name : "Game"));
+    } catch (noBrowser) {
+        // No folder picker is not a reason to refuse. The suggestion is a
+        // perfectly good answer and the person is told where it went.
+        return suggested;
+    }
+}
+
+// Redraws the bar twice a second while a file copies, because nothing else
+// happens between the start of a file and its end, and a bar that only moves
+// when a file finishes is a bar that never moves on a disc with one file on
+// it. The set restore has had this since the first real set; the copy off a
+// single disc went without it until a 126 MB file made Windows call the menu
+// not responding.
+function keepTheGameBarMoving() {
+    if (!copying || !copying.copying) {
+        if (copying) {
+            copying.ticking = false;
+        }
+
+        return;
+    }
+
+    copying.ticking = true;
+    sayHowFarAlong();
+    window.setTimeout(keepTheGameBarMoving, 500);
+}
+
+function sayHowFarAlong() {
+    if (!copying) {
+        return;
+    }
+
+    sayUnderneath(restoreBarPercent(copying, (new Date()).getTime()) + "% copied");
+}
+
+function finishTheCopy(files, items, where, game, bad, stuck) {
+    var next = whatToDoAfterACopy(game, where, bad, stuck, everythingArrived(files, items, where));
+
+    copying = null;
+    sayUnderneath(null);
+
+    if (next.act === "stop") {
+        alert(next.say);
+        return;
+    }
+
+    if (next.say) {
+        alert(next.say);
+    }
+
+    // Playing hands over to the game, and the menu has no further part in it.
+    if (next.act === "run" && !startIt(next.what, where)) {
+        window.close();
+        return;
+    }
+
+    // Nothing to run, or it would not run. Either way they have the game and
+    // should be shown where it is rather than left guessing.
+    if (openTheFolder(where)) {
+        alert("It is copied, and it is in " + where + ".");
+    }
+}
+// Whether a set's copy, its join or its wait for the next disc is under
+// way, rather than the installer: the time the disc must be left alone.
+function aCopyIsReadingTheDisc() {
+    return !!(SET && restoring.busy && !restoring.installing);
+}
+
+// The manual of the game on screen, or the disc's when it has none, opened
+// with whatever reads a PDF on this machine.
+function openTheManual() {
+    if (aCopyIsReadingTheDisc()) {
+        return;
+    }
+
+    var wrong = openAManual(onTheDisc(theDisc(), theManualFor(gameAt(DISC.games, showing), DISC)));
+
+    if (wrong) {
+        alert(wrong);
+    }
+}
+
+// The extras of the game on screen, or the disc's, which are a folder rather
+// than a thing to run.
+function openTheExtras() {
+    if (aCopyIsReadingTheDisc()) {
+        return;
+    }
+
+    var wrong = openTheFolder(onTheDisc(theDisc(), theExtrasFor(gameAt(DISC.games, showing), DISC)));
+
+    if (wrong) {
+        alert(wrong);
+    }
+}
+
+// The disc's own manual, from the screen that picks a game.
+function openTheDiscsManual() {
+    var wrong = openAManual(onTheDisc(theDisc(), DISC.manual));
+
+    if (wrong) {
+        alert(wrong);
+    }
+}
+
+// The disc's own extras, from the screen that picks a game.
+function openTheDiscsExtras() {
+    var wrong = openTheFolder(onTheDisc(theDisc(), DISC.extras));
+
+    if (wrong) {
+        alert(wrong);
+    }
+}
+
+// One add-on that is not a patch. The patches have one button of their own.
+function runTheAddOn(which) {
+    var game = gameAt(DISC.games, showing);
+    var others = theOtherAddOns(game ? (game.addOns || []) : []);
+    var what = whatAnAddOnRuns(others[which], isInstalled(game), theDisc());
+
+    // Dead in the page as well, but a dead button somebody clicks anyway is
+    // still a click, and a patch run before its game half-applies to nothing
+    // and leaves no sign that it did.
+    if (!what) {
+        return;
+    }
+
+    var wrong = startIt(what, "");
+
+    if (wrong) {
+        alert(wrong);
+    }
+}
+
+// The whole chain of patches, in order, off one press. cmd sequences the
+// installers and stops at the first that refuses; the dead gate is the
+// same one every add-on obeys.
+function runTheUpdate() {
+    var game = gameAt(DISC.games, showing);
+    var line = theUpdateCommand(game ? (game.addOns || []) : [], isInstalled(game), theDisc());
+
+    if (!line) {
+        return;
+    }
+
+    var wrong = startTheCommand(line);
+
+    if (wrong) {
+        alert(wrong);
+    }
+}
+
+// ===========================================================================
+// A set, on this disc's menu.
+//
+// Everything that decides is in menu.js, where cscript runs it against real
+// folders. What is here is the page's part: read the set file off the disc,
+// draw the one big button and the line under it, and hand the engine the
+// callbacks that redraw them.
+// ===========================================================================
+
+// The set this disc belongs to, read once off the disc, or null on a disc
+// that stands alone. Read once because one menu drives the whole set: the
+// page stays open while the disc under it is swapped, and everything read
+// off the disc afterwards would come off whichever disc is in by then.
+var SET = null;
+
+// What is happening right now, for the sentence and the bar. busy is true
+// from the press until the installer starts or something fails, and while
+// it is the big button is dead: on the first real set it stayed live under
+// the copy, and a second press would have started a second copy.
+var restoring = { copying: "", joining: "", wanting: 0, done: 0, all: 0, startedAt: 0, rate: 0, busy: false, ticking: false, installing: false };
+
+function readTheSetFile() {
+    try {
+        var files = new ActiveXObject("Scripting.FileSystemObject");
+        var path = onTheDisc(theDisc(), "Disc set.txt");
+
+        if (!files.FileExists(path)) {
+            return "";
+        }
+
+        return readUtf8(path);
+    } catch (cannotRead) {
+        return "";
+    }
+}
+
+function loadTheSet() {
+    if (DISC.discsInSet <= 1) {
+        return null;
+    }
+
+    var text = readTheSetFile();
+
+    return {
+        rows: theGamesPartOf(setRowsFrom(text), DISC.oursNotTheGame),
+        joins: setJoinsFrom(text),
+        discIn: whichDiscTheSetFileSays(text) || DISC.discNumber,
+        of: DISC.discsInSet,
+        dir: ""
+    };
+}
+
+// Where the game is being put back together. Worked out once and kept, so
+// every disc of the set lands in the same place.
+function theRestoreFolder() {
+    if (SET.dir) {
+        return SET.dir;
+    }
+
+    var home = "";
+
+    try {
+        home = new ActiveXObject("WScript.Shell").ExpandEnvironmentStrings("%USERPROFILE%");
+    } catch (noShell) {
+    }
+
+    var files = new ActiveXObject("Scripting.FileSystemObject");
+
+    SET.dir = restoreFolderFor(home, DISC.game, hardDrivesWithRoom(files), setBytesNeeded(SET.rows, SET.joins));
+
+    return SET.dir;
+}
+
+function scanTheSet() {
+    var files = new ActiveXObject("Scripting.FileSystemObject");
+
+    return setScan(SET.rows, SET.joins, SET.discIn, sizeOfUnder(files, theRestoreFolder()));
+}
+
+// The line under the buttons, and the bar above it while something copies.
+function sayTheSet(scan) {
+    var line = document.getElementById("stillWanted");
+    var bar = document.getElementById("restoreBar");
+    var filled = document.getElementById("restoreBarIn");
+
+    // The same number the bar is drawn from, said in words beside it.
+    restoring.percent = restoring.copying && restoring.all > 0
+        ? restoreBarPercent(restoring, (new Date()).getTime())
+        : undefined;
+
+    line.innerText = restoreSentence(scan || scanTheSet(), SET.discIn, restoring, SET.dir);
+    line.style.display = "block";
+
+    if (restoring.copying && restoring.all > 0) {
+        bar.style.display = "block";
+        filled.style.width = restoring.percent + "%";
+    } else if (restoring.copied) {
+        // Full, for the moment the finished disc is said, so a disc that
+        // copied in seconds is still seen to have finished.
+        bar.style.display = "block";
+        filled.style.width = "100%";
+    } else {
+        bar.style.display = "none";
+    }
+
+    fitThePanel();
+}
+
+// Redraws the bar twice a second while a file copies, because nothing else
+// happens between the start of a file and its end, and a bar that only
+// moves when a file finishes is a bar that never moves on a disc with one
+// file on it.
+function keepTheBarMoving() {
+    if (!restoring.copying) {
+        restoring.ticking = false;
+        return;
+    }
+
+    restoring.ticking = true;
+    sayTheSet();
+    window.setTimeout(keepTheBarMoving, 500);
+}
+
+// The big button and the line, for a disc of a set.
+function showTheSet(game) {
+    var scan = scanTheSet();
+
+    document.getElementById("doIt").innerText = restoring.installing
+        ? "Installing\u2026"
+        : restoreButtonSays(scan, SET.discIn, SET.of, isInstalled(game), whatToDoWith(game, false));
+    document.getElementById("doIt").parentNode.className = "btn next" + (restoring.busy || checking ? " dead" : "");
+
+    // The check is dead while the set is being worked on, the owner's catch
+    // on 2026-11-10: it stayed live under a copy reading the same disc.
+    document.getElementById("sums").className = restoring.busy ? "dead" : (checking ? "busy" : "");
+
+    // And Manual and Extras, while the disc is being copied: pressing Extras
+    // under the copy froze the menu for a minute the same afternoon, the
+    // page waiting on a drive the copy was reading as hard as it could. Live
+    // again while the installer runs, when nothing is reading the disc.
+    document.getElementById("manual").className = "btn" + (aCopyIsReadingTheDisc() ? " dead" : "");
+    document.getElementById("extras").className = "btn" + (aCopyIsReadingTheDisc() ? " dead" : "");
+
+    if (!restoring.installing) {
+        sayTheSet(scan);
+    }
+}
+
+// Pressing Install on a disc of a set: the whole job, from this disc to the
+// installer, with nothing asked on the way unless something is wrong.
+function restoreGo() {
+    var preview = whyNothingRuns();
+
+    if (preview) {
+        alert(preview);
+        return;
+    }
+
+    var files = new ActiveXObject("Scripting.FileSystemObject");
+
+    // Where it goes, asked on its own page on the first press in this window
+    // and not on the discs after it. The wording is installPageSays in
+    // menu.js; the page shows it, and Copy and install comes back here.
+    if (!SET.asked) {
+        showWhere();
+        return;
+    }
+
+    var dir = theRestoreFolder();
+
+    try {
+        makeTheWholePath(files, dir);
+    } catch (cannotMake) {
+        alert("That folder could not be made: " + dir);
+        return;
+    }
+
+    var scan = scanTheSet();
+
+    if (!scan.total) {
+        alert(restoreSentence(scan, SET.discIn, null, dir));
+        return;
+    }
+
+    if (scan.complete) {
+        installFromTheFolder();
+        return;
+    }
+
+    // Room for the whole set, asked once at the start rather than found out
+    // at ninety per cent on the last disc.
+    try {
+        var drive = files.GetDrive(files.GetDriveName(dir));
+        var need = setBytesNeeded(SET.rows, SET.joins) - scan.bytes * (scan.ok / Math.max(1, scan.total));
+
+        if (drive.FreeSpace < need) {
+            alert("There is not enough room to install this game.\n\nIt needs about "
+                + Math.round(need / 1048576) + " MB free in " + dir + " while it works, and the drive has "
+                + Math.round(drive.FreeSpace / 1048576) + " MB.");
+            return;
+        }
+    } catch (cannotTell) {
+    }
+
+    restoring.busy = true;
+    showTheSet(gameAt(DISC.games, showing));
+
+    // Everything this disc holds is already there, so it is another disc
+    // that is wanted.
+    if (scan.mineTotal > 0 && scan.mineHere >= scan.mineTotal) {
+        waitForTheNextDisc(scan);
+        return;
+    }
+
+    copyThisDisc();
+}
+
+// The install page: where the installer is put back together, asked before
+// a set copies anything, the way an installer always asked. Its words are
+// installPageSays in menu.js; this draws them and takes the answer.
+function showWhere() {
+    var files = new ActiveXObject("Scripting.FileSystemObject");
+    var dir = theRestoreFolder();
+    var free = -1;
+    var page;
+
+    try {
+        free = files.GetDrive(files.GetDriveName(dir)).FreeSpace;
+    } catch (cannotTell) {
+        free = -1;
+    }
+
+    page = installPageSays(DISC.game, dir, setBytesNeeded(SET.rows, SET.joins), free, scanTheSet(), SET.of);
+
+    document.getElementById("whereName").innerText = DISC.game;
+    document.getElementById("whereHeadline").innerText = page.headline;
+    document.getElementById("whereSays").innerText = page.says;
+    document.getElementById("whereGo").innerText = page.go;
+    document.getElementById("whereNote").innerText = page.note;
+    document.getElementById("whereGo").className = "btn next" + (page.short ? " dead" : "");
+
+    document.getElementById("gameScreen").style.display = "none";
+    document.getElementById("stillWanted").style.display = "none";
+    document.getElementById("whereScreen").style.display = "block";
+}
+
+// Back to the game, without having copied anything.
+function hideWhere() {
+    document.getElementById("whereScreen").style.display = "none";
+    document.getElementById("gameScreen").style.display = "block";
+    showTheSet(gameAt(DISC.games, showing));
+}
+
+// Copy and install, or Install when a whole copy is already there: the
+// folder shown is the answer, and the press carries on where it stopped.
+function whereGo() {
+    if (document.getElementById("whereGo").className.indexOf("dead") >= 0) {
+        return;
+    }
+
+    SET.asked = true;
+    hideWhere();
+    restoreGo();
+}
+
+// Change folder: Windows' own picker, and the installer gets a folder of
+// its own inside whatever was picked, so it never spills into somebody's
+// Downloads. Closing the picker changes nothing.
+function whereChange() {
+    var picked = pickAFolder("Where should the " + DISC.game + " installer go?");
+
+    if (!picked) {
+        return;
+    }
+
+    SET.dir = onTheDisc(picked, installerFolderName(DISC.game));
+    showWhere();
+}
+
+// Cancel: nothing is copied, and the next press asks again.
+function whereCancel() {
+    hideWhere();
+}
+
+// Windows' own folder picker, and the path picked or nothing. On its own so
+// that a test can stand in for it: a real one would put a dialog up in the
+// middle of the suite.
+function pickAFolder(title) {
+    try {
+        var picked = new ActiveXObject("Shell.Application").BrowseForFolder(0, title, 0);
+
+        return picked ? String(picked.Self.Path) : null;
+    } catch (noPicker) {
+        // No picker on this machine. Cancel was a request for somewhere
+        // else, and there is no way to ask where, so nothing is copied.
+        return null;
+    }
+}
+
+function copyThisDisc() {
+    var files = new ActiveXObject("Scripting.FileSystemObject");
+
+    restoring.wanting = 0;
+
+    copyTheSetDisc({
+        files: files,
+        discRoot: theDisc(),
+        dir: theRestoreFolder(),
+        rows: SET.rows,
+        discIn: SET.discIn,
+        say: function (progress) {
+            restoring.copying = progress.copying;
+            restoring.done = progress.done;
+            restoring.all = progress.all;
+            restoring.startedAt = progress.startedAt || 0;
+            restoring.rate = progress.rate || 0;
+            restoring.read = progress.read;
+            restoring.bytes = progress.bytes;
+
+            if (restoring.copying && !restoring.ticking) {
+                keepTheBarMoving();
+            } else {
+                sayTheSet();
+            }
+        },
+        after: function (bad) {
+            if (bad > 0) {
+                restoring.busy = false;
+                showTheSet(gameAt(DISC.games, showing));
+                alert(bad + " of the files on this disc would not copy.\n\nIt may be scratched. Press Install to try again, "
+                    + "or copy them in Explorer into " + theRestoreFolder() + ".");
+                return;
+            }
+
+            joinThePieces({
+                files: files,
+                dir: theRestoreFolder(),
+                joins: SET.joins,
+                say: function (progress) {
+                    restoring.joining = progress.joining;
+                    sayTheSet();
+                },
+                after: function (failed) {
+                    if (failed.length) {
+                        alert(failed.length + " file(s) could not be put back together:\n\n" + failed.join("\n")
+                            + "\n\nThe pieces are still there, so nothing is lost. There may not be room.");
+                    }
+
+                    var scan = scanTheSet();
+                    showTheSet(gameAt(DISC.games, showing));
+
+                    if (scan.complete) {
+                        installFromTheFolder();
+                    } else {
+                        // Said for two seconds before the tray opens, with the
+                        // bar full: a disc that copied in moments went straight
+                        // to an open tray and read to the owner, on
+                        // 2026-11-10, as nothing having happened. Not a timer
+                        // that pretends to work, a pause that says it did.
+                        restoring.copied = discCopiedSays(SET.discIn, restoring.all, scan.need[0]);
+                        sayTheSet(scan);
+
+                        window.setTimeout(function () {
+                            restoring.copied = null;
+
+                            // This disc is done with, so out it comes, and
+                            // "put disc 2 in" arrives with the tray open.
+                            ejectTheDisc(theDisc());
+                            waitForTheNextDisc(scan);
+                        }, 2000);
+                    }
+                }
+            });
+        }
+    });
+}
+
+// This disc is done and the set is not. Ask for the next one, then watch the
+// drive for it, which is what an installer did: you are told which disc, you
+// put it in, and it carries on. Polled rather than told, because Windows
+// has no event a page can hear for a disc arriving, and the poll is one
+// small read of one line.
+function waitForTheNextDisc(scan) {
+    if (!scan.need.length) {
+        restoring.wanting = 0;
+        sayTheSet(scan);
+        return;
+    }
+
+    restoring.wanting = scan.need[0];
+    sayTheSet(scan);
+    window.setTimeout(checkForTheNextDisc, 1500);
+}
+
+// Never reads the disc itself: see lookAtTheDisc. A look is started, and
+// asked after every half second until it is done, so the window stays free
+// however long the drive takes to spin a new disc up.
+function checkForTheNextDisc() {
+    if (!restoring.wanting) {
+        return;
+    }
+
+    if (restoring.looking && !jobIsDone(restoring.looking.job)) {
+        window.setTimeout(checkForTheNextDisc, 500);
+        return;
+    }
+
+    var found = restoring.looking ? whatTheLookFound(restoring.looking) : null;
+    restoring.looking = null;
+
+    var scan = scanTheSet();
+
+    if (scan.complete) {
+        restoring.wanting = 0;
+        showTheSet(gameAt(DISC.games, showing));
+        installFromTheFolder();
+        return;
+    }
+
+    if (found === null) {
+        restoring.looking = lookAtTheDisc(theDisc());
+        window.setTimeout(checkForTheNextDisc, 500);
+        return;
+    }
+
+    var inTheDrive = whichDiscTheSetFileSays(found);
+    var wanted = false;
+
+    for (var i = 0; i < scan.need.length; i++) {
+        if (scan.need[i] === inTheDrive) {
+            wanted = true;
+        }
+    }
+
+    if (wanted) {
+        SET.discIn = inTheDrive;
+        document.title = discTitle(DISC.game, SET.discIn, SET.of);
+        restoring.wanting = 0;
+        showTheSet(gameAt(DISC.games, showing));
+        copyThisDisc();
+        return;
+    }
+
+    window.setTimeout(checkForTheNextDisc, 1500);
+}
+
+// Every file is in the folder: run the installer from there, and get out of
+// the way. With nothing recorded to run, open the folder instead, which
+// leaves them with the game and knowing where it is.
+function installFromTheFolder() {
+    var game = gameAt(DISC.games, showing);
+    var dir = theRestoreFolder();
+    var run = game && game.runs && String(game.runs).length > 0 ? onTheDisc(dir, game.runs) : "";
+    var wrong;
+
+    if (!run) {
+        wrong = openTheFolder(dir);
+
+        if (wrong) {
+            alert(wrong);
+        }
+
+        return;
+    }
+
+    // Said first, and drawn, before the start that can hold the window: see
+    // startingTheInstallerSays in menu.js.
+    restoring.busy = true;
+    document.getElementById("doIt").innerText = "Starting\u2026";
+    document.getElementById("doIt").parentNode.className = "btn next dead";
+    document.getElementById("restoreBar").style.display = "none";
+    sayUnderneath(startingTheInstallerSays(dir));
+
+    window.setTimeout(function () {
+        wrong = startIt(run, dir);
+
+        if (wrong) {
+            restoring.busy = false;
+            showTheSet(game);
+            alert(wrong);
+            return;
+        }
+
+        watchTheInstaller(game, run);
+    }, 50);
+}
+
+// The menu stays while the installer runs, with the button grey and saying
+// so, and says what the installer left when it closes: Play, if the game is
+// on the machine now. Asked for by the owner on the first real set, where
+// the menu vanished and the installer appeared a second later with nothing
+// to say which was which.
+function watchTheInstaller(game, run) {
+    var exeName = String(run).split("/").join(BACKSLASH).split(BACKSLASH).pop();
+    var seen = false;
+    var polls = 0;
+
+    restoring.busy = true;
+    restoring.installing = true;
+    document.getElementById("doIt").innerText = "Installing\u2026";
+    document.getElementById("doIt").parentNode.className = "btn next dead";
+    document.getElementById("restoreBar").style.display = "none";
+    sayUnderneath(whatInstallingSays(game.name));
+
+    function look() {
+        var running = installerIsRunning(exeName);
+        var installed;
+
+        polls++;
+
+        if (running) {
+            seen = true;
+        }
+
+        if (!whenTheInstallerIsDone(seen, running, polls)) {
+            window.setTimeout(look, 2000);
+            return;
+        }
+
+        restoring.busy = false;
+        restoring.installing = false;
+        installed = isInstalled(game);
+
+        if (SET) {
+            showTheSet(game);
+        } else {
+            document.getElementById("doIt").innerText = whatToDoWith(game, installed);
+            document.getElementById("doIt").parentNode.className = "btn next";
+            showAddOnsOf(game);
+        }
+
+        offerToRemoveTheCopy(installed);
+    }
+
+    window.setTimeout(look, 2000);
+}
+
+// After the installer: the line about what it left, and on a set with the
+// game installed, the button that removes the copy the discs were put back
+// into. The copy was the means; the installed game is the end. Offered and
+// never done by itself, which is the owner's design.
+function offerToRemoveTheCopy(installed) {
+    var game = gameAt(DISC.games, showing);
+    var files = new ActiveXObject("Scripting.FileSystemObject");
+    var dir = SET && SET.dir ? SET.dir : "";
+    var bytes = SET && installed && mayRemoveTheCopy(dir) ? bytesIn(files, dir) : 0;
+    var button = document.getElementById("removeTheCopy");
+
+    sayUnderneath(whatTheInstallerLeft(installed, game.name, bytes, dir));
+
+    button.innerText = bytes > 0 ? removeTheCopyButtonSays(bytes) : "";
+    button.style.display = bytes > 0 ? "block" : "none";
+    fitTheAddOns();
+}
+
+function removeTheCopyNow() {
+    var game = gameAt(DISC.games, showing);
+    var files = new ActiveXObject("Scripting.FileSystemObject");
+    var wrong = removeTheCopy(files, SET ? SET.dir : "");
+
+    if (wrong) {
+        alert(wrong);
+        return;
+    }
+
+    document.getElementById("removeTheCopy").style.display = "none";
+    sayUnderneath("The copy is gone. " + whatTheInstallerLeft(true, game.name));
+}
+
+// The music, behind everything, and a way to turn it off.
+//
+// The Windows Media Player control rather than <audio> or <bgsound>, and
+// neither of those is an oversight:
+//
+//     <bgsound>   does nothing at all with an MP3 in current MSHTML. Silent,
+//                 with no error, which is the worst way for it to fail.
+//     <audio>     loads and then reports error 4, src not supported, in this
+//                 document mode. Measured here on a real MP3 under mshta.
+//     WMPlayer    plays it, loops it, and reports its position moving.
+//
+// v1 reached the same answer and left the same note. This is the player v1
+// used, down to the volume.
+function startTheMusic() {
+    var where = onTheDisc(theDisc(), DISC.music);
+    var button = document.getElementById("mute");
+
+    if (!where) {
+        return;
+    }
+
+    try {
+        player = new ActiveXObject("WMPlayer.OCX");
+        player.settings.setMode("loop", true);
+        player.settings.volume = 55;
+        player.URL = where;
+        player.controls.play();
+        playing = true;
+    } catch (noPlayer) {
+        // No Media Player on this machine. The menu is silent and everything
+        // else about it works, which is better than a disc that will not open
+        // because it could not find a tune.
+        player = null;
+        return;
+    }
+
+    button.style.display = "block";
+}
+
+function toggleMusic() {
+    if (!player) {
+        return;
+    }
+
+    try {
+        if (playing) {
+            player.controls.pause();
+        } else {
+            player.controls.play();
+        }
+
+        playing = !playing;
+        document.getElementById("mute").className = playing ? "" : "off";
+    } catch (wentWrong) {
+        // Pausing a tune is not worth a message.
+    }
+}
+
+// The one click check against what was burned, discwright#98. Everything it
+// decides lives in menu.js where cscript can hold it to account; this is
+// only the button, the words landing under the panel, and the file read.
+
+// Whether a check is already running, so a second press cannot start a
+// second certutil walking the same disc.
+var checking = false;
+
+// Shown only when the disc carries a list to check against: a button that
+// answers "there is nothing to check" would be a button that lies about
+// what the disc can do. Only on a real disc, because the preview folder
+// holds the menu alone and the disc does not exist yet.
+function showTheCheck() {
+    if (!DISC.onADisc) {
+        return;
+    }
+
+    try {
+        var files = new ActiveXObject("Scripting.FileSystemObject");
+
+        if (!files.FileExists(onTheDisc(theDisc(), "checksums.sha256"))) {
+            return;
+        }
+
+        var button = document.getElementById("sums");
+
+        // Beside the mute when there is music, in its place when there is
+        // none, so the corner never shows a gap where a control would be.
+        button.style.left = document.getElementById("mute").style.display === "block" ? "52px" : "16px";
+        button.style.display = "block";
+    } catch (cannotLook) {
+        // A disc whose list cannot even be looked for still has a working
+        // menu, which is worth more than this button.
+    }
+}
+
+function checkThisDisc() {
+    if (checking) {
+        return;
+    }
+
+    // Never under a copy off the same disc. The button is drawn dead then,
+    // and a press on it does nothing.
+    if (SET && restoring.busy) {
+        return;
+    }
+
+    var text = "";
+
+    try {
+        text = readUtf8(onTheDisc(theDisc(), "checksums.sha256"));
+    } catch (unreadable) {
+        sayTheCheck("The checksum list on this disc could not be read.");
+        return;
+    }
+
+    var sums = sumsFrom(text);
+    var trouble = sumsTrouble(sums);
+
+    if (trouble.length > 0) {
+        sayTheCheck(trouble);
+        return;
+    }
+
+    checking = true;
+    document.getElementById("sums").className = "busy";
+
+    // The big button is dead while the check reads the disc, the mirror of
+    // the check being dead under a copy, and drawn so rather than ignoring
+    // a press that looks live.
+    document.getElementById("doIt").parentNode.className = "btn next dead";
+
+    checkTheDisc(theDisc(), sums, sayTheCheck, function (verdict) {
+        checking = false;
+        document.getElementById("sums").className = "";
+        document.getElementById("doIt").parentNode.className = "btn next";
+        sayTheCheck(verdict);
+    });
+}
+
+function sayTheCheck(words) {
+    sayUnderneath(words);
+}
+
+function doExit() {
+    // Stopped by hand, because the control outlives the window often enough
+    // to leave music playing in an empty room.
+    try {
+        if (player) {
+            player.controls.stop();
+        }
+    } catch (wentWrong) {
+    }
+
+    window.close();
+}
+</script>
+
+<style>
+/* Tahoma because it is on every Windows this disc can reach, back to 95. The
+   faces that read better either arrived with Windows 10 or came with Office,
+   and a disc that has to work in ten years cannot ask. */
+body {
+    margin: 0;
+    font-family: Tahoma, sans-serif;
+    background: #0C1316;
+    color: #DFE9EE;
+    overflow: hidden;
+    cursor: default;
+}
+#stage { position: absolute; left: 0; top: 0; width: 760px; height: 480px;
+         %%BACKDROP%% }
+#panel { position: absolute; right: 0; top: 0; width: 240px; height: 480px;
+         background: #060E11; background: rgba(6, 14, 17, 0.58);
+         padding: 28px 22px; box-sizing: border-box; }
+h1 { margin: 0 0 22px 0; font-size: 15px; font-weight: bold; letter-spacing: 1.5px;
+     text-transform: uppercase; line-height: 20px; }
+.btn { display: block; height: 38px; line-height: 38px; margin-bottom: 9px;
+       padding-left: 14px; font-size: 11px; font-weight: bold; letter-spacing: 1.5px;
+       text-transform: uppercase; color: #CBD6DB;
+       background: #080F12; background: rgba(18, 32, 38, 0.22);
+       border: 1px solid #27353B; text-decoration: none; overflow: hidden;
+       white-space: nowrap; text-overflow: ellipsis;
+       width: 100%; box-sizing: border-box; }
+/* A game's add-ons scroll the same way, a base game with seven DLC beside it
+   being more buttons than the panel holds. */
+#addOns { width: 100%; overflow-x: hidden; overflow-y: auto;
+          scrollbar-face-color: #1B2A30; scrollbar-track-color: #060E11;
+          scrollbar-arrow-color: #8FA3AA; scrollbar-shadow-color: #060E11;
+          scrollbar-highlight-color: #060E11; scrollbar-3dlight-color: #060E11;
+          scrollbar-darkshadow-color: #060E11; }
+/* One accent, on one button: whichever is the thing to do next. Everything else
+   is two greys, so the game's own picture is the only colour in the window. */
+.btn.next { background: #0C2B2E; background: rgba(16, 58, 62, 0.55);
+            border-color: #00BEC8; border-left-width: 3px; color: #FFFFFF; }
+#stillWanted { margin-top: 18px; font-size: 11px; line-height: 16px; color: #8FA3AA; }
+/* How far a set has copied. Only on screen while a file is copying, because a
+   bar that sits at nought under an idle menu reads as something stuck. */
+#restoreBar { margin-top: 18px; height: 4px; background: #1A2429; }
+/* Scrolling also keeps the margins above the bar and the line inside the
+   box, so its height is everything they take, gap included. Its bar is dark
+   like the lists' own: left to Windows it was white on the dark panel. */
+#underAll { overflow-x: hidden; overflow-y: auto;
+            scrollbar-face-color: #1B2A30; scrollbar-track-color: #060E11;
+            scrollbar-arrow-color: #8FA3AA; scrollbar-shadow-color: #060E11;
+            scrollbar-highlight-color: #060E11; scrollbar-3dlight-color: #060E11;
+            scrollbar-darkshadow-color: #060E11; }
+#restoreBarIn { height: 4px; width: 0; background: #00BEC8; }
+.hint { margin: 0 0 14px 0; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #5E727A; }
+/* The games, scrolling when there are more than the panel holds. The
+   scrollbar colours are the old IE ones, the only ones an HTA reads, so it
+   is a dark bar on the dark panel rather than a grey Windows one. */
+#gameList { overflow-x: hidden; overflow-y: auto; margin-bottom: 9px;
+            scrollbar-face-color: #1B2A30; scrollbar-track-color: #060E11;
+            scrollbar-arrow-color: #8FA3AA; scrollbar-shadow-color: #060E11;
+            scrollbar-highlight-color: #060E11; scrollbar-3dlight-color: #060E11;
+            scrollbar-darkshadow-color: #060E11; }
+/* A button that cannot be pressed yet looks like one, rather than looking like
+   a button that does nothing when you press it. */
+.btn.dead { color: #5E727A; border-color: #1A2429;
+            background: #070D10; background: rgba(10, 17, 20, 0.18); cursor: default; }
+#addOnNote { margin: -4px 0 12px 0; font-size: 10px; line-height: 14px; color: #8FA3AA; }
+/* Top left, away from the panel, because it is about the window rather than
+   about the game. Hidden until there is a tune to turn off.
+
+   TOP, NOT BOTTOM. Anchored to the bottom this sat under the window's frame
+   and was invisible: the page reported it displayed and nothing was on
+   screen, which is how it passed a reading of the DOM and failed a
+   photograph. fitTheWindow puts the whole stage on screen now, and this
+   stays at the top because the top is where a control about the window
+   belongs. */
+#mute { position: absolute; left: 16px; top: 16px; width: 28px; height: 28px;
+        line-height: 28px; text-align: center; font-size: 15px; cursor: default;
+        color: #CBD6DB; border: 1px solid #27353B;
+        background: #080F12; background: rgba(18, 32, 38, 0.22); }
+#mute.off { color: #5E727A; border-color: #1A2429; }
+/* The check, beside the mute, dressed the same because both are about the
+   window's own business rather than about the game. Grey while it works, so
+   a press that is already being answered looks taken rather than ignored. */
+#sums { position: absolute; left: 52px; top: 16px; width: 28px; height: 28px;
+        line-height: 28px; text-align: center; font-size: 15px; cursor: default;
+        color: #CBD6DB; border: 1px solid #27353B;
+        background: #080F12; background: rgba(18, 32, 38, 0.22); }
+#sums.busy, #sums.dead { color: #5E727A; border-color: #1A2429; }
+/* The install page's words: the folder wraps, because a path is long and the
+   panel is narrow. */
+#whereSays { margin: 0 0 12px 0; font-size: 11px; line-height: 15px; color: #CBD6DB; word-wrap: break-word; }
+#whereNote { margin: 4px 0 0 0; font-size: 10px; line-height: 14px; color: #8FA3AA; }
+</style>
+</head>
+
+<body onload="start()">
+<div id="stage">
+    <div id="panel">
+
+        <div id="chooserScreen" style="display: none">
+            <h1 id="discName"></h1>
+            <p class="hint">Pick a game</p>
+            <div id="gameList"></div>
+            <!-- Exit belongs to this screen too, under the list rather than in
+                 it, so it stays put however far the list scrolls. It had none,
+                 discwright#98. The disc's own manual and extras sit here on a
+                 disc of several games, apart from any one game's. -->
+            <div id="chooserBelow">
+                <a class="btn" id="chooserManual" href="#" onclick="openTheDiscsManual(); return false;">Manual</a>
+                <a class="btn" id="chooserExtras" href="#" onclick="openTheDiscsExtras(); return false;">Extras</a>
+                <a class="btn" id="chooserExit" href="#" onclick="doExit(); return false;">Exit</a>
+            </div>
+        </div>
+
+        <div id="gameScreen" style="display: none">
+            <h1 id="gameName"></h1>
+            <a class="btn next" href="#" onclick="doTheThing(); return false;"><span id="doIt"></span></a>
+            <a class="btn" id="removeTheCopy" href="#" onclick="removeTheCopyNow(); return false;" style="display: none"></a>
+            <div id="addOns"></div>
+            <!-- Under the add-ons and outside them, so however far they scroll,
+                 Manual, Extras, Back and Exit stay on the panel. -->
+            <div id="gameBelow">
+                <div id="addOnNote"></div>
+                <a class="btn" id="manual" href="#" onclick="openTheManual(); return false;">Manual</a>
+                <a class="btn" id="extras" href="#" onclick="openTheExtras(); return false;">Extras</a>
+                <a class="btn" id="back" href="#" onclick="showChooser(); return false;">Back</a>
+                <a class="btn" href="#" onclick="doExit(); return false;">Exit</a>
+            </div>
+        </div>
+
+        <!-- The install page, for a set: where the installer is joined, asked
+             before anything is copied. Drawn in the panel rather than in a
+             dialog, so it reads as a step of installing, the way an installer's
+             own pages did. -->
+        <div id="whereScreen" style="display: none">
+            <h1 id="whereName"></h1>
+            <p class="hint" id="whereHeadline"></p>
+            <div id="whereSays"></div>
+            <a class="btn next" id="whereGo" href="#" onclick="whereGo(); return false;"></a>
+            <a class="btn" id="whereChange" href="#" onclick="whereChange(); return false;">Change folder</a>
+            <a class="btn" id="whereCancel" href="#" onclick="whereCancel(); return false;">Cancel</a>
+            <div id="whereNote"></div>
+        </div>
+        <!-- The bar and the line under everything, in a box that takes the
+             room the screen leaves and scrolls inside it, discwright#98. -->
+        <div id="underAll">
+            <div id="restoreBar" style="display: none"><div id="restoreBarIn"></div></div>
+            <div id="stillWanted"></div>
+        </div>
+    </div>
+
+    <div id="mute" style="display: none" title="Music on or off"
+         onclick="toggleMusic(); return false;">&#9835;</div>
+
+    <div id="sums" style="display: none" title="Check every file against what was burned"
+         onclick="checkThisDisc(); return false;">&#10003;</div>
+</div>
+</body>
+</html>

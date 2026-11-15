@@ -1,0 +1,241 @@
+namespace DiscWright.Core;
+
+/// <summary>
+/// What the discs actually in the drives have to say about the size somebody
+/// is aiming at.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A <see cref="Medium"/> is a target and a <see cref="Recorder"/> is a tray
+/// with something in it, and keeping those apart is deliberate. This is the one
+/// place allowed to put them side by side, and it does two separate things with
+/// the answer: it offers a size to start from, and it says so when the two have
+/// drifted apart.
+/// </para>
+/// <para>
+/// <strong>Neither of them overrules anybody.</strong> A disc is built for the
+/// size that was asked for, because somebody planning a DVD with a CD still in
+/// the drive from last time is doing something perfectly ordinary. All this
+/// does is make sure they were told.
+/// </para>
+/// </remarks>
+public static class TheDiscsThatAreIn
+{
+    /// <summary>
+    /// The size to start somebody off at, read from a blank disc already in a
+    /// drive, or nothing when the drives do not agree on an answer.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Only ever from a <strong>blank</strong> disc. How much room is left on a
+    /// disc with something on it is not how big that disc is, and a half full
+    /// DVD would otherwise read as a CD.
+    /// </para>
+    /// <para>
+    /// Two drives holding two different sizes gets nothing, on the same
+    /// principle as everywhere else here: it refuses to guess between drives
+    /// rather than picking the first one and being quietly wrong.
+    /// </para>
+    /// </remarks>
+    public static Medium? TheSizeToStartFrom(IReadOnlyList<Recorder> drives)
+    {
+        Medium[] found = [.. drives.Select(TheSizeOf).OfType<Medium>().Distinct()];
+
+        return found.Length == 1 ? found[0] : null;
+    }
+
+    /// <summary>
+    /// What is worth saying about the discs in the drives, given the size that
+    /// is chosen, or nothing when there is nothing worth saying.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// About the drive this would actually be written to, and no other. Once
+    /// somebody has chosen one it is that one. With none chosen it is the
+    /// ones that could be written to right now, and only if none of them can
+    /// does it fall back to whatever is in the machine, so that a drive
+    /// holding something unusable still gets mentioned rather than ignored.
+    /// </para>
+    /// <para>
+    /// It used to look at every drive at once and go quiet the moment any of
+    /// them held the right size. On a machine with a used CD-RW sitting in a
+    /// second drive, that silenced the warning about the blank DVD in the
+    /// drive being written to: the CD was the size being aimed at, so there
+    /// was said to be nothing worth saying, while the only disc that could
+    /// take the burn was the wrong one.
+    /// </para>
+    /// <para>
+    /// Silent when there is no disc anywhere, because somebody who has not
+    /// put one in yet has done nothing wrong.
+    /// </para>
+    /// </remarks>
+    public static string? WhatIsWorthSaying(
+        IReadOnlyList<Recorder> drives, Medium chosen, string? theDrive = null)
+    {
+        Recorder[] holding =
+        [
+            .. TheOnesThatMatter(drives, theDrive)
+                .Where(drive => drive.WhyNot is null && drive.MediaType != 0)
+        ];
+
+        if (holding.Length == 0 || holding.Any(drive => TheSizeOf(drive) == chosen))
+        {
+            return null;
+        }
+
+        // The disc that can actually be written to is the one worth naming. A
+        // read only disc somebody left in the other drive is not the point.
+        Recorder worth = holding.FirstOrDefault(drive => OpticalMedia.CanBeWritten(drive.MediaType))
+            ?? holding[0];
+
+        return $"The disc in {worth.Drive} is {AOrAn(worth.Holding)}, and this is being built for {chosen.Name}.";
+    }
+
+    /// <summary>
+    /// The drives this sentence is about: the chosen one, or the ones that
+    /// could be written to now, or failing both, all of them.
+    /// </summary>
+    private static IReadOnlyList<Recorder> TheOnesThatMatter(
+        IReadOnlyList<Recorder> drives, string? theDrive)
+    {
+        if (theDrive is not null)
+        {
+            return
+            [
+                .. drives.Where(drive =>
+                    string.Equals(drive.Drive, theDrive, StringComparison.OrdinalIgnoreCase))
+            ];
+        }
+
+        Recorder[] could = [.. drives.Where(drive => drive.Ready)];
+
+        // Nothing is ready anywhere, so there is nothing to narrow to and the
+        // old disc nobody can write to is still worth a word.
+        return could.Length > 0 ? could : drives;
+    }
+
+    /// <summary>
+    /// What is worth saying about trays, given which drives can shut their own,
+    /// or nothing when every drive worth using can.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A disc comes out after it is written so that reading it back sees a
+    /// freshly mounted volume. On a drive that cannot pull its tray in, that is
+    /// where everything stops until somebody pushes it, and somebody who is
+    /// told afterwards has already walked away.
+    /// </para>
+    /// <para>
+    /// Only drives holding a disc are asked about, because the asking is done
+    /// by shutting a tray that is already shut, and an open one would close for
+    /// no reason anybody could see.
+    /// </para>
+    /// </remarks>
+    /// <summary>
+    /// Why a tray that needs pushing matters, for somewhere a pointer rests
+    /// rather than somewhere it takes up room.
+    /// </summary>
+    /// <remarks>
+    /// Said apart from the warning itself because the two have different
+    /// jobs. The warning has to be seen before an unattended run is started.
+    /// The reason only has to be findable by somebody who wonders.
+    /// </remarks>
+    public const string WhyTheTrayMatters =
+        "Every disc has to come out to be checked after it is written, so this "
+        + "will stop and wait for you to push it back in.";
+
+    public static string? WhatToSayAboutTheTray(
+        IReadOnlyList<Recorder> drives, Func<Recorder, bool> canShutItsOwnTray)
+    {
+        string[] needAPush =
+        [
+            .. drives
+                .Where(drive => drive.Ready || drive.ErasingWouldHelp)
+                .Where(drive => !canShutItsOwnTray(drive))
+                .Select(drive => drive.Drive)
+        ];
+
+        if (needAPush.Length == 0)
+        {
+            return null;
+        }
+
+        string which = needAPush.Length == 1
+            ? needAPush[0] + " needs the tray pushed in"
+            : string.Join(" and ", needAPush) + " need the tray pushed in";
+
+        // Short enough not to wrap. The reason is true and is not needed
+        // every time somebody looks at the screen, so it moved to
+        // <see cref="WhyTheTrayMatters"/> and the window hovers for it.
+        return which;
+    }
+
+    /// <summary>
+    /// Which size of disc a blank one in this drive is, or nothing when it
+    /// cannot be told.
+    /// </summary>
+    /// <remarks>
+    /// The kind of disc narrows it to a family, and how much it holds settles
+    /// which one inside that family: nothing in IMAPI's numbers tells a BD-R 25
+    /// from a BD-R 50, and a DVD+R is the same number whether it has one layer
+    /// or two. The largest size that fits in what the disc really holds is the
+    /// answer, because the figures here are usable bytes and sit under the raw
+    /// capacity by design.
+    /// </remarks>
+    private static Medium? TheSizeOf(Recorder drive)
+    {
+        if (drive.WhyNot is not null || !OpticalMedia.CanBeWritten(drive.MediaType))
+        {
+            return null;
+        }
+
+        IReadOnlyList<Medium> family = InTheFamily(OpticalMedia.FamilyOf(drive.MediaType));
+
+        if (family.Count == 0)
+        {
+            return null;
+        }
+
+        // A CD is a CD whether or not there is anything on it, because this
+        // program aims at only one size of CD. Insisting on a blank one here
+        // would leave somebody with a used CD-RW in the tray being planned for
+        // a DVD, which is the whole fault this exists to fix.
+        if (family.Count == 1)
+        {
+            return family[0];
+        }
+
+        // Past that it takes a blank one. Nothing in IMAPI's numbers tells a
+        // BD-R 25 from a BD-R 50, or a DVD+R from a DVD+R DL, so the only way
+        // to tell is how much the disc holds, and how much is LEFT on a disc
+        // with something on it is not how much it holds.
+        if (!drive.Blank)
+        {
+            return null;
+        }
+
+        long holds = drive.FreeSectors * OpticalMedia.SectorBytes;
+
+        return family.LastOrDefault(size => size.Capacity <= holds);
+    }
+
+    /// <summary>
+    /// The sizes this program aims at within one family of disc, smallest
+    /// first.
+    /// </summary>
+    private static IReadOnlyList<Medium> InTheFamily(MediaFamily family) =>
+        family switch
+        {
+            MediaFamily.Cd => [Media.Cd],
+            MediaFamily.Dvd => [Media.Dvd5, Media.Dvd9],
+            MediaFamily.BluRay => [Media.Bd25, Media.Bd50, Media.BdXl],
+
+            // HD DVD lost, and this program has never offered to make one.
+            _ => []
+        };
+
+    private static string AOrAn(string thing) =>
+        thing.Length > 0 && "AEIOU".Contains(char.ToUpperInvariant(thing[0]))
+            ? "an " + thing
+            : "a " + thing;
+}

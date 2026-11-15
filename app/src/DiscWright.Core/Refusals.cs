@@ -1,0 +1,430 @@
+namespace DiscWright.Core;
+
+/// <summary>
+/// Every no the app can say, in one file.
+/// </summary>
+/// <remarks>
+/// Together rather than scattered at the point each one is raised, so the whole
+/// voice of the program can be read in one sitting and kept consistent. It is
+/// also the only way to notice that two refusals contradict each other, which
+/// is impossible to see when each is a string built where it is thrown.
+/// </remarks>
+public static class Refusals
+{
+    /// <summary>
+    /// The disc is so small that the menu and artwork leave nothing behind.
+    /// </summary>
+    public static Refusal NoRoomLeftOnceTheMenuIsOn(Medium medium, long overheadPerDisc) =>
+        new("There is no room on a disc that size",
+            $"The menu, the icon and the artwork come to {ByteSize.Describe(overheadPerDisc)} on every disc, "
+                + $"and a {medium.Name} holds {ByteSize.Describe(medium.Capacity)}.",
+            [
+                new Figure("a disc holds", ByteSize.Describe(medium.Capacity)),
+                new Figure("the menu and artwork need", ByteSize.Describe(overheadPerDisc))
+            ],
+            new Remedy("Use a larger disc", RemedyKind.ChangeMedium));
+
+    /// <summary>
+    /// One file is bigger than a whole disc, and cutting files was not allowed.
+    /// </summary>
+    /// <remarks>
+    /// Named, because the answer is a bigger blank and the person needs to know
+    /// which file decided that. The numbers are figures as well as prose: the
+    /// window has 655 pixels for this line and the sentence wants 930, so it
+    /// shows the figures, and reading them back out of our own prose would be
+    /// parsing our own writing.
+    /// </remarks>
+    public static Refusal ThatOneFileIsBiggerThanADisc(PlanFile file, Medium medium, long roomPerDisc) =>
+        new("One file is bigger than a whole disc",
+            $"{file.RelativePath} is {ByteSize.Describe(file.Bytes)}, and a {medium.Name} leaves "
+                + $"{ByteSize.Describe(roomPerDisc)} for files once the menu is on it. Letting it cut the file "
+                + "across discs is the other way out, and then every disc of the set is needed to put it back together.",
+            [
+                new Figure("the file", ByteSize.Describe(file.Bytes)),
+                new Figure("a disc leaves", ByteSize.Describe(roomPerDisc))
+            ],
+            new Remedy("Use a larger disc", RemedyKind.ChangeMedium));
+
+    /// <summary>
+    /// The manual and extras alone are bigger than a disc, so no disc can carry
+    /// them and there is nowhere to put them.
+    /// </summary>
+    public static Refusal TheExtrasAloneWillNotFitOnADisc(long bytesForTheExtras, Medium medium, long roomPerDisc) =>
+        new("The manual and extras will not fit on a disc",
+            $"They come to {ByteSize.Describe(bytesForTheExtras)}, and a {medium.Name} leaves "
+                + $"{ByteSize.Describe(roomPerDisc)} for files. Leave some of them off, or use a larger disc.",
+            [
+                new Figure("the manual and extras", ByteSize.Describe(bytesForTheExtras)),
+                new Figure("a disc leaves", ByteSize.Describe(roomPerDisc))
+            ],
+            new Remedy("Use a larger disc", RemedyKind.ChangeMedium));
+
+    /// <summary>
+    /// A loose extra whose name is one the disc keeps for itself.
+    /// </summary>
+    /// <remarks>
+    /// Refused by name rather than renamed around. Quietly putting their file
+    /// somewhere else is worse: they would burn a disc believing it holds a
+    /// file it does not hold, under a name they could find it by.
+    /// </remarks>
+    public static Refusal ThatNameBelongsToTheDisc(string name) =>
+        new("The disc already uses that name",
+            $"\"{name}\" is one of the names a disc keeps for itself, and a file of that name at the root would "
+                + "replace part of what makes the disc work. Rename it and add it again.",
+            [],
+            new Remedy("Choose something else", RemedyKind.PickFolder));
+
+    /// <summary>A disc with no name at all.</summary>
+    public static Refusal ADiscNeedsAName() =>
+        new("The disc needs a name",
+            "It is what This PC shows when the disc goes in, and what somebody reads off the printed cover.",
+            [],
+            new Remedy("Name the disc", RemedyKind.FocusField));
+
+    /// <summary>
+    /// There is a disc to build and nowhere on this PC to build it.
+    /// </summary>
+    /// <remarks>
+    /// The last of the things a build needs that said nothing when it was
+    /// missing. A disc with no name says so, an empty folder says so, a file
+    /// too big for any disc says so, and no output folder left the one button
+    /// on the window dead with the window silent about why. A dead button
+    /// nobody can explain reads as a broken button.
+    /// </remarks>
+    public static Refusal ThereIsNowhereToPutIt() =>
+        new("There is nowhere to put it",
+            "The discs are built into a folder on this PC first, with each one's ISO beside it, and no folder "
+                + "has been chosen. Nothing is written to a disc until you press Burn.",
+            [],
+            new Remedy("Choose a folder", RemedyKind.PickFolder));
+
+    /// <summary>
+    /// The label holds characters the system codepage cannot carry, so AutoRun
+    /// will show something else.
+    /// </summary>
+    /// <remarks>
+    /// Shown as a warning rather than a wall. A disc called "??????? ????"
+    /// still works and still installs, and somebody may genuinely not mind;
+    /// what they must not do is find out afterwards. The surviving text is in
+    /// the figures, because seeing it is what makes the decision obvious.
+    /// </remarks>
+    public static Refusal ThatNameWillNotSurviveOnTheDisc(string label, string surviving) =>
+        new("Windows cannot show that name on a disc",
+            "AutoRun reads a disc's name in this machine's codepage and has no Unicode at all, so this is what "
+                + "This PC will show. The menu, the cover and the files are unaffected: it is only the name on the disc.",
+            [
+                new Figure("you typed", label),
+                new Figure("the disc will say", surviving)
+            ],
+            new Remedy("Rename the disc", RemedyKind.FocusField));
+
+    /// <summary>Nothing was chosen at all.</summary>
+    public static Refusal NoFolderWasChosen() =>
+        new("No folder was chosen", "Pick the folder the game was downloaded into.",
+            [],
+            new Remedy("Choose a folder", RemedyKind.PickFolder));
+
+    /// <summary>
+    /// There is no folder at that path.
+    /// </summary>
+    /// <remarks>
+    /// Separate from "that folder is empty" on purpose: a USB stick that has
+    /// been pulled out and a folder somebody emptied are different mistakes,
+    /// and only one of them is worth going to look for the folder again.
+    /// </remarks>
+    /// <summary>
+    /// Something chosen under Artwork, music and extras is not where it was
+    /// chosen from.
+    /// </summary>
+    /// <remarks>
+    /// It used to be "Something went wrong while writing the preview. This one
+    /// is not accounted for" followed by nothing but the path, which is what
+    /// Windows says about a picture that is not there, and it reads as a
+    /// crash. The owner met it on 2026-11-12 after moving his Hollow Knight
+    /// files into another folder once he had chosen them.
+    /// </remarks>
+    /// <param name="what">What it is, in the words of that window: "disc icon", "manual".</param>
+    /// <param name="path">Where it was chosen from.</param>
+    public static Refusal ThatChosenFileIsNotThere(string what, string path) =>
+        new($"The {what} is not where it was chosen from",
+            $"{path} is not there any more. It may have been moved or renamed since it was chosen. "
+                + "Choose it again under Artwork, music and extras, or clear it there.");
+
+    /// <summary>
+    /// One game's own manual or extra has moved since it was chosen.
+    /// </summary>
+    /// <remarks>
+    /// Its own refusal rather than the one above, which sends somebody to
+    /// Artwork, music and extras: a game's own manual is not there, it is
+    /// with the game in the list.
+    /// </remarks>
+    public static Refusal ThatGamesOwnIsNotThere(string game, GameExtra own) =>
+        new($"The {(own.Kind == GameExtraKind.Manual ? "manual" : "extra")} {own.Name} of {game} is not where it was chosen from",
+            $"{own.Path} is not there any more. It may have been moved or renamed since it was chosen. "
+                + $"Take it off {game} in the list and add it again from where it is now.");
+
+    public static Refusal ThatFolderIsNotThere(string path) =>
+        new("That folder is not there",
+            $"Nothing was found at {path}. It may have been moved, renamed, or be on a drive that is no longer attached.",
+            [],
+            new Remedy("Choose another folder", RemedyKind.PickFolder));
+
+    /// <summary>
+    /// The folder holds no setup_*.exe, but there is one inside a "disc"
+    /// subfolder, which means this is a disc we built rather than a download.
+    /// </summary>
+    /// <remarks>
+    /// Named rather than passed on. The next recogniser in the chain would take
+    /// it happily as an ordinary folder of game files and put a whole disc
+    /// inside a disc, and the generic "no installer here" sends somebody
+    /// looking for a fault in their download instead of at which folder they
+    /// picked.
+    /// </remarks>
+    public static Refusal ThatIsADiscRatherThanADownload(FolderListing folder) =>
+        new("That is a disc, not a download",
+            $"{folder.Path} holds a disc DiscWright built. The folder wanted here is the one downloaded from GOG; "
+                + "this is where the disc gets written to.",
+            [],
+            new Remedy("Choose another folder", RemedyKind.PickFolder));
+
+    /// <summary>There is nothing in the folder at all.</summary>
+    public static Refusal ThatFolderIsEmpty(FolderListing folder) =>
+        new("That folder is empty", $"There is nothing in {folder.Path} to put on a disc.",
+            [],
+            new Remedy("Choose another folder", RemedyKind.PickFolder));
+
+    /// <summary>
+    /// Every recogniser passed. Reached only for a folder that exists, holds
+    /// files, and still fits nothing, which today means it cannot happen: the
+    /// last recogniser in the chain claims any folder with files in it. Kept
+    /// because the chain is meant to grow, and a reader should not have to work
+    /// out what happens when nothing claims a folder.
+    /// </summary>
+    public static Refusal NothingRecognisedIn(FolderListing folder) =>
+        new("Nothing in that folder looks like a game",
+            $"Nothing in {folder.Path} looks like an installer or a program.",
+            [],
+            new Remedy("Choose another folder", RemedyKind.PickFolder));
+
+    /// <summary>
+    /// Asked to plan nothing. Worth saying rather than handing back a set of no
+    /// discs, which every caller would then have to notice for itself.
+    /// </summary>
+    public static Refusal ThereIsNothingToPutOnADisc() =>
+        new("There is nothing to put on a disc", "No files were chosen.");
+
+    /// <summary>
+    /// The image from last time will not move out of the way.
+    /// </summary>
+    /// <remarks>
+    /// Nearly always because somebody mounted it to look inside, which leaves
+    /// Windows holding it open. Saying so is the whole value of this refusal:
+    /// the message Windows gives on its own names a file and no reason.
+    /// </remarks>
+    public static Refusal TheOldImageWillNotMoveAside(string path, string windowsSaid) =>
+        new("The image from last time cannot be replaced",
+            $"Something is still using {path}. If it was mounted to look inside, eject it first: "
+                + "right-click the drive in This PC and choose Eject, then build again."
+                + Environment.NewLine + Environment.NewLine + "Windows said: " + windowsSaid);
+
+    /// <summary>Windows refused to make the image, in its own words.</summary>
+    public static Refusal WindowsCouldNotMakeTheImage(string windowsSaid) =>
+        new("Windows could not make the image", "Windows said: " + windowsSaid);
+
+    // ------------------------------------------------------- opening a disc
+
+    /// <remarks>
+    /// Refused whole rather than read in part. Half a project is a disc that
+    /// rebuilds without something somebody chose, and the one thing worse than
+    /// not opening a file is opening it wrongly.
+    /// </remarks>
+    public static Refusal ThatIsNotAProjectFile(string why) =>
+        new("That is not a DiscWright project",
+            "The file could not be read as one. " + why);
+
+    /// <remarks>
+    /// Said instead of opening an empty window. A disc whose every game has
+    /// moved is still a disc somebody can find the games for, and an empty
+    /// window tells them nothing about which ones to look for.
+    /// </remarks>
+    public static Refusal NothingOnThatDiscIsWhereItWas(IReadOnlyList<string> gone) =>
+        new("Nothing on that disc is where it was",
+            (gone.Count == 1
+                ? "The one thing it names is not there any more:"
+                : $"None of the {gone.Count} things it names are there any more:")
+                + Environment.NewLine + string.Join(Environment.NewLine, gone.Take(10)));
+
+    public static Refusal ThatProjectHasNoGamesInIt() =>
+        new("That project has no games in it",
+            "It was read, and there is nothing in it to put on a disc. The file may have been written by "
+                + "something else, or cut short.");
+
+    /// <remarks>
+    /// Recognised and refused by name, rather than opened with the look it
+    /// describes thrown away. The PowerShell DiscWright's menu has a panel
+    /// side, a button style, a title, a caption, a divider, a border and its
+    /// own list of buttons, and the menu this version makes has none of those,
+    /// so a disc built from such a file here would not be the disc the file
+    /// describes. Settled with the owner on 2026-10-27: say so, and open
+    /// nothing.
+    /// </remarks>
+    public static Refusal ThatProjectIsFromThePowerShellApp(string? madeBy) =>
+        new("That project is from the PowerShell DiscWright",
+            (madeBy is null
+                ? "It was written by the PowerShell version of DiscWright, "
+                : $"It was written by DiscWright {madeBy}, the PowerShell version, ")
+                + "and it cannot be opened here. Its menu has a panel side, a button style, a title, a caption, "
+                + "a divider, a border and its own list of buttons, and the menu this version makes has none of "
+                + "those, so a disc built from it here would not be the disc it describes. Open it in the version "
+                + "that wrote it.");
+
+    // ---------------------------------------------------------------- burning
+
+    public static Refusal ThereIsNoDiscWriter() =>
+        new("There is no disc writer on this machine",
+            "Nothing here can write a disc. The image is still in the output folder, and any machine with a "
+                + "writer can burn it.");
+
+    public static Refusal ThatDriveIsNotHere(string drive) =>
+        new($"There is no {drive} to write to",
+            "The drive that was chosen is not on this machine any more. Choose again.");
+
+    public static Refusal ThatDriveSaidNothing(string drive, string why) =>
+        new($"{drive} would not say what is in it",
+            "Usually that means the tray is empty or the disc is still being read. Windows said: " + why);
+
+    /// <remarks>
+    /// Named, so somebody knows which tray to open. Listing them and leaving
+    /// the choice is this one's whole job: picking for them would be wrong half
+    /// the time, and the disc in the other drive is often their only blank.
+    /// </remarks>
+    public static Refusal MoreThanOneDriveIsReady(IReadOnlyList<string> drives) =>
+        new("More than one drive has a blank disc in it",
+            "Choose which one to write to: " + string.Join(", ", drives) + ".");
+
+    public static Refusal ThereIsNoBlankDisc(IReadOnlyList<string> drives) =>
+        new("There is no blank disc to write to",
+            drives.Count == 1
+                ? $"Put a blank disc in {drives[0]} and try again."
+                : "Put a blank disc in one of " + string.Join(", ", drives) + " and try again.");
+
+    /// <remarks>
+    /// The one thing worth saying when nothing is ready but something could be.
+    /// It stops here: erasing somebody's disc without asking is not a thing to
+    /// do quietly, so this says an erase would help and the person holding it
+    /// decides.
+    /// </remarks>
+    public static Refusal ThereIsADiscThatCouldBeErased(string drive, string what) =>
+        new($"The {what} in {drive} has something on it",
+            "It can be erased and used again, which takes under a minute. Nothing has been erased: that is "
+                + "yours to decide, because whatever is on it now goes.");
+
+    /// <remarks>
+    /// Which disc to destroy is not a choice to make for somebody, so this
+    /// names them and stops. The old answer fell through to "that disc cannot
+    /// be written to", which is false about a rewritable one and is exactly the
+    /// wording that makes somebody bin a usable disc.
+    /// </remarks>
+    public static Refusal MoreThanOneDiscCouldBeErased(IReadOnlyList<string> drives) =>
+        new("More than one disc could be erased",
+            "There is no blank disc, and the discs in " + string.Join(" and ", drives)
+                + " could each be erased and used again. Which one goes is yours to decide, so nothing "
+                + "has been erased.");
+
+    /// <remarks>
+    /// Said when somebody asks to erase and there is nothing an erase would
+    /// help. A pressed disc and an empty tray are both ordinary, and neither
+    /// is a fault worth more than a sentence.
+    /// </remarks>
+    public static Refusal ThereIsNothingToErase(IReadOnlyList<string> drives) =>
+        new("There is no disc here that erasing would help",
+            drives.Count == 0
+                ? "There is no disc writer on this machine."
+                : "A disc has to be rewritable and have something on it. Put one in "
+                    + string.Join(" or ", drives) + " and try again.");
+
+    /// <remarks>
+    /// Windows let go of the drive while the job was still using it. It is
+    /// not a disc that failed and not a drive that refused, and saying either
+    /// would send somebody to throw away a disc that is fine.
+    ///
+    /// Seen at the end of an erase: the managed callback the drive is handed
+    /// outlives the release of the COM objects around it, and the result
+    /// reaches the window as an exception rather than an answer.
+    /// </remarks>
+    /// <remarks>
+    /// The last resort. Everything this program expects to go wrong has a
+    /// sentence of its own, so reaching this means something got out that
+    /// nobody wrote a sentence for.
+    ///
+    /// It still has to arrive as an answer rather than as raw exception text
+    /// in a box, which reads as a crash and tells somebody nothing they can
+    /// act on.
+    /// </remarks>
+    /// <summary>
+    /// The folder a build would replace is held open, most often by the menu
+    /// of the disc last built there.
+    /// </summary>
+    /// <remarks>
+    /// xniwo, discwright#98: Start Here opened from the disc folder, then
+    /// another build into the same place. Nothing is touched when this is
+    /// said, so the sentence can promise that, and the way out is in words
+    /// because it reaches somebody in a box with nothing to press but OK.
+    /// </remarks>
+    public static Refusal TheLastBuildIsStillOpen(string folder) =>
+        new("The disc built there last time is still open",
+            $"Something has {folder} open, most likely its menu, started from Start Here. Nothing has been "
+                + "changed. Close the menu and build again, or choose another folder to build into.");
+
+    public static Refusal SomethingNobodyExpected(string doing, string said) =>
+        new($"Something went wrong while {doing}",
+            "This one is not accounted for, which means it is worth reporting. Nothing has been lost that "
+                + "was not already written. It said: " + said);
+
+    public static Refusal WindowsLetGoOfTheDrive(string drive, string windowsSaid) =>
+        new($"Windows let go of {drive} part way through",
+            "Nothing is wrong with the disc and nothing has been lost. Try it again, and if it keeps "
+                + "happening, closing and reopening DiscWright clears it. Windows said: " + windowsSaid);
+
+    public static Refusal ThatDiscCannotBeWrittenTo(string drive, string what) =>
+        new($"The {what} in {drive} cannot be written to",
+            "It is either a pressed disc or one that has already been written and cannot be erased. A blank "
+                + "disc of the same kind will work.");
+
+    public static Refusal TheDiscIsTooSmallForThat(string drive, string what, long needs, long has) =>
+        new($"The {what} in {drive} is too small for this image",
+            $"The image is {ByteSize.Describe(needs)} and the disc holds {ByteSize.Describe(has)}. "
+                + "Nothing was written.",
+            [
+                new Figure("the image", ByteSize.Describe(needs)),
+                new Figure("the disc", ByteSize.Describe(has))
+            ],
+            null);
+
+    /// <remarks>
+    /// Not a failure of the burn. The disc is written and may well be perfect;
+    /// what is missing is the proof, and saying "done" without it would be
+    /// claiming something nobody checked.
+    /// </remarks>
+    public static Refusal TheDiscWasNotChecked(string drive) =>
+        new("The disc was written but not checked",
+            $"Nothing could be read back from {drive}, so nothing here knows whether the disc reads. "
+                + "Put it back in and check it before trusting it.");
+
+    public static Refusal TheDriveCouldNotWriteIt(string drive, string windowsSaid) =>
+        new($"{drive} could not write the disc",
+            "The disc in it may now be unusable. Windows said: " + windowsSaid);
+
+    /// <summary>
+    /// The folder is on the list already, with everything it holds.
+    /// </summary>
+    /// <remarks>
+    /// Said rather than done, because the other thing that could happen is
+    /// the same game going on twice: two entries with one name, the installer
+    /// carried twice and two Install buttons on the menu, with nobody told.
+    /// </remarks>
+    public static Refusal ItIsAlreadyOnTheDisc(string name) =>
+        new($"{name} is already on the disc",
+            "Everything in that folder is on it, so there is nothing to add. Adding it again would put the "
+                + "same game on twice.");
+}

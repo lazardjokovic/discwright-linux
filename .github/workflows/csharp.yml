@@ -1,0 +1,74 @@
+name: csharp
+
+# The C# DiscWright lives in app/, a copy of lazardjokovic/discwright at the
+# commit named in WINDOWS-MAIN, with the Linux work growing beside it. Shared
+# code is changed here, so every pull request has to prove two things: that the
+# Windows app still passes its own suite, and that the shared half still builds
+# on Linux.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  # The same two steps as app/.github/workflows/checks.yml, which GitHub does
+  # not run from a subfolder. Kept in step with it by hand when Windows main is
+  # caught up with.
+  windows-suite:
+    name: windows suite
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Which SDK
+        run: dotnet --info
+      - name: Build
+        run: dotnet build DiscWright.slnx -c Release --nologo
+      - name: The suite
+        run: >
+          dotnet test tests/DiscWright.Tests/DiscWright.Tests.csproj
+          -c Release --no-build --nologo
+          --logger "trx;LogFileName=suite.trx"
+          --results-directory artifacts/test-results
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-results
+          path: app/artifacts/test-results/*.trx
+          if-no-files-found: ignore
+
+  # The four projects a Linux DiscWright shares with the Windows one. They
+  # target net10.0 and were measured building on Ubuntu unchanged on
+  # 2026-11-15. This keeps that true until there is a Linux suite to run.
+  linux-build:
+    name: linux build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Which SDK
+        run: dotnet --info
+      - name: Build the shared projects
+        run: |
+          for project in Core Menu Staging ViewModels; do
+            dotnet build "src/DiscWright.$project/DiscWright.$project.csproj" -c Release --nologo
+          done

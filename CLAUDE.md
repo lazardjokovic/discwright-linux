@@ -138,8 +138,9 @@ These are the owner's, carried over from the Windows project. Follow them here.
   deleting `main`, and `v*` release tags cannot be moved or deleted once pushed.
   If a CI job is renamed, the required check in the `main` ruleset has to be
   renamed with it, or every PR waits for a check that never reports.
-- **Commits** end with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>` and
-  nothing else: no session links. **PR descriptions** end with
+- **Commits** end with `Co-Authored-By:` naming the model that wrote them, as in
+  `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`, Fable in a Fable
+  session and Opus in an Opus one, and nothing else: no session links. **PR descriptions** end with
   `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
 - **Keep the owner's real name out of anything public.** The published identity is
   the project's own: the winget publisher is `DiscWright`, not a person.
@@ -154,7 +155,31 @@ These are the owner's, carried over from the Windows project. Follow them here.
 
 ## Where things stand
 
-**Right now (2026-09-30): testing on real Linux, before any release.** Every
+**Right now (2026-11-15): the Linux version is being rebuilt in C#, on the
+Windows app's own code.** The owner decided it that day, after more requests on
+Reddit. The Python port below followed the PowerShell app, which has retired:
+DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
+
+- **`app/` is a copy of `lazardjokovic/discwright`** at the commit named in
+  `WINDOWS-MAIN`. Its `Core`, `Menu`, `Staging` and `ViewModels` already build
+  on Linux, and the Linux work grows beside them: Linux edges over xorriso and
+  an Avalonia window. When Windows `main` moves, a pull request here catches
+  up and changes `WINDOWS-MAIN`.
+- **The `discwright` repository is not touched for Linux work** until this is
+  done and moved there, the way the C# rewrite was moved. Whether it lands on
+  `main` or a branch, and which version number it takes, is decided then.
+- **The Python port stays where it is and its checks stay green** until then,
+  because `pytest (3.10)` and `pytest (3.12)` are required on `main`.
+- **Pull requests are merged when the Linux VM and CI are green**, without
+  waiting for the owner, each with screenshots or GIFs where there is anything
+  to see. Nothing is tagged or released without his word.
+- **The commit line names the model that wrote the commit**, Fable in a Fable
+  session and Opus in an Opus one.
+
+Everything from here down is the Python port, kept as the record of what was
+measured.
+
+**Before that (2026-09-30): testing on real Linux, before any release.** Every
 part of the Windows app's disc-making is ported, with the command line and the
 window, and all of it passes in WSL and CI. What has never been seen is a real
 Linux desktop. Arch came off the dual boot and **Kubuntu is the machine**.
