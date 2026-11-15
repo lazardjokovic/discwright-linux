@@ -36,6 +36,11 @@ public class TheArchitecture
         // own, and it must stay as far from the window and from Windows as
         // Core is, or it stops being something Linux can reference.
         ["DiscWright.Machine"] = ["DiscWright.Core"],
+
+        // The answers a Linux machine gives where Platform, Imaging and
+        // Burning give Windows ones. Held to Core for the same reason they
+        // are, and it is not allowed to reach any of those three.
+        ["DiscWright.Linux"] = ["DiscWright.Core"],
         ["DiscWright.Imaging"] = ["DiscWright.Core"],
         ["DiscWright.Burning"] = ["DiscWright.Core"],
 
