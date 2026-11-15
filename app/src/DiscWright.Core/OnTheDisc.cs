@@ -89,7 +89,9 @@ public static class OnTheDisc
     /// </remarks>
     public static string Tidied(string name)
     {
-        char[] bad = System.IO.Path.GetInvalidFileNameChars();
+        // Windows' own list and never the building machine's: the disc is
+        // read on Windows wherever it was made. See WindowsFileNames.
+        IReadOnlyList<char> bad = WindowsFileNames.WillNotHave;
 
         string tidied = new([.. name.Select(character => bad.Contains(character) ? ' ' : character)]);
 

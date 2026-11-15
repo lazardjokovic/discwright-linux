@@ -64,7 +64,7 @@ public sealed record WhereDiscsWouldGo(string Desktop, string Home, IReadOnlyLis
         char[] cleaned =
         [
             .. name.Select(each =>
-                System.IO.Path.GetInvalidFileNameChars().Contains(each) ? ' ' : each)
+                WindowsFileNames.WillNotHave.Contains(each) ? ' ' : each)
         ];
 
         string tidied = string.Join(" ", new string(cleaned).Split(
