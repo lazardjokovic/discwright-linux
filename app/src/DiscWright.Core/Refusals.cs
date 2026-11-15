@@ -427,4 +427,29 @@ public static class Refusals
         new($"{name} is already on the disc",
             "Everything in that folder is on it, so there is nothing to add. Adding it again would put the "
                 + "same game on twice.");
+
+    /// <summary>
+    /// Names on the disc that Windows would read back cut or changed.
+    /// </summary>
+    /// <remarks>
+    /// Only a disc written as ISO9660 with Joliet can be refused this way,
+    /// which is one made on Linux: see <see cref="JolietNames"/>. Ten are
+    /// shown, because a list of two hundred is a wall nobody reads, and the
+    /// count says how many there are in all. There is no remedy to press: the
+    /// files are somebody's own, and renaming them is theirs to do.
+    /// </remarks>
+    public static Refusal SomeNamesWouldNotReachWindows(IReadOnlyList<NameProblem> problems)
+    {
+        const int Shown = 10;
+
+        string listed = string.Join(Environment.NewLine, problems.Take(Shown).Select(problem => problem.ToString()));
+        string more = problems.Count > Shown ? Environment.NewLine + $"...and {problems.Count - Shown} more." : string.Empty;
+
+        return new(
+            "Some names on the disc would not reach Windows",
+            "Windows would read these cut short or changed, so the menu could not find them. "
+                + "Rename them and build again." + Environment.NewLine + Environment.NewLine + listed + more,
+            [new Figure("names to change", problems.Count.ToString(System.Globalization.CultureInfo.CurrentCulture))],
+            null);
+    }
 }
