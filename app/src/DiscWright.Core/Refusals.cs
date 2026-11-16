@@ -483,6 +483,26 @@ public static class Refusals
             howToGetIt,
             null);
 
+    /// <summary>
+    /// The program that makes the image is not on this machine, found out
+    /// before anything was laid out.
+    /// </summary>
+    /// <remarks>
+    /// The same fact as <see cref="TheProgramThatMakesImagesIsNotInstalled"/>,
+    /// asked earlier: when Build is pressed, and not when the disc folder is
+    /// finished and the image is next. A big game laid out across two drives
+    /// is minutes of copying, and being told at the end of them that nothing
+    /// can make the image is being told too late. The other one stays for
+    /// the program that goes missing in between, and says the folder is
+    /// kept. This one has no folder to speak of.
+    /// </remarks>
+    public static Refusal NothingHereMakesAnImage(string program, IReadOnlyList<Figure> howToGetIt) =>
+        new($"{program} is not installed",
+            $"DiscWright makes the image with {program}, and it is not on this machine. "
+                + "Install it and build again. Nothing has been laid out yet.",
+            howToGetIt,
+            null);
+
     /// <summary>The image could not be made, in the words of whoever was making it.</summary>
     /// <remarks>
     /// The Linux side of <see cref="WindowsCouldNotMakeTheImage"/>, which names

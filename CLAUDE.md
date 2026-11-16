@@ -600,6 +600,25 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - **A fake program put on a stripped PATH has only what is on that PATH.**
   A fake `ldconfig` that used `cat` printed nothing, and the installer
   rightly took that for no answer.
+- **Build asks whether an image can be made before it lays anything out**
+  (`MainWindow.WhyNoImageCouldBeMade`, handed `TheLinuxMachine`'s by the
+  app, and nothing by a test unless the test says what the answer is).
+  Without xorriso the whole disc used to be laid out first, and then it
+  said so. `XorrisoImageMaker.Make` still asks when its turn comes, and
+  that refusal says the folder is kept. The early one says nothing has
+  been laid out. Two refusals, because the two moments are not the same.
+- **`SayingSo` shows a refusal's figures**, one to a line, to be selected
+  and copied. A Windows message box has no place for them and the box
+  here left them out the same way, which on Linux left out the line to
+  type for xorriso: the whole point of that refusal.
+- **Start the real thing with something missing.** Both of these were
+  found by starting the tarball's program on the desktop with no xorriso
+  on its PATH and pressing Build. Every test had xorriso, or a fake that
+  answered for it.
+- The part of spike 2 a virtual machine can answer is in
+  `DiscWright-Lab\linux-plan\spike-2-what-the-vm-can-say.md`: xorriso lists
+  the VM's two virtual drives with no root, tells an empty one from a
+  finished disc, and the xorriso in the AppImage answers the same.
 - Not on the window yet: the drive picker and what is in the drive, and
   the version link.
 - Next: the recorder, which needs a real machine with a drive, and a GNOME

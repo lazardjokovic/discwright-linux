@@ -56,6 +56,7 @@ public partial class App : Application
                 screen, TheLinuxMachine.TheReaderOfFolders(), new WindowsFileSystem(), look, new TheDesktop())
             {
                 TheLog = log,
+                WhyNoImageCouldBeMade = TheLinuxMachine.WhyNoImageCouldBeMade,
             };
 
             desktop.MainWindow = window;

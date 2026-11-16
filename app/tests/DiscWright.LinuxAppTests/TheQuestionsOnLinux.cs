@@ -229,6 +229,77 @@ public class TheQuestionsOnLinux
         await said.WaitAsync(Soon);
     }
 
+    [AvaloniaFact]
+    public async Task A_refusal_with_figures_shows_each_on_a_line_of_its_own_to_be_copied()
+    {
+        Window owner = AnOwner();
+
+        // The one refusal whose figures are the point of it: the line to
+        // type for each kind of system. A Windows message box has no place
+        // for figures, and this box left them out too until it was looked
+        // at on a desktop with no xorriso.
+        Refusal refusal = Refusals.NothingHereMakesAnImage("xorriso", DiscWright.Linux.XorrisoImageMaker.HowToGetIt);
+
+        Task said = SayingSo.Explain(owner, refusal);
+        Dispatcher.UIThread.RunJobs();
+        SayingSo box = TheOneOpenOver<SayingSo>(owner);
+
+        ItemsControl figures = box.Found<ItemsControl>("Figures");
+
+        Assert.True(figures.CanBeSeen());
+
+        SelectableTextBlock[] values = [.. figures.GetVisualDescendants().OfType<SelectableTextBlock>()];
+        TextBlock[] labels = [.. figures.GetVisualDescendants().OfType<TextBlock>().Where(each => each is not SelectableTextBlock)];
+
+        Assert.Equal(["Ubuntu, Debian, Mint", "Fedora", "Arch, Manjaro"], labels.Select(each => each.Text));
+        Assert.Equal(
+            ["sudo apt install xorriso", "sudo dnf install xorriso", "sudo pacman -S libisoburn"],
+            values.Select(each => each.Text));
+
+        // One under another, each line to type starting at the same place,
+        // and each to the right of what it is for.
+        double[] tops = [.. values.Select(each => each.MiddleIn(box).Y)];
+        double[] lefts = [.. values.Select(each => each.TranslatePoint(default, box)!.Value.X)];
+
+        Assert.True(tops[0] < tops[1] && tops[1] < tops[2], $"The figures are not one under another: {string.Join(", ", tops)}");
+        Assert.Equal(lefts[0], lefts[1]);
+        Assert.Equal(lefts[1], lefts[2]);
+        Assert.True(labels[0].TranslatePoint(default, box)!.Value.X < lefts[0]);
+
+        // Under what was said, and above the button.
+        Assert.True(box.Found<SelectableTextBlock>("Because").MiddleIn(box).Y < tops[0]);
+        Assert.True(tops[2] < box.Found<Button>("Understood").MiddleIn(box).Y);
+
+        box.Close();
+        await said.WaitAsync(Soon);
+    }
+
+    [AvaloniaFact]
+    public async Task Something_with_no_figures_leaves_no_gap_where_they_would_be()
+    {
+        Window owner = AnOwner();
+
+        Task said = SayingSo.Explain(owner, Refusals.BurningIsNotInThisVersion());
+        Dispatcher.UIThread.RunJobs();
+        SayingSo box = TheOneOpenOver<SayingSo>(owner);
+
+        Assert.Empty(Refusals.BurningIsNotInThisVersion().Figures);
+        Assert.False(box.Found<ItemsControl>("Figures").IsVisible);
+
+        box.Close();
+        await said.WaitAsync(Soon);
+
+        // And a thing said that is not a refusal has none to show.
+        Task told = SayingSo.Tell(owner, "No browser would open", "The page is somewhere.");
+        Dispatcher.UIThread.RunJobs();
+        SayingSo other = TheOneOpenOver<SayingSo>(owner);
+
+        Assert.False(other.Found<ItemsControl>("Figures").IsVisible);
+
+        other.Close();
+        await told.WaitAsync(Soon);
+    }
+
     [AvaloniaTheory]
     [InlineData("the button")]
     [InlineData("Enter")]
