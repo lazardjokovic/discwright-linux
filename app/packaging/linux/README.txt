@@ -29,4 +29,8 @@ not install by default. install.sh says so if it is missing:
 This version builds the disc and its ISO. It does not burn yet: K3b, Brasero
 or Xfburn will burn the ISO it makes.
 
+DiscWright's licence is in LICENSE.txt. The one file also carries .NET,
+Avalonia, Skia, HarfBuzz and the Inter typeface, each under its own licence:
+those are in THIRD-PARTY-NOTICES.txt.
+
 https://discwright.com
