@@ -216,6 +216,40 @@ public sealed class PicturesWithoutWindows : IDisposable
         Assert.Equal("That file is not there any more.", facts.Why);
     }
 
+    [Theory]
+    [InlineData("looked at")]
+    [InlineData("made into an icon")]
+    [InlineData("made into a background")]
+    public void Lets_go_of_a_picture_once_it_has_been(string what)
+    {
+        string picture = APicture(64, 64, (0, 0, 64, 64, Blue));
+        SkiaImages images = new();
+
+        switch (what)
+        {
+            case "looked at":
+                images.Read(picture);
+                break;
+            case "made into an icon":
+                images.WriteIcon(picture, Path.Combine(_folder, "made.ico"));
+                break;
+            default:
+                images.WriteBackground(picture, Path.Combine(_folder, "made.png"), 760, 480, false);
+                break;
+        }
+
+        // Windows will not delete a file something still has open, and that
+        // is how this was found: a whole disc built in a test, and the folder
+        // it was built from refused to go, "background.png is being used by
+        // another process", on some runs and not others. Skia was handed the
+        // path and kept the file open until it got round to letting go. On
+        // Linux a file that is held can be deleted all the same, so only a
+        // Windows run can fail here.
+        File.Delete(picture);
+
+        Assert.False(File.Exists(picture));
+    }
+
     [Fact]
     public void Refuses_a_frame_of_the_wrong_length_rather_than_writing_a_broken_icon()
     {
@@ -237,7 +271,7 @@ public sealed class PicturesWithoutWindows : IDisposable
 
         new SkiaImages().WriteBackground(picture, made, 760, 480, asIs);
 
-        return SKBitmap.Decode(made);
+        return SKBitmap.Decode(File.ReadAllBytes(made));
     }
 
     /// <summary>

@@ -105,3 +105,12 @@ jobs:
           name: linux-test-results
           path: app/artifacts/linux-test-results/*.trx
           if-no-files-found: ignore
+      # Everything the look has, drawn on one sheet in each look by
+      # ASheetOfTheLook, for the part of a look only an eye can judge.
+      - name: Upload the look
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: the-look
+          path: app/artifacts/the-look/*.png
+          if-no-files-found: ignore

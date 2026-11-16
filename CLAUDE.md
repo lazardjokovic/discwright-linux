@@ -226,12 +226,26 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   with no screen) is written up in `DiscWright-Lab\linux-plan\spike-3.md`.
 - A project's name has no second dot (`LinuxApp`, not `App.Linux`): `TheReadme`
   reads the table of projects with a pattern that stops at one.
-- Next: the look (the Windows app's eleven colours in light and dark, its
-  text and button styles, as Avalonia styles), then the main window a section
-  at a time over `MakeADisc`, then the four dialogs and a box for refusals,
-  then the composition root with a Linux `TheMachine`. The root of a disc
-  assumed to be a drive letter waits for the Linux recorder, and burning
-  waits for a real machine with a drive.
+- **The look** is `Look.axaml` and `LookInTheDark.axaml` in `LinuxApp`: the
+  Windows palette, its text styles as classes (`Classes="Title"`) and its
+  buttons as control themes (`Theme="{StaticResource Ordinary}"`), by the
+  same names. `TheLookOnLinux` reads the Windows app's own palette files and
+  holds the Linux one to them. The window follows the desktop's light or
+  dark scheme, live, seen on KDE. The face is Inter, carried in the app.
+- **Ink, size and face are set on the window and inherited**, never by a
+  style on `TextBlock`: that reaches the words inside every button and beats
+  what the button asked for.
+- **A fault planted with a pattern across two lines does not plant on the
+  VM**, where the files arrive with CRLF. Plant by position in the file, and
+  have the script say NOT PLANTED when nothing changed.
+- **`pkill -f` with the app's path kills the shell that typed it**, since the
+  path is in that shell's own command line. `pkill -x DiscWright.Linu`.
+- Next: the rest of the look (the checkbox, the dropdown, the tree of games
+  and its rows, list rows, the drawer, the scrollbars, the text box), then
+  the main window a section at a time over `MakeADisc`, then the four
+  dialogs and a box for refusals, then the composition root with a Linux
+  `TheMachine`. The root of a disc assumed to be a drive letter waits for the
+  Linux recorder, and burning waits for a real machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.

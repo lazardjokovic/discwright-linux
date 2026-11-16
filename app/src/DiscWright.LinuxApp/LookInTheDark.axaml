@@ -1,0 +1,30 @@
+<!--
+    The same brushes as Look.axaml, answered darkly.
+
+    Only brushes live here, and they are LookInTheDark.xaml's in the Windows
+    app, figure for figure: a test reads that file and holds this one to it.
+    Every size, weight, shape and style is Look.axaml's and never forks.
+
+    Look.axaml names this file as its answer for the dark, and Avalonia swaps
+    the two when the look changes. That only works because every reference to
+    a palette brush is a DynamicResource.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <SolidColorBrush x:Key="Ink" Color="#E6E9EB" />
+    <SolidColorBrush x:Key="Quiet" Color="#9AA6AE" />
+    <SolidColorBrush x:Key="Accent" Color="#2FA7AF" />
+    <SolidColorBrush x:Key="AccentPressed" Color="#3DBAC2" />
+    <SolidColorBrush x:Key="Page" Color="#1B1F23" />
+    <SolidColorBrush x:Key="Panel" Color="#23282D" />
+    <SolidColorBrush x:Key="Edge" Color="#3A4147" />
+    <SolidColorBrush x:Key="Dead" Color="#4A545B" />
+
+    <!-- A refusal and a worry must not look the same here either. -->
+    <SolidColorBrush x:Key="RefusalInk" Color="#E4756F" />
+    <SolidColorBrush x:Key="WorryInk" Color="#D4A72C" />
+
+    <SolidColorBrush x:Key="InkOnAccent" Color="#FFFFFF" />
+
+</ResourceDictionary>

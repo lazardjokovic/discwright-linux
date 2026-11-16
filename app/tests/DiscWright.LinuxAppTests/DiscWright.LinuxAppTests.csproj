@@ -33,6 +33,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Where the source tree is, from the suite beside this one, where it
+         sits. These tests read the Windows app's own markup to hold the Linux
+         window to it. -->
+    <Compile Include="../DiscWright.Tests/Repository.cs" Link="Repository.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\DiscWright.LinuxApp\DiscWright.LinuxApp.csproj" />
   </ItemGroup>
 

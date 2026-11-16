@@ -132,10 +132,12 @@ public sealed class AWholeDiscWithoutWindows : IDisposable
     {
         BuiltDisc disc = await TheDisc();
 
-        using SKCodec made = SKCodec.Create(On(disc, "AUTORUN/background.png"));
+        // From its bytes and not by its path, so nothing here can be holding
+        // the file when the folder is cleared away.
+        using SKBitmap made = SKBitmap.Decode(File.ReadAllBytes(On(disc, "AUTORUN/background.png")));
 
-        Assert.Equal(760, made.Info.Width);
-        Assert.Equal(480, made.Info.Height);
+        Assert.Equal(760, made.Width);
+        Assert.Equal(480, made.Height);
     }
 
     [Fact]
