@@ -1,0 +1,24 @@
+<!--
+    The main window, on Linux.
+
+    Empty so far. What is here already is what MainWindow.xaml in the Windows
+    app says about the window itself, with its reasons: drawn at 920 by 740 and
+    resizable in height only. The games list lines its sizes up at a fixed
+    width (AThingOnTheDisc.HowWideTheNameIs), so narrower cut the sizes off and
+    wider left them stranded in the middle of the list. The width is held at
+    what was drawn.
+
+    Everything an automated test touches carries an AutomationId, set here and
+    never left to the framework to invent, and by the same names as the
+    Windows window.
+-->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="DiscWright.LinuxApp.MainWindow"
+        Title="DiscWright"
+        Icon="/DiscWright.ico"
+        Width="920" Height="740"
+        MinHeight="560" MinWidth="920" MaxWidth="920"
+        WindowStartupLocation="CenterScreen"
+        AutomationProperties.AutomationId="TheWindow">
+</Window>

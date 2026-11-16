@@ -1,0 +1,14 @@
+<!--
+    No window is named here. It is built in code, because it will be handed the
+    screen it shows and the machine it reads, and a window the framework
+    constructs for itself can be handed nothing. The same as App.xaml in the
+    Windows app.
+-->
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="DiscWright.LinuxApp.App"
+             RequestedThemeVariant="Default">
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+</Application>

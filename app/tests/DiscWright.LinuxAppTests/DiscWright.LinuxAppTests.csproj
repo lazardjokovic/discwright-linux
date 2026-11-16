@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Linux window's own tests, which open the real window with no screen.
+
+    A project of its own for two reasons. The Windows suite could never
+    reference its window, because a test project cannot reference a WPF
+    executable, and here it can. And Avalonia's test support is built on xunit
+    v3, while the suite beside this is on xunit 2: run under 2 it stops before
+    the first test with "Could not find app host executable" (measured
+    2026-11-16). So this is an xunit v3 project, which is a program, hence Exe.
+
+    Every test here draws with real Skia rather than a stand-in, so a window
+    that cannot be drawn fails here and not on somebody's desktop.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="12.1.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DiscWright.LinuxApp\DiscWright.LinuxApp.csproj" />
+  </ItemGroup>
+
+</Project>

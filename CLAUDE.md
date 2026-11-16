@@ -133,7 +133,8 @@ These are the owner's, carried over from the Windows project. Follow them here.
 - **One PR at a time.** Merge, wait, update the next branch, then merge it.
   Merging two at once left one behind main.
 - **`main` is protected, the same as in the Windows repo.** Changes arrive only by
-  a squash-merged PR, with both CI jobs (`pytest (3.10)`, `pytest (3.12)`)
+  a squash-merged PR, with all four required checks (`pytest (3.10)`,
+  `pytest (3.12)`, and since 2026-11-16 `windows suite` and `linux suite`)
   passing on a branch that is up to date with `main`. No force pushes, no
   deleting `main`, and `v*` release tags cannot be moved or deleted once pushed.
   If a CI job is renamed, the required check in the `main` ruleset has to be
@@ -208,11 +209,29 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   tests are written in the machine's own paths and run on both systems.
 - **A run on the VM sends what is committed** (`git archive HEAD:app`), never
   the working folder. An ignored file once passed there and failed in CI.
-- Next: one test that builds a whole disc on Linux, from a folder of game
-  files to an ISO, with all of the above wired together. Then mount that ISO
-  on Windows and see its menu run, which nobody has done with this code. Then
-  the Avalonia window. The root of a disc assumed to be a drive letter waits
-  for the Linux recorder, and burning waits for a real machine with a drive.
+- A whole disc is built on Linux by one test (`AWholeDiscWithoutWindows`),
+  and an image made that way mounts on Windows with every file intact. Nobody
+  has yet watched its menu run.
+- **`app/src/DiscWright.LinuxApp`** is the window, Avalonia 12, the twin of
+  `DiscWright.App` over the same view models. So far it is the window itself
+  and nothing in it. **`app/tests/DiscWright.LinuxAppTests`** opens it for
+  real with no screen and draws it with real Skia; it is an xunit v3 project
+  because Avalonia's test support is, so it runs as its own step and is not
+  counted in the number `DEVELOPING.md` gives.
+- **SkiaSharp in `DiscWright.Linux` is the version Avalonia brings**, and has
+  to follow it. Two versions in one app passed every test and died as the
+  published file started. `tools/see-the-published-app-start.sh` publishes
+  the one file and looks for its window, and CI runs it under `xvfb-run`.
+- The third spike (size, start-up, KDE's folder picker, pressing a button
+  with no screen) is written up in `DiscWright-Lab\linux-plan\spike-3.md`.
+- A project's name has no second dot (`LinuxApp`, not `App.Linux`): `TheReadme`
+  reads the table of projects with a pattern that stops at one.
+- Next: the look (the Windows app's eleven colours in light and dark, its
+  text and button styles, as Avalonia styles), then the main window a section
+  at a time over `MakeADisc`, then the four dialogs and a box for refusals,
+  then the composition root with a Linux `TheMachine`. The root of a disc
+  assumed to be a drive letter waits for the Linux recorder, and burning
+  waits for a real machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.

@@ -50,7 +50,12 @@ public class TheArchitecture
         // no WPF, no Windows and no Platform here, so they can be tested with
         // no machine and so the choice of window framework stays cheap to
         // change.
-        ["DiscWright.ViewModels"] = ["DiscWright.Staging"]
+        ["DiscWright.ViewModels"] = ["DiscWright.Staging"],
+
+        // The Linux window. It IS in this list, unlike the Windows one,
+        // because what it may reach is short and exact: the view models, and
+        // the two projects that give a Linux machine's answers.
+        ["DiscWright.LinuxApp"] = ["DiscWright.ViewModels", "DiscWright.Machine", "DiscWright.Linux"]
 
         // The window reaches Imaging and Platform as well, which is the whole
         // of its job: it is the one place that knows the real answers are
@@ -109,13 +114,40 @@ public class TheArchitecture
         string[] offenders =
         [
             .. ProjectsUnderSource()
-                .Where(project => project.References.Contains("DiscWright.App"))
+                .Where(project => project.References.Contains("DiscWright.App")
+                    || project.References.Contains("DiscWright.LinuxApp"))
                 .Select(project => project.Project)
         ];
 
         Assert.True(
             offenders.Length == 0,
             "The window must be referenced by nothing, and is referenced by: " + string.Join(", ", offenders));
+    }
+
+    [Fact]
+    public void Nothing_Windows_reaches_anything_Linux_and_nothing_Linux_anything_Windows()
+    {
+        string[] windows = ["DiscWright.App", "DiscWright.Platform", "DiscWright.Imaging", "DiscWright.Burning"];
+        string[] linux = ["DiscWright.LinuxApp", "DiscWright.Linux"];
+
+        // The two apps share the middle and nothing else. A Windows project
+        // that reached a Linux one would carry xorriso's name into the Windows
+        // app, and the other way round the Linux app would not build on Linux
+        // at all. Machine is on neither side: it is plain .NET, and it is
+        // what the Linux app has in place of half of Platform.
+        string[] crossed =
+        [
+            .. ProjectsUnderSource()
+                .SelectMany(project => project.References
+                    .Where(reference =>
+                        (windows.Contains(project.Project) && linux.Contains(reference))
+                        || (linux.Contains(project.Project) && windows.Contains(reference)))
+                    .Select(reference => $"{project.Project} -> {reference}"))
+        ];
+
+        Assert.True(
+            crossed.Length == 0,
+            "A Windows project and a Linux one must not reference each other: " + string.Join("; ", crossed));
     }
 
     [Fact]
