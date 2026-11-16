@@ -42,7 +42,7 @@ mkdir -p "$home" "$room/unpacked"
 # A PATH with what the script uses and no xorriso on it, for asking what it
 # says on a machine without one, whatever this machine has.
 mkdir "$room/bin"
-for tool in sh cp mv rm chmod sed mkdir dirname; do
+for tool in sh cp mv rm chmod sed mkdir dirname cat; do
   ln -s "$(command -v $tool)" "$room/bin/$tool"
 done
 
@@ -155,6 +155,30 @@ check "without xorriso it says what to type on Ubuntu" grep -q "sudo apt install
 check "and on Fedora" grep -q "sudo dnf install xorriso" "$room/said-without.txt"
 check "and on Arch" grep -q "sudo pacman -S libisoburn" "$room/said-without.txt"
 check "and it is in all the same" test -x "$program"
+
+# The libraries of the system's it leans on. What the system can load is
+# asked of ldconfig, so an ldconfig that answers as this test tells it to
+# stands on the PATH, in front of the real one.
+answer() { printf '#!/bin/sh\ncat <<LIST\n%s\nLIST\n' "$1" > "$room/bin/ldconfig"; chmod 755 "$room/bin/ldconfig"; }
+loadable() { for each in "$@"; do printf '\t%s (libc6,x86-64) => /usr/lib/x86_64-linux-gnu/%s\n' "$each" "$each"; done; }
+
+answer "$(loadable libfontconfig.so.1 libX11.so.6 libICE.so.6 libSM.so.6 libc.so.6)"
+install "$room/bin" "$here/install.sh" > "$room/said-all-there.txt" 2>&1
+check "with every library there, it says nothing about libraries" sh -c "! grep -q 'libraries every desktop has' '$room/said-all-there.txt'"
+
+answer "$(loadable libX11.so.6 libSM.so.6 libc.so.6)"
+install "$room/bin" "$here/install.sh" > "$room/said-two-missing.txt" 2>&1
+check "with two missing, it names the two" grep -q "this system is missing: libfontconfig.so.1 libICE.so.6\$" "$room/said-two-missing.txt"
+check "and what brings them on Ubuntu" grep -qx "  Ubuntu, Debian, Mint:  sudo apt install libfontconfig1 libice6" "$room/said-two-missing.txt"
+check "and on Fedora" grep -qx "  Fedora:                sudo dnf install fontconfig libICE" "$room/said-two-missing.txt"
+check "and on Arch" grep -qx "  Arch, Manjaro:         sudo pacman -S fontconfig libice" "$room/said-two-missing.txt"
+check "and it is in all the same, since that is for the system to mend" test -x "$program"
+
+# A system that cannot say what it can load has not said anything is missing.
+answer ""
+install "$room/bin" "$here/install.sh" > "$room/said-no-answer.txt" 2>&1
+check "with no answer from the system, it says nothing about libraries" sh -c "! grep -q 'libraries every desktop has' '$room/said-no-answer.txt'"
+rm "$room/bin/ldconfig"
 
 # ----------------------------------------------- started the way a menu would
 

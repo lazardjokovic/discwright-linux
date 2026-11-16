@@ -26,6 +26,11 @@ not install by default. install.sh says so if it is missing:
     Fedora:                sudo dnf install xorriso
     Arch, Manjaro:         sudo pacman -S libisoburn
 
+It needs nothing else on a desktop. It draws its window with four libraries
+every desktop already has (fontconfig, X11, ICE and SM), so on a system with
+no desktop on it one may be missing. install.sh says which and what to
+type, and so does DiscWright itself when it is started from a terminal.
+
 This version builds the disc and its ISO. It does not burn yet: K3b, Brasero
 or Xfburn will burn the ISO it makes.
 
