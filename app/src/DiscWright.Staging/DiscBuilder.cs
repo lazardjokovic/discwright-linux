@@ -85,6 +85,25 @@ public sealed class DiscBuilder(
         PlannedBuild build = ((Outcome<PlannedBuild>.Ok)planned).Value;
         List<BuiltDisc> made = [];
 
+        // The folder everything goes into, made now and on its own, so that
+        // a place nothing can be written to is said as that. Left to the
+        // first step that writes, it arrived as an exception nobody had
+        // named, and the window called it something worth reporting: found
+        // on 2026-11-16 by typing a folder that cannot be made and pressing
+        // Build. A typing mistake, a stick that is read only and a folder
+        // somebody else owns are all ordinary, and none is worth reporting.
+        //
+        // After the plan, so a disc that was never going to be built leaves
+        // no empty folder behind it.
+        try
+        {
+            writer.MakeFolder(outputFolder);
+        }
+        catch (Exception wrong) when (wrong is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            return Refusals.ThatFolderCannotBeWrittenTo(outputFolder, wrong.Message);
+        }
+
         foreach (PlannedOutput output in build.Outputs)
         {
             ct.ThrowIfCancellationRequested();
