@@ -1,0 +1,87 @@
+<!--
+    One out of several, where picking for somebody would be guessing.
+    Things in this program refuse to guess rather than choose: which file
+    starts a game, which drive, which image. They end up here.
+
+    PickOne.xaml in the Windows app, under the same names.
+-->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="using:DiscWright.LinuxApp"
+        x:Class="DiscWright.LinuxApp.PickOne"
+        x:DataType="app:PickOne"
+        Title="DiscWright"
+        Icon="/DiscWright.ico"
+        SizeToContent="Height"
+        Width="520"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        AutomationProperties.AutomationId="PickOne">
+
+    <StackPanel Margin="24,20,24,18">
+        <TextBlock Classes="Title"
+                   FontSize="17"
+                   Text="{Binding Headline}"
+                   TextWrapping="Wrap"
+                   AutomationProperties.AutomationId="Headline" />
+
+        <TextBlock Margin="0,8,0,0"
+                   Text="{Binding Because}"
+                   AutomationProperties.AutomationId="Because" />
+
+        <Border Margin="0,16,0,0"
+                Background="{DynamicResource Panel}"
+                BorderBrush="{DynamicResource Edge}"
+                BorderThickness="1"
+                CornerRadius="4">
+            <!-- NOTHING CHOOSES ITSELF HERE. No row is named as chosen in
+                 this file. Which row starts chosen is the code's business,
+                 per question, because for erasing the answer cannot be taken
+                 back. -->
+            <ListBox x:Name="TheList"
+                     ItemsSource="{Binding Choices}"
+                     SelectionChanged="SomethingWasChosen"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     MaxHeight="220"
+                     Padding="4"
+                     AutomationProperties.AutomationId="Choices">
+                <!-- These rows are already plain words. The rule is kept
+                     absolute all the same: the moment somebody binds this to
+                     objects instead, a reader would start announcing the
+                     whole of each one. -->
+                <ListBox.ItemContainerTheme>
+                    <ControlTheme TargetType="ListBoxItem"
+                                  BasedOn="{StaticResource {x:Type ListBoxItem}}"
+                                  x:DataType="x:String">
+                        <Setter Property="AutomationProperties.Name" Value="{Binding}" />
+                    </ControlTheme>
+                </ListBox.ItemContainerTheme>
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <TextBlock Text="{Binding}" Margin="6,7" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <Grid Margin="0,16,0,0" ColumnDefinitions="*,Auto,Auto">
+            <Button Grid.Column="1"
+                    Content="Cancel"
+                    Theme="{StaticResource Ordinary}"
+                    Margin="0,0,8,0"
+                    Click="NoneOfThem"
+                    IsCancel="True"
+                    AutomationProperties.AutomationId="NoneOfThem" />
+
+            <Button x:Name="TheButton"
+                    Grid.Column="2"
+                    Content="Use that one"
+                    Theme="{StaticResource TheButton}"
+                    Click="TakeThatOne"
+                    IsDefault="True"
+                    AutomationProperties.AutomationId="TakeThatOne" />
+        </Grid>
+    </StackPanel>
+</Window>

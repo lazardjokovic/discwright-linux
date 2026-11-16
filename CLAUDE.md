@@ -340,8 +340,20 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - Not on the list yet: Add a game and the preview button above it, drag and
   drop, the link that turns a manual into an extra, and the picked game's
   own manual and extras. Games reach the list in tests through the screen.
+- **`WhatElseWasInThere` in `ViewModels`** is everything the "what else was
+  in that folder" question knows, with no window in it, and with tests in
+  the shared suite. On Windows the same logic is inside the dialog's code
+  and untested. The Windows dialog is not touched and keeps its own copy
+  until the two apps are brought together.
+- **All four question windows exist here**: `WorthAsking`, `SayingSo`,
+  `WhatElseIsInThere` (over the class above) and `PickOne`. Each is awaited.
+  `WhatElseIsInThere` writes its question and answer to the log, which the
+  Windows one does not.
+- **A double press on a list takes a row on the second press going down**,
+  so the window is gone before the pointer comes up. A test that sends the
+  release anyway throws on a disposed window.
 - Next: Add a game (the folder picker through `IAskTheDesktop`, the walk on
-  a worker as decided above, `WhatElseIsInThere` and `PickOne`), then the
+  a worker as decided above, over the four question windows), then the
   right hand column, then building. The root of a disc assumed to be a
   drive letter waits for the Linux recorder, and burning waits for a real
   machine with a drive.
