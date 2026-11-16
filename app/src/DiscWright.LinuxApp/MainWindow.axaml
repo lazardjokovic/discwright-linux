@@ -242,13 +242,7 @@
                      new window needs: on an empty window the one thing to do
                      sat below a large blank box. Above the panel rather than
                      inside it, because a button inside is covered by the
-                     tree and cannot be pressed.
-
-                     The button that shows what the menu will look like is
-                     not here yet. On Windows it sits at the right of this
-                     row. The menu is a Windows page, and what a Linux
-                     DiscWright says in that button's place is a pull request
-                     of its own. -->
+                     tree and cannot be pressed. -->
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,8" ColumnDefinitions="Auto,*">
                     <StackPanel Grid.Column="0" Orientation="Horizontal">
                         <Button Content="Add a game"
@@ -257,6 +251,30 @@
                                 Click="AddAGame"
                                 AutomationProperties.AutomationId="AddAGame" />
                     </StackPanel>
+
+                    <!-- Dead here, always, and it says why. On Windows this
+                         opens the disc's own menu, in the thing that will
+                         open it on the disc, which is the whole point of it:
+                         a second drawing of the menu that only looked
+                         similar would be a preview that drifts from the
+                         disc. The menu is a Windows page, and nothing on a
+                         Linux desktop draws one.
+
+                         There and dead rather than left off, so that
+                         somebody who knows the Windows app does not go
+                         looking for it, and so that what a disc will carry
+                         is not a surprise. The owner's decision on
+                         2026-11-15. The reason shows on hover, which a dead
+                         button does not do unless it is told to. -->
+                    <Button Grid.Column="1"
+                            Content="See what it will look like"
+                            Theme="{StaticResource Ordinary}"
+                            HorizontalAlignment="Right"
+                            Margin="8,0,0,0"
+                            IsEnabled="False"
+                            ToolTip.ShowOnDisabled="True"
+                            ToolTip.Tip="The menu is a Windows page, and nothing on Linux can show one, so there is no looking at it here. It goes on the disc all the same, and opens on Windows."
+                            AutomationProperties.AutomationId="PreviewTheMenu" />
                 </Grid>
 
                 <Border Background="{DynamicResource Panel}"
