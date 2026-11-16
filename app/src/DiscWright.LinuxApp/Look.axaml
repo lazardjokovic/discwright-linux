@@ -1,0 +1,293 @@
+<!--
+    Every colour, size and weight the window uses, in one place.
+
+    The twin of Look.xaml in the Windows app, and held to it: the palette is
+    that file's, figure for figure, and so is every size and weight below. What
+    differs is how it is said. WPF styles answer a change with triggers, and
+    Avalonia's with selectors, so this is that file written again and not
+    copied, with each of its reasons carried across where the reason still
+    holds here and left behind where it was about WPF alone.
+
+    Where the Windows window writes Style="{StaticResource Title}" on a piece
+    of text, this one writes Classes="Title". Where it writes
+    Style="{StaticResource Ordinary}" on a button, this one writes
+    Theme="{StaticResource Ordinary}". The names are the same.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Styles.Resources>
+        <ResourceDictionary>
+
+            <!-- The palette from the design canvas, and nothing beyond it.
+                 The light look is here and the dark one is in its own file,
+                 as on Windows, and every reference to one of these is a
+                 DynamicResource: resolved statically it would be answered
+                 once, for ever, in whichever look the window opened in. -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="Ink" Color="#16191C" />
+                    <SolidColorBrush x:Key="Quiet" Color="#5B6871" />
+                    <SolidColorBrush x:Key="Accent" Color="#0E7C84" />
+                    <SolidColorBrush x:Key="AccentPressed" Color="#0A5F66" />
+                    <SolidColorBrush x:Key="Page" Color="#F4F5F6" />
+                    <SolidColorBrush x:Key="Panel" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="Edge" Color="#DEE2E4" />
+                    <SolidColorBrush x:Key="Dead" Color="#B9C0C4" />
+
+                    <!-- A refusal and a worry must not look the same. One
+                         stops the build and the other is only worth knowing. -->
+                    <SolidColorBrush x:Key="RefusalInk" Color="#A3302C" />
+                    <SolidColorBrush x:Key="WorryInk" Color="#8A5A00" />
+
+                    <!-- The words on the accent button. A brush rather than
+                         the word White, so the dark look could change its mind
+                         about it, and so no colour in this file is written
+                         where the palette cannot see it. -->
+                    <SolidColorBrush x:Key="InkOnAccent" Color="#FFFFFF" />
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Dark">
+                    <ResourceDictionary.MergedDictionaries>
+                        <ResourceInclude Source="/LookInTheDark.axaml" />
+                    </ResourceDictionary.MergedDictionaries>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- Inter, carried inside the app. The Windows window is drawn in
+                 Segoe UI, which no Linux machine has, and which faces a Linux
+                 machine does have differs from one to the next. -->
+            <FontFamily x:Key="Face">fonts:Inter#Inter</FontFamily>
+
+            <!-- An ordinary button: the things somebody does on the way. -->
+            <!-- Every button in the program is this shape. The one that
+                 matters wears the accent colour and a heavier weight, and is
+                 otherwise the same size, because a button that is both bigger
+                 and brighter than its neighbour looks like a different kind of
+                 thing rather than a louder one. -->
+            <ControlTheme x:Key="Ordinary" TargetType="Button">
+                <Setter Property="FontFamily" Value="{StaticResource Face}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="Background" Value="{DynamicResource Panel}" />
+                <Setter Property="Padding" Value="16,8" />
+                <Setter Property="MinHeight" Value="36" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border x:Name="Shape"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{DynamicResource Edge}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                            <!-- Bound, not fixed. Centre is still the answer
+                                 for almost every button here, and a button
+                                 that is as wide as a column reads better with
+                                 its words at the edge the labels start at. -->
+                            <!-- A TextBlock of our own, by name, as on
+                                 Windows, so the words can be found and their
+                                 ink asked after by a test. -->
+                            <TextBlock x:Name="Words"
+                                       Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       FontFamily="{TemplateBinding FontFamily}"
+                                       FontWeight="{TemplateBinding FontWeight}"
+                                       TextWrapping="NoWrap"
+                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                       VerticalAlignment="Center"
+                                       Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^:pointerover /template/ Border#Shape">
+                    <Setter Property="Background" Value="{DynamicResource Page}" />
+                </Style>
+
+                <!-- Remove and Burn to a disc were once disabled on Windows
+                     and drew their words in #16191C, the same ink as the live
+                     button beside them, measured off a photograph of the
+                     window. The cursor goes with it: a hand over a button that
+                     cannot be pressed is the same lie told a second way. -->
+                <Style Selector="^:disabled">
+                    <Setter Property="Foreground" Value="{DynamicResource Dead}" />
+                    <Setter Property="Cursor" Value="Arrow" />
+                </Style>
+            </ControlTheme>
+
+            <!-- The one button that makes the thing. There is exactly one on
+                 the window, and it is the only thing wearing the accent
+                 colour. -->
+            <ControlTheme x:Key="TheButton" TargetType="Button">
+                <Setter Property="FontFamily" Value="{StaticResource Face}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="{DynamicResource InkOnAccent}" />
+                <Setter Property="Background" Value="{DynamicResource Accent}" />
+                <Setter Property="Padding" Value="16,8" />
+                <Setter Property="MinHeight" Value="36" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border x:Name="Shape"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="4">
+                            <TextBlock x:Name="Words"
+                                       Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       FontFamily="{TemplateBinding FontFamily}"
+                                       FontWeight="{TemplateBinding FontWeight}"
+                                       TextWrapping="NoWrap"
+                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                       VerticalAlignment="Center"
+                                       Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^:pressed /template/ Border#Shape">
+                    <Setter Property="Background" Value="{DynamicResource AccentPressed}" />
+                </Style>
+
+                <!-- Dead rather than hidden, so somebody can see what they are
+                     working towards. -->
+                <Style Selector="^:disabled /template/ Border#Shape">
+                    <Setter Property="Background" Value="{DynamicResource Dead}" />
+                </Style>
+
+                <!-- The words as well as the background. White on the dead
+                     grey is barely there. Quiet is muted enough to read as
+                     dead and dark enough to still be read. -->
+                <Style Selector="^:disabled">
+                    <Setter Property="Foreground" Value="{DynamicResource Quiet}" />
+                    <Setter Property="Cursor" Value="Arrow" />
+                </Style>
+            </ControlTheme>
+
+            <!--
+                For the version line: pressable, and no heavier on the page
+                than the quiet sentence above it. The same size and the same
+                grey as Aside, because it sits directly under one and two greys
+                a pixel apart look like a mistake rather than a distinction.
+                The hand and the underline on hover are the whole of what says
+                it can be pressed.
+            -->
+            <ControlTheme x:Key="Quietly" TargetType="Button">
+                <Setter Property="FontFamily" Value="{StaticResource Face}" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="Foreground" Value="{DynamicResource Quiet}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <!-- The paper is here so the whole line can be
+                             pressed and not only the ink of its letters. -->
+                        <Border Background="{TemplateBinding Background}">
+                            <TextBlock x:Name="Words"
+                                       Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       FontFamily="{TemplateBinding FontFamily}"
+                                       TextWrapping="NoWrap" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^:pointerover /template/ TextBlock#Words">
+                    <Setter Property="TextDecorations" Value="Underline" />
+                    <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+                </Style>
+
+                <!-- After the hover, so it wins: a dead link underlined in
+                     the accent colour is the loudest thing on the window. -->
+                <Style Selector="^:disabled /template/ TextBlock#Words">
+                    <Setter Property="Foreground" Value="{DynamicResource Dead}" />
+                    <Setter Property="TextDecorations" Value="{x:Null}" />
+                </Style>
+
+                <Style Selector="^:disabled">
+                    <Setter Property="Cursor" Value="Arrow" />
+                </Style>
+            </ControlTheme>
+
+            <!-- A link that reads as a link before it is hovered: the accent
+                 ink is what says it can be pressed. Quietly above is for a
+                 pressable line that must not be louder than the sentence it
+                 sits under; this is for one that was being missed, the
+                 owner's words on 2026-11-09 about Take it off the list sitting
+                 quiet in its corner. The underline still waits for the hover,
+                 because an underline at rest beside ordinary text reads as
+                 emphasis rather than as a control. Everything else, the hand,
+                 the hover, the dead grey when it cannot be pressed, is
+                 Quietly's. -->
+            <ControlTheme x:Key="AsALink" TargetType="Button" BasedOn="{StaticResource Quietly}">
+                <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+            </ControlTheme>
+
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <!-- What every window starts from: the page, the face, the ink and the
+         size of ordinary words. Said on the window and inherited, and not on
+         every TextBlock: a setter on TextBlock itself reaches the words
+         inside every button as well and beats the ink the button asked for,
+         which is the fault Look.xaml describes finding on Windows. -->
+    <Style Selector="Window">
+        <Setter Property="Background" Value="{DynamicResource Page}" />
+        <Setter Property="FontFamily" Value="{StaticResource Face}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    </Style>
+
+    <Style Selector="TextBlock">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.Title">
+        <Setter Property="FontSize" Value="21" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <Style Selector="TextBlock.Step">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Quiet}" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <Style Selector="TextBlock.Aside">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource Quiet}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="ProgressBar">
+        <Setter Property="Height" Value="4" />
+        <Setter Property="MinHeight" Value="4" />
+        <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+        <Setter Property="Background" Value="{DynamicResource Page}" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <!-- What hovering says, on the palette's paper rather than the theme's. -->
+    <Style Selector="ToolTip">
+        <Setter Property="FontFamily" Value="{StaticResource Face}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+        <Setter Property="Background" Value="{DynamicResource Panel}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Edge}" />
+        <Setter Property="Padding" Value="10,7" />
+    </Style>
+
+</Styles>

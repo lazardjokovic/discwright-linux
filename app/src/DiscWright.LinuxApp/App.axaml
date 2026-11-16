@@ -10,5 +10,8 @@
              RequestedThemeVariant="Default">
     <Application.Styles>
         <FluentTheme />
+
+        <!-- After the theme, so that where both speak ours is the one heard. -->
+        <StyleInclude Source="/Look.axaml" />
     </Application.Styles>
 </Application>
