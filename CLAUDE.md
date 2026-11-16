@@ -473,10 +473,43 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   fell over in its display driver on a pointer event at load 16, and the
   session came back with no panel. `sudo systemctl reboot` and forty
   seconds put it right.
+- **The tarball is made** (`tools/make-the-linux-tarball.sh`, leaving
+  `artifacts/DiscWright-linux-x64.tar.gz`): the one file, called
+  `DiscWright`, with `install.sh`, the menu entry, the icons and a few
+  words, from `packaging/linux`. CI makes it on every pull request and
+  keeps it with the run as `DiscWright-linux-x64`. Not a release, and no
+  version in its name: what a Linux DiscWright's version is has not been
+  decided.
+- **`install.sh` stays under the home folder**: the program to
+  `~/.local/bin/DiscWright`, the entry and icons under `~/.local/share`.
+  `--uninstall` takes those out and `~/.net/DiscWright`, where the one
+  file unpacks its two drawing libraries the first time it runs. Settings
+  and logs are left, and it says where they are.
+- **`tools/see-the-linux-tarball-install.sh`** installs the tarball into
+  an empty home with a space in its name, starts it, and takes it out,
+  one "ok:" or "FAILED:" a line. On its first run it found the entry
+  with carriage returns in it, two main categories, and `~/.net` left
+  behind.
+- **Everything under `app/` is checked out CRLF unless `.gitattributes`
+  says otherwise**, and `git archive` writes it that way. A menu entry
+  with a carriage return is refused by the desktop. `*.desktop` and
+  `packaging/linux/*.txt` are LF now, and the tarball script refuses to
+  pack a text file with one in it.
+- **A window gives the desktop two names**: `WM_CLASS = "DiscWright",
+  "DiscWright.LinuxApp"`. The first is the file's name and moves when the
+  file is renamed; the second, the class, is the program's own. The entry's
+  `StartupWMClass` is the class. Avalonia 12 has no setting for either.
+- **The icons in the tarball are made from `DiscWright.ico`** each time, by
+  `tools/icons-out-of-the-ico.py`, so there is no second set of pictures
+  to fall behind.
+- Seen on the VM's KDE desktop: installed, found in the launcher as
+  "DiscWright, Game disc builder" with its icon, started from there, and
+  named with its icon in the task bar. Not seen: a machine that has never
+  had .NET on it, GNOME, and any distribution but Ubuntu 26.04.
 - Not on the window yet: the drive picker and what is in the drive, and
   the version link.
-- Next: the recorder, which needs a real machine with a drive; packaging
-  (AppImage and tarball); and a GNOME desktop to look at.
+- Next: the AppImage, which carries xorriso inside it; then the recorder,
+  which needs a real machine with a drive; and a GNOME desktop to look at.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.

@@ -18,6 +18,12 @@
 *.sh text eol=lf
 *.py text eol=lf
 
+# What goes into the Linux download as it stands. A menu entry with a
+# carriage return in it is refused by the desktop, and the download is
+# sometimes put together from a checkout on Windows.
+*.desktop              text eol=lf
+packaging/linux/*.txt  text eol=lf
+
 *.png  binary
 *.jpg  binary
 *.ico  binary
