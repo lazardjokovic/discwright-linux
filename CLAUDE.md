@@ -391,14 +391,23 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   the bottom line by position, make the window shorter first
   (`xdotool windowsize`), and read the height it really took. Fitting the
   window to the screen (`OnThisScreen` on Windows) is not carried yet.
+- **The preview button is on the window, dead, and says why on hover**
+  (`ToolTip.ShowOnDisabled`): the menu is a Windows page and nothing on
+  Linux shows one. The owner's decision of 2026-11-15.
+- **Fitting the window to the screen is written and parked**, on the branch
+  `fitting-the-linux-window-to-its-screen`, not merged. On KDE the window
+  opens at 920 by 686 on a 768 tall screen with or without it (measured both
+  ways with the published file): Plasma's window manager shrinks a window to
+  fit by itself. A line that changes nothing on any desktop there is to try
+  it on is not merged. Try the branch on GNOME when there is one.
 - Not on the window yet: the drive picker and what is in the drive, the
-  window for artwork, music and extras, the preview button, drag and drop,
-  the link that turns a manual into an extra, the picked game's own manual
-  and extras, the version link, fitting the screen, and the Linux name and
-  icon files as a disc option.
-- Next, in the order I would take them: fitting the window to the screen;
-  the artwork, music and extras window; the smaller things in the list
-  above; then the recorder, which needs a real machine with a drive.
+  window for artwork, music and extras, drag and drop, the link that turns
+  a manual into an extra, the picked game's own manual and extras, the
+  version link, and the Linux name and icon files as a disc option.
+- Next, in the order I would take them: the artwork, music and extras
+  window; the Linux name and icon as a disc option (on by default here, off
+  on Windows); the smaller things in the list above; then the recorder,
+  which needs a real machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.
