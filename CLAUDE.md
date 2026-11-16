@@ -634,6 +634,20 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - **Add a game always has a folder picker to open**, seen three ways: the
   desktop's portal on KDE, GTK's with no session bus to find the portal
   on, and Avalonia's own in a container with neither.
+- **A folder the discs cannot be built in is a refusal of its own**
+  (`Refusals.ThatFolderCannotBeWrittenTo`). `DiscBuilder` makes the folder
+  first, after the plan, and says so when it cannot. Before, a folder
+  typed wrong reached the window as "Something went wrong... worth
+  reporting". **Shared code, so the Windows app says it too** once this
+  is moved there. Found by typing `/proc/discs` on the real window.
+- **Still not accounted for in either app**: the disk filling up part of
+  the way through, and a game's file that has gone or cannot be read by
+  the time it is copied. Both arrive as a fault nobody expected. They
+  want refusals of their own, and words that are the owner's to settle.
+- **A path in a refusal is in the system's own words too.** A test that
+  looked for the folder anywhere in the refusal found it in what the
+  system said at the end, and passed a refusal that no longer named it.
+  Look for a thing in the sentence that should carry it.
 - Not on the window yet: the drive picker and what is in the drive, and
   the version link.
 - Next: the recorder, which needs a real machine with a drive, and a GNOME

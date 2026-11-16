@@ -99,6 +99,30 @@ public static class Refusals
             new Remedy("Choose a folder", RemedyKind.PickFolder));
 
     /// <summary>
+    /// The folder the discs were to be built into cannot be made.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A folder that was typed wrong, one on a stick that is read only, one
+    /// on a drive that has been unplugged, one this account may not write
+    /// to. All ordinary, and until 2026-11-16 all of them reached the window
+    /// as <see cref="SomethingNobodyExpected"/>, which says the fault is
+    /// worth reporting. It is not: the folder is.
+    /// </para>
+    /// <para>
+    /// The system's own words go last, because they say which of those it
+    /// was, and never first, because "Could not find file" about a folder
+    /// somebody was trying to make is not a sentence anybody can act on.
+    /// </para>
+    /// </remarks>
+    public static Refusal ThatFolderCannotBeWrittenTo(string folder, string theSystemSaid) =>
+        new("That folder cannot be written to",
+            $"The discs were to be built in {folder}, and it cannot be made or written to. "
+                + "It may be somewhere this account may not write, or on something that is read only or no "
+                + "longer plugged in. Choose another folder and build again. Nothing has been laid out."
+                + Environment.NewLine + Environment.NewLine + "The system said: " + theSystemSaid);
+
+    /// <summary>
     /// The label holds characters the system codepage cannot carry, so AutoRun
     /// will show something else.
     /// </summary>

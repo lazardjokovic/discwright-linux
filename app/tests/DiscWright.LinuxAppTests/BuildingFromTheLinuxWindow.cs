@@ -782,6 +782,45 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
         }
     }
 
+    // ------------------------------------------- with nowhere to write the disc
+
+    [AvaloniaFact]
+    public void Told_to_save_where_nothing_can_be_written_it_says_that_and_not_that_it_is_worth_reporting()
+    {
+        (MainWindow window, MakeADisc screen) = AWindow();
+
+        // Inside a file, which is nowhere a folder can be made on any system.
+        string aFile = Path.Combine(_room, "not-a-folder");
+        File.WriteAllText(aFile, "a file, where a folder was asked for");
+        string nowhere = Path.Combine(aFile, "discs");
+
+        screen.Add(AGame());
+        screen.Label = "FIXTURE GAME";
+        screen.OutputFolder = nowhere;
+        Dispatcher.UIThread.RunJobs();
+
+        Press(window, window.Found<Button>("MakeTheDisc"));
+        Until(() => window.OwnedWindows.OfType<SayingSo>().Any(each => each.IsVisible), "it to say so", seconds: 30);
+
+        SayingSo box = window.OwnedWindows.OfType<SayingSo>().Single();
+        string because = box.Found<SelectableTextBlock>("Because").Text!;
+
+        Assert.Equal("That folder cannot be written to", box.Found<TextBlock>("Headline").Text);
+        Assert.StartsWith($"The discs were to be built in {nowhere}, ", because, StringComparison.Ordinal);
+        Assert.Contains("Choose another folder and build again.", because, StringComparison.Ordinal);
+
+        // What it said before: that something went wrong that nobody had
+        // accounted for, and was worth reporting. A folder typed wrong is
+        // neither.
+        Assert.DoesNotContain("worth reporting", because, StringComparison.Ordinal);
+        Assert.DoesNotContain("Something went wrong", box.Found<TextBlock>("Headline").Text, StringComparison.Ordinal);
+
+        Assert.True(screen.NothingIsRunning);
+        Assert.Equal("a file, where a folder was asked for", File.ReadAllText(aFile));
+
+        box.Close();
+    }
+
     // ------------------------------------------------------------ during a run
 
     [AvaloniaFact]
