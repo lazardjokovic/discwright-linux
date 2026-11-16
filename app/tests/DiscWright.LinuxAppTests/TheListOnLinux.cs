@@ -58,24 +58,15 @@ public sealed class TheListOnLinux : IDisposable
 
         Assert.True(nothing.CanBeSeen());
         Assert.Equal(
-            "Nothing yet. Add the folder a game was downloaded into, or the folder it is installed in.",
+            "Nothing yet. Add the folder a game was downloaded into, or the folder it is installed in. "
+                + "Dropping one here works too, the installer's own exe included.",
             nothing.Text);
 
-        // The Windows window goes on to say that dropping a folder here
-        // works. Nothing on this window takes a drop yet, so nothing on it
-        // may say one works: not here, and not anywhere else on it either.
-        Assert.False(
-            Avalonia.Input.DragDrop.GetAllowDrop(window.Found<TreeView>("Games")),
-            "The list takes drops now. Say so on the empty list again, and take this test out.");
-
-        Assert.DoesNotContain(
-            window.GetVisualDescendants().OfType<TextBlock>(),
-            each => (each.Text ?? string.Empty).Contains("drop", StringComparison.OrdinalIgnoreCase));
-
-        // Nor on hover, which is where the next such sentence would hide.
-        Assert.DoesNotContain(
-            window.GetVisualDescendants().OfType<Control>(),
-            each => (ToolTip.GetTip(each) as string ?? string.Empty).Contains("drop", StringComparison.OrdinalIgnoreCase));
+        // Said, because it is so: the panel the list sits in takes drops,
+        // and the list in it does because the panel does. The sentence was
+        // once here without either.
+        Assert.True(Avalonia.Input.DragDrop.GetAllowDrop((Control)window.Found<TreeView>("Games").Parent!.Parent!));
+        Assert.True(Avalonia.Input.DragDrop.GetAllowDrop(window.Found<TreeView>("Games")));
 
         Assert.Empty(TheRows(window));
         Assert.False(window.Found<Border>("TheTotals").IsVisible);
