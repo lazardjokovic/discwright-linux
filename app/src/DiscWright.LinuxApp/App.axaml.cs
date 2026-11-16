@@ -33,6 +33,9 @@ public partial class App : Application
             // file a day under the user's own data, never sent anywhere.
             TheLogOnDisk log = new(TheLogOnDisk.ForThisUser());
 
+            // Every question asked in front of somebody, and what they said.
+            WorthAsking.Log = log;
+
             MakeADisc screen = new(TheLinuxMachine.Composed(log));
 
             // Everything the window says, as it says it.

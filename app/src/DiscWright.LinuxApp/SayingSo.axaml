@@ -1,0 +1,54 @@
+<!--
+    Something said plainly, with one way to answer it: a refusal, or the
+    address of a page no browser would open.
+
+    On Windows these are message boxes, seven of them, and Avalonia has no
+    message box. So this is a window of our own, laid out like WorthAsking
+    beside it. It is also the first time a refusal in a box can be read by a
+    test: a Windows message box is a pane with no patterns on it.
+
+    The headline and what follows it are two pieces of text and not one, so
+    the headline can be the heavier.
+-->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="using:DiscWright.LinuxApp"
+        x:Class="DiscWright.LinuxApp.SayingSo"
+        x:DataType="app:SayingSo"
+        Title="DiscWright"
+        Icon="/DiscWright.ico"
+        SizeToContent="Height"
+        Width="560"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        AutomationProperties.AutomationId="SayingSo">
+
+    <StackPanel Margin="24,20,24,18">
+        <TextBlock Classes="Title"
+                   FontSize="17"
+                   Text="{Binding Headline}"
+                   TextWrapping="Wrap"
+                   AutomationProperties.AutomationId="Headline" />
+
+        <!-- A refusal that is all headline has nothing to put here, and a
+             gap where a sentence should be reads as something missing. -->
+        <SelectableTextBlock Margin="0,8,0,0"
+                             Text="{Binding Because}"
+                             TextWrapping="Wrap"
+                             SelectionBrush="{DynamicResource Accent}"
+                             IsVisible="{Binding HasMoreToSay}"
+                             AutomationProperties.AutomationId="Because" />
+
+        <Grid Margin="0,22,0,0" ColumnDefinitions="*,Auto">
+            <Button Grid.Column="1"
+                    Content="OK"
+                    Theme="{StaticResource TheButton}"
+                    MinWidth="88"
+                    Click="Understood"
+                    IsDefault="True"
+                    IsCancel="True"
+                    AutomationProperties.AutomationId="Understood" />
+        </Grid>
+    </StackPanel>
+</Window>
