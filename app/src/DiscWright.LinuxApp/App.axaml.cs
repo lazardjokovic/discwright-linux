@@ -8,8 +8,8 @@ using DiscWright.ViewModels;
 namespace DiscWright.LinuxApp;
 
 /// <summary>
-/// The Linux app: the one place that will know the real answers are a Linux
-/// machine's, and for now the place that opens the window.
+/// The Linux app: where the window is handed the screen, and the screen the
+/// machine. What the machine is made of is <see cref="TheLinuxMachine"/>.
 /// </summary>
 public partial class App : Application
 {
@@ -29,7 +29,16 @@ public partial class App : Application
             ChoosingTheLook look = new(keptLook.Recalled(), keptLook.Keep);
             WearingTheTheme.Follow(this, look);
 
-            desktop.MainWindow = new MainWindow();
+            // Next, so that everything after it has somewhere to write. One
+            // file a day under the user's own data, never sent anywhere.
+            TheLogOnDisk log = new(TheLogOnDisk.ForThisUser());
+
+            MakeADisc screen = new(TheLinuxMachine.Composed(log));
+
+            // Everything the window says, as it says it.
+            WhatTheLogHears.Listen(screen, log);
+
+            desktop.MainWindow = new MainWindow(screen);
         }
 
         base.OnFrameworkInitializationCompleted();

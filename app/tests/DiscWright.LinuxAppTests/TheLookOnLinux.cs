@@ -88,7 +88,7 @@ public class TheLookOnLinux
 
         WhatWasDrawn.Wearing(look, () =>
         {
-            MainWindow window = new();
+            MainWindow window = TheWindow.WithNothingOnIt();
             window.Show();
 
             // A pixel, not the property: a window whose background was set
@@ -100,7 +100,7 @@ public class TheLookOnLinux
     [AvaloniaFact]
     public void A_window_already_open_changes_with_the_look()
     {
-        MainWindow window = new();
+        MainWindow window = TheWindow.WithNothingOnIt();
         window.Show();
 
         WhatWasDrawn.Wearing(ThemeVariant.Light, () =>

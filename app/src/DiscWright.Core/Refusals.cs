@@ -285,6 +285,19 @@ public static class Refusals
             "Nothing here can write a disc. The image is still in the output folder, and any machine with a "
                 + "writer can burn it.");
 
+    /// <summary>This DiscWright makes the image and does not write the disc yet.</summary>
+    /// <remarks>
+    /// Said by the Linux DiscWright until it has a recorder of its own. Not
+    /// <see cref="ThereIsNoDiscWriter"/>: that one says nothing here can write
+    /// a disc, which on a Linux machine with a drive in it would be false.
+    /// The image is whole and anything that burns images will burn it, so the
+    /// three such programs a Linux desktop is most likely to have are named.
+    /// </remarks>
+    public static Refusal BurningIsNotInThisVersion() =>
+        new("This version does not burn discs yet",
+            "On Linux, DiscWright makes the image and stops there for now. The image is in the output "
+                + "folder, whole, and K3b, Brasero or Xfburn will burn it.");
+
     public static Refusal ThatDriveIsNotHere(string drive) =>
         new($"There is no {drive} to write to",
             "The drive that was chosen is not on this machine any more. Choose again.");
