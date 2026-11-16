@@ -64,6 +64,17 @@ public interface IFileSystem
     /// </remarks>
     string? ReadText(string path) => null;
 
+    /// <summary>
+    /// A file's bytes, or null when there is no such file or it cannot be read.
+    /// </summary>
+    /// <remarks>
+    /// Defaulted for the reason <see cref="ReadText"/> is. The one caller is
+    /// the step that makes the Linux icon out of the Windows one the disc
+    /// already carries, and a fake that answers null gets a disc named for
+    /// Linux without a picture, which is what a real disc with no icon gets.
+    /// </remarks>
+    byte[]? ReadBytes(string path) => null;
+
     /// <summary>Whether there is a file at that path.</summary>
     /// <remarks>
     /// Asked of every file somebody chose for a disc before the disc is built

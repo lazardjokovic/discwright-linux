@@ -66,7 +66,13 @@ public static class TheLinuxMachine
             pictures,
             WhatThisBuildIs(),
             HowBigIs(disk),
-            WhereADiscWouldGo());
+            WhereADiscWouldGo(),
+
+            // On for a new disc here and off on Windows, the owner's word of
+            // 2026-11-15: a disc made on Linux is likely to go into a Linux
+            // machine, where without these it shows sixteen capitals and a
+            // plain icon. An opened project says for itself.
+            ANewDiscStartsWith: new DiscOptions(LinuxNameAndIcon: true));
     }
 
     /// <summary>The reader of folders, with an installer's name read the Linux way.</summary>

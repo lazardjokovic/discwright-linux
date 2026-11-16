@@ -192,7 +192,7 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
     // ------------------------------------------------------------- more options
 
     [AvaloniaFact]
-    public void More_options_is_a_drawer_shut_to_begin_with_holding_three_ticks()
+    public void More_options_is_a_drawer_shut_to_begin_with_holding_four_ticks()
     {
         (MainWindow window, MakeADisc screen) = AWindow();
         Expander more = window.Found<Expander>("MoreOptions");
@@ -215,6 +215,14 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
         Assert.Equal(screen.Menu, window.Found<CheckBox>("Menu").IsChecked);
         Assert.Equal(screen.StartHere, window.Found<CheckBox>("StartHere").IsChecked);
         Assert.Equal(screen.Checksums, window.Found<CheckBox>("Checksums").IsChecked);
+
+        // And the one the Windows window does not have yet.
+        Assert.Equal("Its name and icon on Linux", window.Found<CheckBox>("LinuxNameAndIcon").Content);
+        Assert.Equal(screen.LinuxNameAndIcon, window.Found<CheckBox>("LinuxNameAndIcon").IsChecked);
+
+        Assert.Equal(
+            ["Menu", "StartHere", "Checksums", "LinuxNameAndIcon"],
+            more.GetVisualDescendants().OfType<CheckBox>().Select(Avalonia.Automation.AutomationProperties.GetAutomationId));
 
         // Not here: the older ways of laying a disc out are how this one is
         // laid out to begin with, so there is nothing to choose.
@@ -260,6 +268,55 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
         bool startHere = screen.StartHere;
         Press(window, window.Found<CheckBox>("StartHere"));
         Assert.Equal(!startHere, screen.StartHere);
+
+        bool forLinux = screen.LinuxNameAndIcon;
+        Press(window, window.Found<CheckBox>("LinuxNameAndIcon"));
+        Assert.Equal(!forLinux, screen.LinuxNameAndIcon);
+    }
+
+    [AvaloniaFact]
+    public void A_new_disc_here_starts_with_its_name_and_icon_for_Linux_on()
+    {
+        (MainWindow window, MakeADisc screen) = AWindow();
+
+        // On here and off on Windows, the owner's word of 2026-11-15. The
+        // ordinary options, which are what Windows starts with, say off.
+        Assert.True(screen.LinuxNameAndIcon);
+        Assert.False(new DiscOptions().LinuxNameAndIcon);
+
+        Press(window, window.Found<Expander>("MoreOptions").Part<TextBlock>("Words"));
+
+        CheckBox tick = window.Found<CheckBox>("LinuxNameAndIcon");
+
+        Assert.True(tick.IsChecked);
+        Assert.True(tick.IsEnabled);
+
+        // What the hover promises is what was seen and no more: which
+        // desktops read the file, and that Windows is left as it was.
+        string hover = ((TextBlock)ToolTip.GetTip(tick)!).Text!;
+
+        Assert.Contains(".xdg-volume-info", hover, StringComparison.Ordinal);
+        Assert.Contains("GNOME", hover, StringComparison.Ordinal);
+        Assert.Contains("Windows reads neither", hover, StringComparison.Ordinal);
+        Assert.DoesNotContain("every", hover, StringComparison.OrdinalIgnoreCase);
+
+        // And says where it does nothing, which was seen too: Dolphin
+        // showed the same disc by its volume id, with and without the file.
+        Assert.Contains("KDE's file manager shows the short name either way", hover, StringComparison.Ordinal);
+    }
+
+    [AvaloniaFact]
+    public void A_screen_told_the_tick_is_off_shows_it_off()
+    {
+        (MainWindow window, MakeADisc screen) = AWindow();
+
+        Press(window, window.Found<Expander>("MoreOptions").Part<TextBlock>("Words"));
+
+        // What opening a project that was built without it does.
+        screen.LinuxNameAndIcon = false;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(window.Found<CheckBox>("LinuxNameAndIcon").IsChecked);
     }
 
     // ---------------------------------------------------------- the bottom line
@@ -463,6 +520,16 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
         Assert.Equal("FIXTURE_GAME", TheJolietRecords.VolumeNameOf(made.Image));
         Assert.Contains(TheJolietRecords.FilesIn(made.Image), file => file.Path == Installer);
 
+        // Named for Linux too, since nobody unticked it: the name in full,
+        // and the icon the menu wears, there being no other.
+        IReadOnlyList<TheJolietRecords.Recorded> onTheImage = TheJolietRecords.FilesIn(made.Image);
+        TheJolietRecords.Recorded name = Assert.Single(onTheImage, file => file.Path == ".xdg-volume-info");
+
+        Assert.Equal(
+            "[Volume Info]\nName=FIXTURE GAME\nIconFile=AUTORUN/menu.png\n",
+            System.Text.Encoding.UTF8.GetString(TheJolietRecords.BytesOf(made.Image, name)));
+        Assert.Contains(onTheImage, file => file.Path == "AUTORUN/menu.png");
+
         Assert.Contains(made.DiscFolder, ready.Found<TextBlock>("Because").Text, StringComparison.Ordinal);
 
         // The likely answer opens the folder, through the desktop.
@@ -475,6 +542,43 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
         Assert.True(screen.NothingIsRunning);
         Assert.False(window.Found<TextBlock>("Doing").IsVisible);
         Assert.True(window.Found<TextBlock>("WhatItWillMake").IsVisible);
+    }
+
+    [AvaloniaFact]
+    public void A_disc_built_with_that_tick_off_carries_nothing_for_Linux()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            // The image is xorriso's.
+            return;
+        }
+
+        (MainWindow window, MakeADisc screen) = AWindow(new ADesktopThatAnswers());
+        string discs = Path.Combine(_room, "discs");
+
+        screen.Add(AGame());
+        screen.Label = "FIXTURE GAME";
+        screen.OutputFolder = discs;
+        Dispatcher.UIThread.RunJobs();
+
+        // With the pointer, the way somebody would.
+        Press(window, window.Found<Expander>("MoreOptions").Part<TextBlock>("Words"));
+        Press(window, window.Found<CheckBox>("LinuxNameAndIcon"));
+
+        Assert.False(screen.LinuxNameAndIcon);
+
+        Press(window, window.Found<Button>("MakeTheDisc"));
+        Until(() => window.OwnedWindows.OfType<WorthAsking>().Any(each => each.IsVisible), "the disc to be ready", seconds: 60);
+
+        BuiltDiscsOnDisk made = WhatIsIn(discs);
+        IReadOnlyList<TheJolietRecords.Recorded> onTheImage = TheJolietRecords.FilesIn(made.Image);
+
+        Assert.Contains(onTheImage, file => file.Path == "autorun.inf");
+        Assert.DoesNotContain(onTheImage, file => file.Path == ".xdg-volume-info");
+        Assert.DoesNotContain(onTheImage, file => file.Path.EndsWith(".png", StringComparison.OrdinalIgnoreCase));
+
+        WorthAsking ready = window.OwnedWindows.OfType<WorthAsking>().Single();
+        Press(ready, ready.Found<Button>("TheOtherWay"));
     }
 
     [AvaloniaFact]
@@ -569,6 +673,118 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
     }
 
     // ------------------------------------------------------------------ helpers
+
+    // ------------------------------------------------------------ during a run
+
+    [AvaloniaFact]
+    public void While_a_disc_is_being_built_nothing_that_would_change_it_can_be_pressed()
+    {
+        ABuilderThatWaits builder = new();
+        MakeADisc screen = new(TheLinuxMachine.Composed(new NothingIsLogged()) with { Builder = builder });
+        MainWindow window = TheWindow.Showing(
+            screen, new ADesktopThatAnswers(), new ChoosingTheLook(null, _ => { }, App.WhatTheLookFollows));
+
+        screen.Add(AGame());
+        screen.Label = "FIXTURE GAME";
+        screen.OutputFolder = Path.Combine(_room, "discs");
+        Dispatcher.UIThread.RunJobs();
+
+        // The drawer open, so the ticks in it are on the window to be found.
+        Press(window, window.Found<Expander>("MoreOptions").Part<TextBlock>("Words"));
+
+        // Found by walking the window and not from a list, because the box
+        // nobody tied to the run is exactly the one a list leaves out. The
+        // tick for the Linux name was added without it, as a planted fault,
+        // and nothing here noticed until this did.
+        string[] before = [.. WhatSomebodyCanPress(window)];
+
+        Assert.Contains("LinuxNameAndIcon", before);
+        Assert.Contains("Checksums", before);
+        Assert.Contains("Label", before);
+        Assert.Contains("AddAGame", before);
+        Assert.Contains("MakeTheDisc", before);
+
+        Press(window, window.Found<Button>("MakeTheDisc"));
+        Until(() => builder.IsBuilding, "the build to begin");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(screen.NothingIsRunning);
+
+        string[] during = [.. WhatSomebodyCanPress(window)];
+
+        // What stays alive, each for a reason, and nothing else.
+        Assert.True(
+            StillAliveDuringARun.Order(StringComparer.Ordinal).SequenceEqual(during.Order(StringComparer.Ordinal)),
+            "Alive while a disc is being built: " + string.Join(", ", during.Order(StringComparer.Ordinal))
+                + ". Meant to be: " + string.Join(", ", StillAliveDuringARun.Order(StringComparer.Ordinal)) + ".");
+
+        builder.LetItFinish();
+        Until(() => screen.NothingIsRunning, "the build to be over");
+        Dispatcher.UIThread.RunJobs();
+
+        foreach (Window asked in window.OwnedWindows.ToArray())
+        {
+            asked.Close();
+        }
+
+        Dispatcher.UIThread.RunJobs();
+
+        // And all of it comes back.
+        Assert.Equal(before.Order(StringComparer.Ordinal), WhatSomebodyCanPress(window).Order(StringComparer.Ordinal));
+    }
+
+    /// <summary>
+    /// What can still be pressed while a disc is being made, because none of
+    /// it changes the disc.
+    /// </summary>
+    private static readonly string[] StillAliveDuringARun =
+    [
+        // How the window dresses, which is nothing to do with the disc.
+        "Appearance",
+
+        // Where to read what is happening, which is most wanted now.
+        "OpenTheLog",
+
+        // The drawer itself, which only shows and hides the ticks.
+        "MoreOptions",
+    ];
+
+    /// <summary>
+    /// Every box, tick, dropdown, list and button on the window that can be
+    /// seen and is alive, by the name the window gives it.
+    /// </summary>
+    private static IEnumerable<string> WhatSomebodyCanPress(MainWindow window) =>
+        window.GetVisualDescendants()
+            .OfType<Control>()
+            .Where(each => each is CheckBox or TextBox or ComboBox or TreeView or Button or Expander)
+            .Where(each => Avalonia.Automation.AutomationProperties.GetAutomationId(each) is { Length: > 0 })
+            .Where(each => each.CanBeSeen() && each.IsEffectivelyEnabled)
+            .Select(each => Avalonia.Automation.AutomationProperties.GetAutomationId(each)!)
+            .Distinct();
+
+    /// <summary>A builder that begins and then waits to be told it may finish.</summary>
+    private sealed class ABuilderThatWaits : DiscWright.Staging.IBuildDiscs
+    {
+        private readonly TaskCompletionSource _mayFinish = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public volatile bool IsBuilding;
+
+        public void LetItFinish() => _mayFinish.TrySetResult();
+
+        public async Task<Outcome<DiscWright.Staging.BuiltDiscs>> Build(
+            DiscProject project,
+            Medium medium,
+            string outputFolder,
+            IProgress<DiscWright.Core.Staging.BuildProgress>? progress,
+            CancellationToken ct)
+        {
+            IsBuilding = true;
+
+            await _mayFinish.Task.WaitAsync(TimeSpan.FromSeconds(30), ct);
+
+            return Refusals.ThereIsNothingToPutOnADisc();
+        }
+    }
 
     private sealed record BuiltDiscsOnDisk(string DiscFolder, string Image);
 

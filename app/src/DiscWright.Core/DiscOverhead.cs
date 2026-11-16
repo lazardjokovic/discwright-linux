@@ -40,6 +40,14 @@ public static class DiscOverhead
             bytes += sizeOf(project.Extras.MusicPath);
         }
 
+        // The most it can be, and not what it will be, which is not known
+        // until the icon is drawn. Counted with or without a chosen icon:
+        // a disc with a menu wears DiscWright's own.
+        if (project.Options.LinuxNameAndIcon)
+        {
+            bytes += TheLinuxIcon.AtMost;
+        }
+
         DiscArtwork? artwork = project.Artwork;
 
         if (artwork is null)

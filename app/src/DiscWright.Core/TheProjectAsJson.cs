@@ -175,7 +175,7 @@ public static class TheProjectAsJson
             writing.WriteEndArray();
 
             writing.WriteString("MediaKey", mediaKey);
-            writing.WriteBoolean("LinuxInfo", false);
+            writing.WriteBoolean("LinuxInfo", project.Options.LinuxNameAndIcon);
             writing.WriteBoolean("LegacyFs", project.Options.LegacyFileSystems);
             writing.WriteBoolean("Checksums", project.Options.Checksums);
             // Always true. The option is gone and the behaviour it named is

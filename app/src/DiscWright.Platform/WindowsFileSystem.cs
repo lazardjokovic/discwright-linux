@@ -26,6 +26,21 @@ public sealed class WindowsFileSystem : IFileSystem
         }
     }
 
+    /// <inheritdoc />
+    public byte[]? ReadBytes(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? File.ReadAllBytes(path) : null;
+        }
+        catch (Exception wrong) when (wrong is IOException or UnauthorizedAccessException)
+        {
+            // An icon that will not be read is a disc with a plain icon on
+            // Linux, which is an answer rather than a crash.
+            return null;
+        }
+    }
+
     public FolderListing List(string path) => Walk(path, goingDown: true);
 
     /// <inheritdoc />

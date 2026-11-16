@@ -46,6 +46,10 @@ public sealed class DiscBuilder(
         new WriteTheAutorunStep(),
         new CopyTheArtworkStep(images),
         new WriteTheMenuStep(),
+
+        // After both of the steps that can put an icon on the disc, because
+        // it reads whichever one did.
+        new WriteTheLinuxNameStep(files),
         new WriteTheChecksumsStep(files, hasher)
     ];
 

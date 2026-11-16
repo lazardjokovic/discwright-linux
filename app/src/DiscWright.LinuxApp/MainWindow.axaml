@@ -722,6 +722,24 @@
                                                Text="Puts checksums.sha256 at the top of the disc, a fingerprint of every file on it. The tick beside the music button in the disc's menu checks the disc against it, and so can sha256sum anywhere, years from now. Left off, everything else on the disc is the same; only that check is gone." />
                                 </ToolTip.Tip>
                             </CheckBox>
+
+                            <!-- Last, because it is the one that is not about
+                                 Windows. On when a new disc starts here and
+                                 off on Windows, through TheLinuxMachine. The
+                                 hover says only what was seen, on 2026-11-16:
+                                 GIO named a mounted image by the file and
+                                 gave the PNG as its icon, and Dolphin on the
+                                 same machine showed the volume id and a
+                                 plain disc. -->
+                            <CheckBox Content="Its name and icon on Linux"
+                                      IsChecked="{Binding LinuxNameAndIcon}"
+                                      IsEnabled="{Binding NothingIsRunning}"
+                                      AutomationProperties.AutomationId="LinuxNameAndIcon">
+                                <ToolTip.Tip>
+                                    <TextBlock TextWrapping="Wrap" MaxWidth="360"
+                                               Text="Puts .xdg-volume-info at the top of the disc, and the disc's icon beside the Windows one as a PNG. Desktops built on GNOME's file handling read them and show the disc by its full name with its picture; left off, they show the short name in capitals and a plain icon. KDE's file manager shows the short name either way. Windows reads neither, so the disc is the same there." />
+                                </ToolTip.Tip>
+                            </CheckBox>
                         </StackPanel>
                     </Expander>
                 </StackPanel>
