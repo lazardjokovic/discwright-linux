@@ -44,6 +44,10 @@
          sits. These tests read the Windows app's own markup to hold the Linux
          window to it. -->
     <Compile Include="../DiscWright.Tests/Repository.cs" Link="Repository.cs" />
+
+    <!-- The reader of what an image really holds, for the test that presses
+         Build it and looks at what came out. -->
+    <Compile Include="../DiscWright.Tests/TheJolietRecords.cs" Link="TheJolietRecords.cs" />
   </ItemGroup>
 
   <ItemGroup>

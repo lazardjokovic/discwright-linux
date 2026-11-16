@@ -64,7 +64,7 @@ public sealed class TheListOnLinux : IDisposable
 
         Assert.Empty(TheRows(window));
         Assert.False(window.Found<Border>("TheTotals").IsVisible);
-        Assert.Equal("WHAT GOES ON IT", window.GetVisualDescendants().OfType<TextBlock>().Single(each => each.Classes.Contains("Step")).Text);
+        Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(), each => each.Classes.Contains("Step") && each.Text == "WHAT GOES ON IT");
     }
 
     [AvaloniaFact]

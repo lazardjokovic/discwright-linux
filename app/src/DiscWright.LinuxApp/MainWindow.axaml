@@ -23,6 +23,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:screen="using:DiscWright.ViewModels"
+        xmlns:core="using:DiscWright.Core"
         x:Class="DiscWright.LinuxApp.MainWindow"
         x:DataType="screen:MakeADisc"
         Title="DiscWright"
@@ -477,6 +478,349 @@
                     </Grid>
                 </Border>
             </DockPanel>
+
+            <!-- What it is called, and where it goes.
+
+                 In a scroller because this column has twice grown past the
+                 bottom of a window drawn for what was in it before, and both
+                 times the answer was a taller window. A scrollbar appears only
+                 when it is needed and nothing can be lost again.
+
+                 Not here yet, and in the Windows window: which drive, what
+                 is in it, and the window for artwork, music and extras. One
+                 thing in the Windows window is never coming: "Readable by
+                 Windows 98 and Mac OS 9". A disc made here is laid out the
+                 older way to begin with, so it is not a choice. -->
+            <ScrollViewer Grid.Column="2"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="0,0,6,0">
+                <StackPanel>
+                    <TextBlock Classes="Step" Text="WHAT IT IS CALLED" />
+                    <TextBox x:Name="TheName"
+                             Text="{Binding Label}"
+                             MaxLength="32"
+                             TextChanged="KeepTheNameInCapitals"
+                             IsEnabled="{Binding NothingIsRunning}"
+                             AutomationProperties.AutomationId="Label" />
+                    <!-- About the disc, which goes into a Windows machine,
+                         so This PC is right here whatever built it. -->
+                    <TextBlock Classes="Aside"
+                               Margin="0,5,0,0"
+                               Text="What This PC shows when the disc goes in." />
+
+                    <TextBlock Classes="Step" Margin="0,16,0,6" Text="WHAT SIZE OF DISC" />
+                    <ComboBox ItemsSource="{Binding DiscSizes}"
+                              SelectedItem="{Binding TheSizeChosen}"
+                              HorizontalAlignment="Stretch"
+                              IsEnabled="{Binding NothingIsRunning}"
+                              AutomationProperties.AutomationId="DiscSize">
+                        <!-- A row answers to the words it shows, and not to
+                             whatever the thing in it prints as. -->
+                        <ComboBox.ItemContainerTheme>
+                            <ControlTheme TargetType="ComboBoxItem"
+                                          BasedOn="{StaticResource {x:Type ComboBoxItem}}"
+                                          x:DataType="core:ASizeToAimAt">
+                                <Setter Property="AutomationProperties.Name" Value="{Binding InWords}" />
+                            </ControlTheme>
+                        </ComboBox.ItemContainerTheme>
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="core:ASizeToAimAt">
+                                <TextBlock Text="{Binding InWords}" TextWrapping="NoWrap" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <!-- Beside the size, because it is the answer to "that will
+                         not fit". In More options it was a setting somebody had
+                         to already know about to go looking for. -->
+                    <CheckBox Margin="0,8,0,0"
+                              Content="Split a file too big for one disc"
+                              IsChecked="{Binding CutFiles}"
+                              IsEnabled="{Binding NothingIsRunning}"
+                              AutomationProperties.AutomationId="CutFiles" />
+
+                    <!-- What it will actually do, with these files and this
+                         size of disc, rather than a number written into a
+                         label. It also says "Needs 2 discs" whenever the size
+                         chosen means more than one, with the box ticked or
+                         not. -->
+                    <TextBlock Classes="Aside"
+                               Margin="22,2,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding WhatSplittingWouldDo}"
+                               IsVisible="{Binding WhatSplittingWouldDo, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               AutomationProperties.AutomationId="WhatSplittingWouldDo" />
+
+                    <!-- Named for what lands there. "WHERE IT GOES" read as if
+                         it were about the disc, which is the one thing this
+                         folder never holds. -->
+                    <TextBlock Classes="Step" Margin="0,16,0,6" Text="WHERE TO SAVE THE ISO" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding OutputFolder}"
+                                 ToolTip.Tip="The disc is built into a folder here, with its ISO beside it."
+                                 IsEnabled="{Binding NothingIsRunning}"
+                                 AutomationProperties.AutomationId="OutputFolder" />
+                        <Button Grid.Column="1"
+                                Content="Browse"
+                                IsEnabled="{Binding NothingIsRunning}"
+                                Theme="{StaticResource Ordinary}"
+                                Margin="8,0,0,0"
+                                Click="ChooseWhereItGoes"
+                                AutomationProperties.AutomationId="ChooseWhereItGoes" />
+                    </Grid>
+
+                    <Expander Margin="0,16,0,0"
+                              Foreground="{DynamicResource Quiet}"
+                              FontSize="12"
+                              Header="More options"
+                              AutomationProperties.AutomationId="MoreOptions">
+                        <StackPanel Margin="4,10,0,0">
+                            <!-- On by default, and the only option here whose
+                                 effect depends on a setting that is not ours.
+                                 The hover says so, because a disc that does
+                                 nothing when it goes in looks broken, and the
+                                 reason is on the other person's machine. -->
+                            <CheckBox Content="A menu that opens when the disc goes in"
+                                      IsChecked="{Binding Menu}"
+                                      IsEnabled="{Binding NothingIsRunning}"
+                                      AutomationProperties.AutomationId="Menu">
+                                <ToolTip.Tip>
+                                    <TextBlock TextWrapping="Wrap" MaxWidth="360"
+                                               Text="A disc opens its menu by itself only where AutoRun is switched on, and Windows has been turning that off for years. Where it is off, the disc opens in Explorer instead and the menu is the AUTORUN folder." />
+                                </ToolTip.Tip>
+                            </CheckBox>
+
+                            <!-- Straight after the menu's box, because it
+                                 belongs to it: a Start Here file opens the
+                                 menu, so with no menu there is nothing for it
+                                 to open and it is dead. Lined up with the
+                                 others rather than stepped in. -->
+                            <CheckBox Content="A Start Here file at the top of the disc"
+                                      IsChecked="{Binding StartHere}"
+                                      AutomationProperties.AutomationId="StartHere">
+                                <CheckBox.IsEnabled>
+                                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                        <Binding Path="NothingIsRunning" />
+                                        <Binding Path="Menu" />
+                                    </MultiBinding>
+                                </CheckBox.IsEnabled>
+                                <ToolTip.Tip>
+                                    <TextBlock TextWrapping="Wrap" MaxWidth="360"
+                                               Text="Start Here.hta opens the menu by hand on a computer where AutoRun is off, which is most of them now. Without it the menu is still on the disc, in the AUTORUN folder." />
+                                </ToolTip.Tip>
+                            </CheckBox>
+
+                            <!-- Said, because it was asked: xniwo ticked it off
+                                 on 2.0.1 and found nothing missing,
+                                 discwright#98. Only the list is, and the check
+                                 that reads it. -->
+                            <CheckBox Content="A list of what every file should be"
+                                      IsChecked="{Binding Checksums}"
+                                      IsEnabled="{Binding NothingIsRunning}"
+                                      AutomationProperties.AutomationId="Checksums">
+                                <ToolTip.Tip>
+                                    <TextBlock TextWrapping="Wrap" MaxWidth="360"
+                                               Text="Puts checksums.sha256 at the top of the disc, a fingerprint of every file on it. The tick beside the music button in the disc's menu checks the disc against it, and so can sha256sum anywhere, years from now. Left off, everything else on the disc is the same; only that check is gone." />
+                                </ToolTip.Tip>
+                            </CheckBox>
+                        </StackPanel>
+                    </Expander>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
+
+        <!-- ================================================ the bottom line
+
+             What it will make, anything worth saying about it, and the one
+             button. The refusal lives here rather than in a dialog, because a
+             refusal somebody reads before pressing anything is a sentence, and
+             the same refusal after a click is a wasted decision.
+        -->
+        <Border Grid.Row="2"
+                Margin="0,18,0,0"
+                Padding="18,14"
+                Background="{DynamicResource Panel}"
+                BorderBrush="{DynamicResource Edge}"
+                BorderThickness="1"
+                CornerRadius="4">
+            <Grid ColumnDefinitions="*,Auto">
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,18,0">
+                    <TextBlock FontSize="14"
+                               FontWeight="SemiBold"
+                               Text="{Binding WhatItWillMake}"
+                               IsVisible="{Binding !IsWorking}"
+                               AutomationProperties.AutomationId="WhatItWillMake" />
+
+                    <!-- While it runs, the same line says what it is doing,
+                         because that is the only thing anybody wants from it
+                         then. -->
+                    <TextBlock FontSize="14"
+                               FontWeight="SemiBold"
+                               Text="{Binding Doing}"
+                               IsVisible="{Binding IsWorking}"
+                               AutomationProperties.AutomationId="Doing" />
+
+                    <ProgressBar Height="14"
+                                 Margin="0,10,0,0"
+                                 Maximum="1"
+                                 Value="{Binding HowFar, Mode=OneWay}"
+                                 IsVisible="{Binding IsWorking}"
+                                 AutomationProperties.AutomationId="HowFar" />
+
+                    <!-- What the button actually means. On Windows this line
+                         tells building from burning. This DiscWright does not
+                         burn yet, so it says that, and what will. -->
+                    <TextBlock Classes="Aside"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap"
+                               Text="Building puts the disc and its ISO in the folder above. Burning is not in this version yet: K3b, Brasero or Xfburn will burn the ISO."
+                               IsVisible="{Binding !IsWorking}"
+                               AutomationProperties.AutomationId="WhatTheButtonsMean" />
+
+                    <!-- The sentence under the list counts what is unticked.
+                         This is the connection to it, at the exact moment the
+                         question is asked, without a dialog interrupting
+                         every build. It stays while the work runs, because it
+                         is just as true then. -->
+                    <TextBlock Classes="Aside"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding WhatBuildingGoesWithout}"
+                               IsVisible="{Binding WhatBuildingGoesWithout, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               AutomationProperties.AutomationId="WhatBuildingGoesWithout" />
+
+                    <!-- What the image had to say that stopped nothing. -->
+                    <TextBlock Classes="Aside"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding AboutTheImage}"
+                               IsVisible="{Binding AboutTheImage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               AutomationProperties.AutomationId="AboutTheImage" />
+
+                    <!-- Gone when there is nothing to say. An empty line still
+                         takes the height of a line. -->
+                    <!-- The reason is the hover, and the numbers are drawn. A
+                         refusal has always carried a headline, a sentence
+                         saying why, and its figures. The sentence wants more
+                         room than this line has, which is the whole reason
+                         the figures exist, so the figures go on the window
+                         and the sentence goes where hovering finds it. -->
+                    <TextBlock Foreground="{DynamicResource RefusalInk}"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding WhyNot.Headline}"
+                               ToolTip.Tip="{Binding WhyNot.Because}"
+                               IsVisible="{Binding WhyNot, Converter={x:Static ObjectConverters.IsNotNull}}"
+                               AutomationProperties.AutomationId="WhyNot" />
+
+                    <!-- What to do about it, when the window can do it.
+                         Quiet rather than a button: the red line above is the
+                         thing to read, and this is the thing to press once it
+                         has been read. -->
+                    <Button Content="{Binding WhatTheWayOutIsCalled}"
+                            Theme="{StaticResource Quietly}"
+                            Margin="0,4,0,0"
+                            IsEnabled="{Binding NothingIsRunning}"
+                            IsVisible="{Binding WhatTheWayOutIsCalled, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Click="TakeTheWayOut"
+                            AutomationProperties.AutomationId="TheWayOut" />
+
+                    <ItemsControl Margin="0,4,0,0"
+                                  ItemsSource="{Binding WhyNot.Figures}"
+                                  IsVisible="{Binding !!WhyNot.Figures.Count}"
+                                  AutomationProperties.AutomationId="WhyNotFigures">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <!-- Wrapped, because two figures fit on this
+                                     line and a third would be drawn off the
+                                     end of a window nobody can widen. -->
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="core:Figure">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,18,0">
+                                    <TextBlock Classes="Aside"
+                                               TextWrapping="NoWrap"
+                                               Text="{Binding Label}"
+                                               AutomationProperties.Name="{Binding Label}" />
+                                    <TextBlock Margin="6,0,0,0"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               TextWrapping="NoWrap"
+                                               Foreground="{DynamicResource Ink}"
+                                               Text="{Binding Value}"
+                                               AutomationProperties.Name="{Binding Value}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Foreground="{DynamicResource WorryInk}"
+                               FontSize="12"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding Worry.Headline}"
+                               ToolTip.Tip="{Binding Worry.Because}"
+                               IsVisible="{Binding Worry, Converter={x:Static ObjectConverters.IsNotNull}}"
+                               AutomationProperties.AutomationId="Worry" />
+
+                    <!-- A worry carries figures too, and the one that has
+                         them is the one that needs them most: it shows the
+                         name you typed beside the name the disc will really
+                         show, which is what makes the decision obvious. -->
+                    <ItemsControl Margin="0,4,0,0"
+                                  ItemsSource="{Binding Worry.Figures}"
+                                  IsVisible="{Binding !!Worry.Figures.Count}"
+                                  AutomationProperties.AutomationId="WorryFigures">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="core:Figure">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,18,0">
+                                    <TextBlock Classes="Aside"
+                                               TextWrapping="NoWrap"
+                                               Text="{Binding Label}"
+                                               AutomationProperties.Name="{Binding Label}" />
+                                    <TextBlock Margin="6,0,0,0"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               TextWrapping="NoWrap"
+                                               Foreground="{DynamicResource Ink}"
+                                               Text="{Binding Value}"
+                                               AutomationProperties.Name="{Binding Value}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- What to do about the worry: "Rename the disc", beside
+                         the name the disc will really show. -->
+                    <Button Content="{Binding WhatTheWorrysWayOutIsCalled}"
+                            Theme="{StaticResource Quietly}"
+                            Margin="0,4,0,0"
+                            IsEnabled="{Binding NothingIsRunning}"
+                            IsVisible="{Binding WhatTheWorrysWayOutIsCalled, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            Click="TakeTheWorrysWayOut"
+                            AutomationProperties.AutomationId="TheWorrysWayOut" />
+                </StackPanel>
+
+                <!-- Erase a disc and Burn to a disc stand to the left of this
+                     in the Windows window. They come with the recorder. -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="Build it"
+                            Theme="{StaticResource TheButton}"
+                            IsEnabled="{Binding CanMakeIt}"
+                            Click="MakeTheDisc"
+                            AutomationProperties.AutomationId="MakeTheDisc" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>
