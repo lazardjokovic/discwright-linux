@@ -516,10 +516,40 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   "DiscWright, Game disc builder" with its icon, started from there, and
   named with its icon in the task bar. Not seen: a machine that has never
   had .NET on it, GNOME, and any distribution but Ubuntu 26.04.
+- **The AppImage is made** (`tools/make-the-linux-appimage.sh`, after the
+  tarball script, leaving `artifacts/DiscWright-x86_64.AppImage`). It
+  carries its own xorriso, first on the PATH through `AppRun`, so nothing
+  has to be installed. The measurements are in
+  `DiscWright-Lab\linux-plan\spike-4.md`.
+- **The xorriso inside is GNU xorriso built from source, linked statically
+  against musl**, so it leans on no library of the system's and the
+  AppImage is not tied to how new the build machine is. `-static` at
+  configure is not enough, libtool drops it: `make LDFLAGS=-all-static`.
+  musl-gcc sees only musl's headers, so the kernel's are lent to it by a
+  folder of links. Needs `musl-tools`.
+- **Three files are fetched while it is made**, the xorriso source,
+  appimagetool and the AppImage runtime, each named by its hash in
+  `packaging/linux/what-the-appimage-carries.sh` and kept in
+  `artifacts/carried`. A file that is not the one measured stops the build.
+  appimagetool left to itself fetches a runtime from a release called
+  "continuous", which moves: it is handed `--runtime-file`.
+- **`tools/see-the-linux-appimage-run.sh`** takes it apart, puts the xorriso
+  inside through DiscWright's own tests (first on the PATH, 44 of them),
+  and starts it with no other xorriso to find. It cannot press Build it:
+  that was done by hand on the VM's KDE desktop.
+- **xorriso is GPL version 3 or later.** The AppImage carries its licence,
+  a note of where the exact source is and how it was built, and musl's
+  notice, and the source file is left beside the AppImage. **CI makes and
+  checks the AppImage and does not keep it for download**: whether
+  DiscWright hands on a copy of xorriso is the owner's to say, and he has
+  not. The tarball carries no xorriso and has no such question.
+- **A program started over ssh keeps the session open** unless the whole
+  bracket that starts it is sent nowhere:
+  `( cd ~ && setsid program args ) > file 2>&1 < /dev/null &`.
 - Not on the window yet: the drive picker and what is in the drive, and
   the version link.
-- Next: the AppImage, which carries xorriso inside it; then the recorder,
-  which needs a real machine with a drive; and a GNOME desktop to look at.
+- Next: the recorder, which needs a real machine with a drive; a GNOME
+  desktop to look at; and a machine that has never had .NET on it.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.

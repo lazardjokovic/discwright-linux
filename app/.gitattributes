@@ -23,6 +23,7 @@
 # sometimes put together from a checkout on Windows.
 *.desktop              text eol=lf
 packaging/linux/*.txt  text eol=lf
+packaging/linux/AppRun text eol=lf
 
 *.png  binary
 *.jpg  binary
