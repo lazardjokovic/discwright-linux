@@ -23,6 +23,26 @@ public class TheLookSomebodyChose
         Assert.Equal("Appearance: following Windows", choice.InWords);
     }
 
+    [Fact]
+    public void Names_what_it_follows_as_the_app_it_is_in_names_it()
+    {
+        List<string> kept = [];
+        ChoosingTheLook choice = new(null, kept.Add, "the desktop");
+
+        // A Linux DiscWright has no Windows to follow.
+        Assert.Equal("Appearance: following the desktop", choice.InWords);
+
+        // Only the words on the control. Round the circle and back, what is
+        // kept is what the Windows app keeps, so one note means the same to
+        // both.
+        choice.Next();
+        choice.Next();
+        choice.Next();
+
+        Assert.Equal(["light", "dark", "following windows"], kept);
+        Assert.Equal("Appearance: following the desktop", choice.InWords);
+    }
+
     [Theory]
     [InlineData("light", ALook.Light)]
     [InlineData("dark", ALook.Dark)]

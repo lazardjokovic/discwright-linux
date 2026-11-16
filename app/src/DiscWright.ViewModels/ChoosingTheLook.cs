@@ -35,12 +35,22 @@ public enum ALook
 public sealed class ChoosingTheLook : INotifyPropertyChanged
 {
     private readonly Action<string> _keep;
+    private readonly string _whatItFollows;
 
     /// <param name="kept">What was kept last time, or nothing at all.</param>
     /// <param name="keep">Where the next choice goes to be kept.</param>
-    public ChoosingTheLook(string? kept, Action<string> keep)
+    /// <param name="whatItFollows">
+    /// What sets the look when nobody has chosen one, as the control names
+    /// it. Windows, in the Windows app. A Linux DiscWright follows its
+    /// desktop and says so: "following Windows" on a machine that has never
+    /// run Windows would be a small lie on the first screen. Only the words
+    /// on the control change. What is kept in the note does not, so a note
+    /// written by either app means the same to both.
+    /// </param>
+    public ChoosingTheLook(string? kept, Action<string> keep, string whatItFollows = "Windows")
     {
         _keep = keep;
+        _whatItFollows = whatItFollows;
         Chosen = FromText(kept);
     }
 
@@ -53,7 +63,7 @@ public sealed class ChoosingTheLook : INotifyPropertyChanged
     {
         ALook.Light => "Appearance: light",
         ALook.Dark => "Appearance: dark",
-        _ => "Appearance: following Windows",
+        _ => "Appearance: following " + _whatItFollows,
     };
 
     /// <summary>

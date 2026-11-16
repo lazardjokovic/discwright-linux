@@ -283,11 +283,36 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   that never shuts otherwise hangs the whole run and reports nothing.
 - **A key released on a window that shut on the press throws.** Release only
   if the window is still showing.
-- Next: the rest of the main window's top line (the version link, the look,
-  the log, the three project buttons), then the tree, then the right hand
-  column, then the other dialogs. The questions asked while adding a folder
-  are four plain functions in shared code, and here an answer is awaited:
-  that needs settling before Add a game. The root of a disc assumed to be a
+- **The main window's top line is on**: the look, Open the log, Start a new
+  disc, Open one you built, Save it for later, each a handler from
+  `MainWindow.xaml.cs` with its words. A handler that asks a question is
+  `async void` and awaits it.
+- **`IAskTheDesktop` is the window's one seam**: a file from somebody, and a
+  thing opened in whatever opens it. `TheDesktop` is the real one, and
+  tests answer with `ADesktopThatAnswers`. Folders will come through it too.
+- **The opener starting is not the opener working.** `TheDesktop.Open` runs
+  xdg-open itself, gives it two seconds, and counts a quick exit with
+  anything but nought as not opened, so the window can say where the thing
+  is. Found by pressing the link on the real desktop, not by a test.
+- **An app started over ssh has none of the session's own variables.**
+  xdg-open needs `KDE_SESSION_VERSION=6` to find Plasma's opener. Set it,
+  and `KDE_FULL_SESSION=true`, when driving the real window on the VM.
+- **What the window keeps survives between runs on the VM**
+  (`~/.local/share/DiscWright/appearance.txt`). Remove it before a run that
+  presses by position, or the words have moved.
+- **The look's control says "following the desktop" here**, through a third
+  argument to `ChoosingTheLook`. What is kept in the note is unchanged.
+- **Not on the top line yet: the link that asks about a newer version.** It
+  asks about the Windows app's releases, and what a Linux DiscWright's
+  version is has not been decided. The owner has to say.
+- **No handler yet for a fault nobody expected.** The Windows app logs it
+  and shows it. Here an exception in an `async void` handler would end the
+  program. To do before anything long runs from the window.
+- Next: the list of what goes on the disc (the toolbar, the tree and its
+  rows with `OffTheRow`, the lines under it), then the right hand column,
+  then the other dialogs. The questions asked while adding a folder are
+  four plain functions in shared code, and here an answer is awaited: that
+  needs settling before Add a game. The root of a disc assumed to be a
   drive letter waits for the Linux recorder, and burning waits for a real
   machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
