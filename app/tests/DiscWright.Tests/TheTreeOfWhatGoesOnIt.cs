@@ -467,7 +467,13 @@ public class TheTreeOfWhatGoesOnIt
         // 900, 300 and 100 bytes, and three files to say it about. There was
         // nowhere on the window that said what the lot came to, so somebody
         // with four games had to add them up by eye.
-        Assert.Equal("1.3 KB in 3 files", new[] { tree }.WhatItAllComesTo());
+        //
+        // The number is written the way this machine writes numbers, as the
+        // size itself is: on a machine set to German, Polish or Turkish it
+        // is "1,3 KB", and a test that asked for a full stop failed there
+        // and nowhere else. Found on 2026-11-16 by running the suite in
+        // those three.
+        Assert.Equal(string.Create(System.Globalization.CultureInfo.CurrentCulture, $"{1.3:0.#} KB in 3 files"), new[] { tree }.WhatItAllComesTo());
     }
 
     [Fact]
@@ -523,7 +529,7 @@ public class TheTreeOfWhatGoesOnIt
 
         // A total that counted rows somebody had just turned off would be
         // worse than no total at all.
-        Assert.Equal("1.2 KB in 2 files", new[] { tree }.WhatItAllComesTo());
+        Assert.Equal(string.Create(System.Globalization.CultureInfo.CurrentCulture, $"{1.2:0.#} KB in 2 files"), new[] { tree }.WhatItAllComesTo());
     }
 
     // ------------------------------------------------ what is left off it
