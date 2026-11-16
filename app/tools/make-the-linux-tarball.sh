@@ -33,6 +33,13 @@ cp "$published/DiscWright.LinuxApp" "$folder/DiscWright"
 cp packaging/linux/install.sh packaging/linux/$id.desktop packaging/linux/README.txt "$folder/"
 cp LICENSE "$folder/LICENSE.txt"
 
+# The one file has .NET, Avalonia, Skia, HarfBuzz and a typeface packed into
+# it, each under a licence that asks for its notice to go wherever a copy
+# does. Written now, straight after the publish, because the file it reads
+# describes that publish only until something else is built.
+python3 tools/notices-for-the-linux-download.py \
+    src/DiscWright.LinuxApp/obj/project.assets.json "$folder/THIRD-PARTY-NOTICES.txt"
+
 python3 tools/icons-out-of-the-ico.py src/DiscWright.App/DiscWright.ico "$folder/icons" "$id"
 
 # Said by the files and not left to whoever unpacks it or to how the
@@ -40,12 +47,12 @@ python3 tools/icons-out-of-the-ico.py src/DiscWright.App/DiscWright.ico "$folder
 # unable to run are the first thing somebody meets.
 chmod -R u=rwX,go=rX "$folder"
 chmod 755 "$folder/DiscWright" "$folder/install.sh"
-chmod 644 "$folder/$id.desktop" "$folder/README.txt" "$folder/LICENSE.txt"
+chmod 644 "$folder/$id.desktop" "$folder/README.txt" "$folder/LICENSE.txt" "$folder/THIRD-PARTY-NOTICES.txt"
 
 # No carriage returns in anything a Linux machine reads as text. A checkout
 # on Windows can put them there, a menu entry with one is refused, and a
 # script with one fails in words that do not mention line endings.
-for each in install.sh $id.desktop README.txt; do
+for each in install.sh $id.desktop README.txt THIRD-PARTY-NOTICES.txt; do
     if grep -q "$(printf '\r')" "$folder/$each"; then
         echo "FAILED: $each has carriage returns in it. Check out with LF, see .gitattributes." >&2
         exit 1

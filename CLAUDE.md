@@ -502,6 +502,16 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - **The icons in the tarball are made from `DiscWright.ico`** each time, by
   `tools/icons-out-of-the-ico.py`, so there is no second set of pictures
   to fall behind.
+- **The download carries `THIRD-PARTY-NOTICES.txt`**: the licences of what
+  is packed into the one file (.NET, Avalonia, Skia, HarfBuzz, MicroCom,
+  Tmds.DBus, the Inter typeface). `tools/notices-for-the-linux-download.py`
+  reads every text out of the package it belongs to, straight after the
+  publish, and types none from memory. A package under a licence it has no
+  text for stops the build. **A new package needs nothing done** unless it
+  is under something other than MIT with no text of its own.
+- **`obj/project.assets.json` describes the last thing built**, so it names
+  the Linux publish only until a test project is built. The notices are
+  written inside the tarball script for that reason.
 - Seen on the VM's KDE desktop: installed, found in the launcher as
   "DiscWright, Game disc builder" with its icon, started from there, and
   named with its icon in the task bar. Not seen: a machine that has never

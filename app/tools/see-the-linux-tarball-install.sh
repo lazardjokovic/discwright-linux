@@ -55,8 +55,37 @@ here="$room/unpacked/DiscWright"
 
 check "it unpacks to one folder called DiscWright" test "$(ls "$room/unpacked")" = DiscWright
 
-for each in DiscWright install.sh $id.desktop README.txt LICENSE.txt; do
+for each in DiscWright install.sh $id.desktop README.txt LICENSE.txt THIRD-PARTY-NOTICES.txt; do
   check "it holds $each" test -f "$here/$each"
+done
+
+# The one file has other people's work packed into it, and each licence asks
+# that its notice goes where a copy goes. Named one by one, so that leaving
+# any of them out of the notices is a line that fails here.
+notices="$here/THIRD-PARTY-NOTICES.txt"
+
+for theirs in "Microsoft.NETCore.App.Runtime.linux-x64" "Avalonia 1" "Avalonia.Skia" "Avalonia.X11" \
+              "Avalonia.Fonts.Inter" "SkiaSharp 3" "SkiaSharp.NativeAssets.Linux" "HarfBuzzSharp 8" \
+              "HarfBuzzSharp.NativeAssets.Linux" "MicroCom.Runtime" "Tmds.DBus.Protocol"; do
+  check "the notices name $theirs" grep -qF "$theirs" "$notices"
+done
+
+check "the notices carry .NET's own licence" grep -qF "Copyright (c) .NET Foundation and Contributors" "$notices"
+check "and .NET's notices of what it carries in turn" grep -qF "THIRD-PARTY-NOTICES.TXT" "$notices"
+# The MIT text is given once, at the end, for the packages that state the
+# licence and carry no text of it. Looked for there and not anywhere, since
+# .NET's own licence higher up has the same sentences in it.
+check "and the MIT licence once more at the end, for those that carry no text of it" \
+  sh -c "sed -n '/^The MIT licence\$/,\$p' '$notices' | grep -qF 'THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND'"
+check "and says which those are" sh -c "grep -q '^For: .*Avalonia 12.*MicroCom.Runtime.*Tmds.DBus.Protocol' '$notices'"
+check "and whose the typeface is, in its own words" grep -q "Copyright 20[0-9][0-9] The Inter Project Authors" "$notices"
+check "and the licence the typeface is under" grep -qF "SIL Open Font License, Version 1.1" "$notices"
+check "and Skia's own, which is not SkiaSharp's" grep -qi "Copyright.*Google" "$notices"
+
+# Only what is in the Linux file. A notice for something that is not there
+# is a list nobody can trust the rest of.
+for absent in "NativeAssets.Win32" "NativeAssets.macOS" "NativeAssets.WebAssembly" "Angle.Windows" "BuildServices"; do
+  check "the notices do not name $absent, which is not in the Linux file" sh -c "! grep -qF '$absent' '$notices'"
 done
 
 check "the program arrives able to run" test -x "$here/DiscWright"
@@ -68,7 +97,7 @@ check "nothing in it is owned by whoever built it (found: $owners)" test "$owner
 loose=$(tar -tvzf "$tarball" | awk '$1 ~ /^.....w/ || $1 ~ /^........w/ {print $6}')
 check "nothing in it can be written by anybody but its owner (found: $loose)" test -z "$loose"
 
-for each in install.sh $id.desktop README.txt; do
+for each in install.sh $id.desktop README.txt THIRD-PARTY-NOTICES.txt; do
   check "$each has no carriage returns in it" sh -c "! grep -q \"\$(printf '\\r')\" '$here/$each'"
 done
 
