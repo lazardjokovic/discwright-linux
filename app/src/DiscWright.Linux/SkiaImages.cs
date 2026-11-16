@@ -37,7 +37,13 @@ public sealed class SkiaImages : IImages
 
         try
         {
-            using SKCodec? codec = SKCodec.Create(path);
+            // Opened here and handed over, and never by its path. A file
+            // Skia opens is a file Skia shuts, when it gets round to it, and
+            // a picture somebody has just looked at is one they may want to
+            // move or delete. This way the file is shut by the end of this
+            // method, where anybody can see it happen.
+            using FileStream file = new(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using SKCodec? codec = SKCodec.Create(file);
 
             if (codec is null)
             {
@@ -128,8 +134,12 @@ public sealed class SkiaImages : IImages
     /// picture the moment it is picked, so by the time one is written it has
     /// already been read once, and a failure here is a file that changed since.
     /// </summary>
+    /// <remarks>
+    /// Read into memory first and decoded from there, so the file is shut
+    /// before Skia sees a byte of it. A picture is a few megabytes at most.
+    /// </remarks>
     private static SKBitmap Decoded(string source) =>
-        SKBitmap.Decode(source)
+        SKBitmap.Decode(File.ReadAllBytes(source))
         ?? throw new IOException($"{source} cannot be read as an image.");
 
     /// <summary>
