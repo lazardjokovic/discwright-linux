@@ -1,0 +1,11 @@
+#!/bin/sh
+# What an AppImage runs when it is started: DiscWright, with the xorriso
+# that came inside this file first on its PATH.
+#
+# First, and not last, because the one inside is the one DiscWright was
+# tested with. Whatever the machine has stays on the PATH behind it, so
+# nothing else DiscWright starts is taken away.
+HERE=$(dirname "$(readlink -f "$0")")
+PATH="$HERE/usr/bin:$PATH"
+export PATH
+exec "$HERE/usr/bin/DiscWright" "$@"

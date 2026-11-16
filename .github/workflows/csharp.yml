@@ -118,6 +118,18 @@ jobs:
           sudo apt-get install -y -qq desktop-file-utils x11-utils file
           bash tools/make-the-linux-tarball.sh
           xvfb-run -a bash tools/see-the-linux-tarball-install.sh
+      # The other way it is delivered: one file that carries its own xorriso,
+      # built here from source and linked statically. Made and taken apart on
+      # every pull request, the xorriso inside is put through DiscWright's
+      # own tests, and it is started with no other xorriso to find.
+      #
+      # Not kept with the run. xorriso is under the GPL, and whether
+      # DiscWright hands on a copy of it is the owner's to say first.
+      - name: The Linux AppImage carries a xorriso that passes the tests
+        run: |
+          sudo apt-get install -y -qq musl-tools fuse3
+          bash tools/make-the-linux-appimage.sh
+          xvfb-run -a bash tools/see-the-linux-appimage-run.sh
       # Kept with the run so it can be tried on a real machine. Not a release:
       # nothing is tagged from here, and the name carries no version.
       - name: Upload the Linux download
