@@ -374,10 +374,31 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - Not on the window yet: drag and drop onto the list, the preview button,
   the link that turns a manual into an extra, the picked game's own manual
   and extras, and the version link.
-- Next: the right hand column (the name, the size of disc, where it goes,
-  the menu and what else goes on it), then building a disc from the window.
-  The root of a disc assumed to be a drive letter waits for the Linux
-  recorder, and burning waits for a real machine with a drive.
+- **A disc can be built from the Linux window** (2026-11-16). The right hand
+  column (the name, the size, splitting, where it goes, More options) and
+  the bottom line (what it will make, why not and the way out, a worry and
+  its way out, Build it) are on. `BuildingFromTheLinuxWindow` presses Build
+  it and reads the image back, and it was done by hand on the VM's KDE
+  desktop with the published file.
+- **Avalonia's text box has no setting for capitals.** The name is put in
+  capitals as it is typed, by `KeepTheNameInCapitals`, cursor kept.
+- **What the bottom line says the button means is worded for Linux**: this
+  version does not burn, and K3b, Brasero or Xfburn will burn the ISO. There
+  is no Burn or Erase button, and no drive picker.
+- **"Readable by Windows 98 and Mac OS 9" is not on the Linux window and is
+  not coming**: a disc made with xorriso is laid out the older way already.
+- **The VM's screen is 768 tall and the window is drawn at 740.** To press
+  the bottom line by position, make the window shorter first
+  (`xdotool windowsize`), and read the height it really took. Fitting the
+  window to the screen (`OnThisScreen` on Windows) is not carried yet.
+- Not on the window yet: the drive picker and what is in the drive, the
+  window for artwork, music and extras, the preview button, drag and drop,
+  the link that turns a manual into an extra, the picked game's own manual
+  and extras, the version link, fitting the screen, and the Linux name and
+  icon files as a disc option.
+- Next, in the order I would take them: fitting the window to the screen;
+  the artwork, music and extras window; the smaller things in the list
+  above; then the recorder, which needs a real machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.

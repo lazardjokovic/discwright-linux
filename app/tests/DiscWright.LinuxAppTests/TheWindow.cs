@@ -78,6 +78,13 @@ internal sealed class ADesktopThatAnswers : IAskTheDesktop
         return Task.FromResult(WillPickFolders);
     }
 
+    public Task<string?> ForAFolder(Window owner, string title)
+    {
+        AskedForFolders.Add(title);
+
+        return Task.FromResult(WillPickFolders.Count == 0 ? null : WillPickFolders[0]);
+    }
+
     public bool Open(string what)
     {
         Opened.Add(what);

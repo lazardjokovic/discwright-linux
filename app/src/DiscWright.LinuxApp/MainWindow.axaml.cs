@@ -8,6 +8,7 @@ using Avalonia.Threading;
 
 using DiscWright.Core;
 using DiscWright.Platform;
+using DiscWright.Staging;
 using DiscWright.ViewModels;
 
 namespace DiscWright.LinuxApp;
@@ -134,6 +135,139 @@ public partial class MainWindow : Window
             && row.IsBeingRenamed)
         {
             _screen.FinishRenaming(row, box.Text ?? string.Empty);
+        }
+    }
+
+    // ------------------------------------------- the name, and where it goes
+
+    /// <summary>
+    /// The name of a disc is in capitals, because that is how This PC shows
+    /// one. WPF has a setting for it on the box. Here the box is told as
+    /// somebody types, and the cursor is put back where it was.
+    /// </summary>
+    private void KeepTheNameInCapitals(object? sender, TextChangedEventArgs e)
+    {
+        if (TheName.Text is string typed && typed.Any(char.IsLower))
+        {
+            int cursor = TheName.CaretIndex;
+
+            TheName.Text = typed.ToUpperInvariant();
+            TheName.CaretIndex = cursor;
+        }
+    }
+
+    private async void ChooseWhereItGoes(object? sender, RoutedEventArgs e)
+    {
+        if (await _desktop.ForAFolder(this, "Where should the discs go?") is string chosen)
+        {
+            _screen.OutputFolder = chosen;
+        }
+    }
+
+    /// <summary>
+    /// Carries out the way out of a refusal.
+    /// </summary>
+    /// <remarks>
+    /// Which remedies are worth offering is the screen's judgement, handed
+    /// over as a kind this window knows how to carry out. Anything else is
+    /// not offered at all, so there is nothing here that can be pressed and
+    /// do nothing.
+    /// </remarks>
+    private void TakeTheWayOut(object? sender, RoutedEventArgs e)
+    {
+        switch (_screen.TheWayOut)
+        {
+            case RemedyKind.PickFolder:
+                ChooseWhereItGoes(sender, e);
+                break;
+
+            case RemedyKind.FocusField:
+                PutTheCursorOnTheName();
+                break;
+
+            case RemedyKind.ChangeMedium:
+                _screen.UseTheLargerDisc();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// The worry's way out, which is always about the name: Windows cannot
+    /// show it, and the fix is to type another.
+    /// </summary>
+    private void TakeTheWorrysWayOut(object? sender, RoutedEventArgs e)
+    {
+        if (_screen.Worry?.Remedy is { Kind: RemedyKind.FocusField })
+        {
+            PutTheCursorOnTheName();
+        }
+    }
+
+    /// <summary>
+    /// Puts the cursor in the name and selects what is there, so that typing
+    /// replaces it. FocusField is what every remedy about a name asks for.
+    /// </summary>
+    private void PutTheCursorOnTheName()
+    {
+        TheName.Focus();
+        TheName.SelectAll();
+    }
+
+    // ------------------------------------------------------------- building it
+
+    private async void MakeTheDisc(object? sender, RoutedEventArgs e)
+    {
+        // Everything it can throw is caught here rather than left to the
+        // listener for faults nobody expected, so that what is said names
+        // what was being done.
+        try
+        {
+            await _screen.MakeIt();
+        }
+        catch (Exception wrong)
+        {
+            // A sentence, never the exception's own words on their own. Raw
+            // machine text in a box reads as the program falling over. The
+            // refusal says what was happening and that nothing is lost, and
+            // still carries what was said.
+            await SayingSo.Explain(this, Refusals.SomethingNobodyExpected("building the discs", wrong.Message));
+            return;
+        }
+
+        if (_screen.ItWentWrong is Refusal refusal)
+        {
+            await SayingSo.Explain(this, refusal);
+            return;
+        }
+
+        if (_screen.Made is BuiltDiscs made)
+        {
+            await Say(made);
+        }
+    }
+
+    /// <summary>
+    /// Says where the discs are, and offers to open the folder.
+    /// </summary>
+    /// <remarks>
+    /// The Windows window names explorer.exe here. This hands the folder to
+    /// the desktop, and says where it is when nothing will open it.
+    /// </remarks>
+    private async Task Say(BuiltDiscs made)
+    {
+        string where = made.Discs[0].Folder;
+        string folder = made.Discs.Count == 1 ? where : Path.GetDirectoryName(where) ?? where;
+
+        bool open = await WorthAsking.Ask(
+            this,
+            made.Discs.Count == 1 ? "The disc is ready" : $"All {made.Discs.Count} discs are ready",
+            "In:\n\n" + folder,
+            "Open the folder",
+            "Not now");
+
+        if (open && !_desktop.Open(folder))
+        {
+            await SayingSo.Tell(this, "Nothing would open the folder", "It is:\n\n" + folder);
         }
     }
 
