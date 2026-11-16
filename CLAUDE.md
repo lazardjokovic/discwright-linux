@@ -569,10 +569,29 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - **A program started over ssh keeps the session open** unless the whole
   bracket that starts it is sent nowhere:
   `( cd ~ && setsid program args ) > file 2>&1 < /dev/null &`.
+- **Both downloads start where .NET has never been, and on older
+  systems** (2026-11-16, in containers on the VM): Ubuntu 20.04 (glibc
+  2.31), Ubuntu 22.04, Debian 12 and Fedora 45. The xorriso inside the
+  AppImage runs on all of them. `tools/see-the-linux-downloads-on-another-system.sh
+  debian:12` is that check, with podman or docker. It is not in CI: it
+  needs the network inside a container, and a required check should not.
+- **DiscWright leans on five libraries of the system's**, which every
+  desktop has and a bare system may not: `libicu`, which .NET wants and
+  says so itself, and fontconfig, X11, ICE and SM. Without one of the four
+  it used to die with forty lines and a core dump. `WhatTheSystemLacks`
+  says it in a sentence with the line to type, through `Program.Main`, and
+  `install.sh` looks for the same four with `ldconfig -p`. A test holds the
+  two lists together.
+- **No test can take a library away from the machine it runs on.** That
+  `Main` goes through `WhatTheSystemLacks` is held only by the container
+  check, on a system that really lacks fontconfig.
+- **A fake program put on a stripped PATH has only what is on that PATH.**
+  A fake `ldconfig` that used `cat` printed nothing, and the installer
+  rightly took that for no answer.
 - Not on the window yet: the drive picker and what is in the drive, and
   the version link.
-- Next: the recorder, which needs a real machine with a drive; a GNOME
-  desktop to look at; and a machine that has never had .NET on it.
+- Next: the recorder, which needs a real machine with a drive, and a GNOME
+  desktop to look at.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.

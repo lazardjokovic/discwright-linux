@@ -10,8 +10,15 @@ internal static class Program
     // Nothing of Avalonia's may be touched before this has run: it is what
     // makes there be a dispatcher and a screen to touch.
     [STAThread]
-    public static void Main(string[] args) =>
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    public static int Main(string[] args) =>
+
+        // Through WhatTheSystemLacks, so that a system with no desktop on it,
+        // which has not got the libraries a window is drawn through, is told
+        // so in a sentence. That this line goes through it is held by
+        // tools/see-the-linux-downloads-on-another-system.sh, on a system
+        // that really lacks one: no test here can take a library away.
+        WhatTheSystemLacks.SaidInPlaceOfThrown(
+            () => BuildAvaloniaApp().StartWithClassicDesktopLifetime(args), Console.Error);
 
     /// <summary>
     /// The app as it really runs. Public and by this name because Avalonia's

@@ -116,3 +116,59 @@ if ! command -v xorriso >/dev/null 2>&1; then
     echo "  Fedora:                sudo dnf install xorriso"
     echo "  Arch, Manjaro:         sudo pacman -S libisoburn"
 fi
+
+# And four libraries of the system's that it draws its window through and
+# finds typefaces with. Every desktop has them. A system with no desktop on
+# it may not, and there DiscWright says the same itself when it is started
+# (WhatTheSystemLacks in the program holds the same four, and a test holds
+# the two lists together). Measured in bare containers of Debian 12 and
+# Ubuntu 22.04 and 20.04, which lacked the first.
+#
+# Asked of ldconfig, which lists what the system can load. Where it cannot
+# be asked, or lists nothing, as on a system whose C library is not glibc,
+# nothing is said: no answer is not the answer "missing".
+if command -v ldconfig >/dev/null 2>&1; then
+    LDCONFIG=ldconfig
+elif [ -x /sbin/ldconfig ]; then
+    LDCONFIG=/sbin/ldconfig
+else
+    LDCONFIG=
+fi
+
+LOADABLE=
+if [ -n "$LDCONFIG" ]; then
+    LOADABLE=$("$LDCONFIG" -p 2>/dev/null || true)
+fi
+
+if [ -n "$LOADABLE" ]; then
+    lacking=
+    debian=
+    fedora=
+    arch=
+
+    # The file, and what brings it on Debian, on Fedora and on Arch.
+    while read -r file on_debian on_fedora on_arch; do
+        case "$LOADABLE" in
+            *"$file"*) ;;
+            *)
+                lacking="$lacking $file"
+                debian="$debian $on_debian"
+                fedora="$fedora $on_fedora"
+                arch="$arch $on_arch"
+                ;;
+        esac
+    done <<EOF
+libfontconfig.so.1 libfontconfig1 fontconfig fontconfig
+libX11.so.6 libx11-6 libX11 libx11
+libICE.so.6 libice6 libICE libice
+libSM.so.6 libsm6 libSM libsm
+EOF
+
+    if [ -n "$lacking" ]; then
+        echo
+        echo "And this: DiscWright draws its window with a few libraries every desktop has, and this system is missing:$lacking"
+        echo "  Ubuntu, Debian, Mint:  sudo apt install$debian"
+        echo "  Fedora:                sudo dnf install$fedora"
+        echo "  Arch, Manjaro:         sudo pacman -S$arch"
+    fi
+fi
