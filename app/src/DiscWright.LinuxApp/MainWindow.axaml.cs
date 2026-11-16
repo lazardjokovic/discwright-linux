@@ -213,6 +213,9 @@ public partial class MainWindow : Window
         TheName.SelectAll();
     }
 
+    private async void WhatElseGoesOnIt(object? sender, RoutedEventArgs e) =>
+        await new WhatElseGoesOnIt(_screen, _desktop).ShowDialog(this);
+
     // ------------------------------------------------------------- building it
 
     private async void MakeTheDisc(object? sender, RoutedEventArgs e)

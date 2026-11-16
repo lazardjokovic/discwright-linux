@@ -400,13 +400,27 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   ways with the published file): Plasma's window manager shrinks a window to
   fit by itself. A line that changes nothing on any desktop there is to try
   it on is not merged. Try the branch on GNOME when there is one.
-- Not on the window yet: the drive picker and what is in the drive, the
-  window for artwork, music and extras, drag and drop, the link that turns
-  a manual into an extra, the picked game's own manual and extras, the
-  version link, and the Linux name and icon files as a disc option.
-- Next, in the order I would take them: the artwork, music and extras
-  window; the Linux name and icon as a disc option (on by default here, off
-  on Windows); the smaller things in the list above; then the recorder,
+- **The window for artwork, music and extras is on** (`WhatElseGoesOnIt`),
+  opened from the main window: the icon, the menu background or a colour,
+  music, a manual, extras, and the cover and disc face. A picture is looked
+  at as it is chosen and refused then, with the reason, if it is not one.
+- **The window's tests run on the Windows runner too**, as a step of
+  `windows suite`. They draw with no screen. A file held open after it was
+  shown can only be noticed there, and was planted and caught there.
+- **A run on the VM is judged by its exit code, taken before anything is
+  piped.** `run | tail && next` runs `next` whatever happened: on 2026-11-16
+  a pull request was opened over a red suite that way.
+- **`WhatADiscIsReadBackAgainst.Says_which_disc_of_the_set_it_is_working_on`
+  fails about one run in fifty on Linux**, twice so far (#32 on GitHub, #50
+  on the VM). It is the Windows app's own test, about a progress report
+  arriving while a disc is read back. Not looked into, not fixed.
+- Not on the window yet: the drive picker and what is in the drive, drag
+  and drop, the link that turns a manual into an extra, the picked game's
+  own manual and extras, the version link, and the Linux name and icon files
+  as a disc option.
+- Next, in the order I would take them: the Linux name and icon as a disc
+  option (on by default here, off on Windows), which is shared code and the
+  project file; the smaller things in the list above; then the recorder,
   which needs a real machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite

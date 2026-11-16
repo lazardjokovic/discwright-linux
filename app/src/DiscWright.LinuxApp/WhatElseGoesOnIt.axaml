@@ -1,0 +1,383 @@
+<!--
+    Everything that goes on a disc and is not a game.
+
+    A window of its own rather than another drawer in the main one. There are
+    seven of these, most of them pictures, and a picture somebody chose is only
+    really confirmed by seeing it again: squeezed into a column beside the
+    games list they were twelve pixel grey labels with a link beside them,
+    quieter than anything else on the screen, for the two things almost
+    everybody sets.
+
+    WhatElseGoesOnIt.xaml in the Windows app, under the same names.
+-->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:screen="using:DiscWright.ViewModels"
+        xmlns:app="using:DiscWright.LinuxApp"
+        x:Class="DiscWright.LinuxApp.WhatElseGoesOnIt"
+        x:DataType="screen:MakeADisc"
+        Title="What else goes on it"
+        Icon="/DiscWright.ico"
+        Height="700" Width="680"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        AutomationProperties.AutomationId="WhatElseGoesOnIt">
+
+    <Grid Margin="24,20,24,18" RowDefinitions="Auto,*,Auto">
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,14">
+            <TextBlock Classes="Title" FontSize="17" Text="What else goes on it" />
+            <TextBlock Classes="Aside"
+                       Margin="0,3,0,0"
+                       Text="None of it is required. A disc with none of this is still a disc." />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,0,8,0">
+
+                <!-- ============================================ the disc icon -->
+                <TextBlock Classes="Step" Text="THE DISC ICON" />
+                <TextBlock Classes="Aside"
+                           Margin="0,2,0,6"
+                           Text="What This PC shows for the disc, and what the menu wears." />
+
+                <Grid ColumnDefinitions="64,*,Auto">
+                    <Border Grid.Column="0" Width="48" Height="48"
+                            HorizontalAlignment="Left"
+                            Background="{DynamicResource Panel}"
+                            BorderBrush="{DynamicResource Edge}"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                        <Image Source="{Binding DiscIcon, Converter={x:Static app:APicture.Instance}}"
+                               Stretch="Uniform"
+                               Margin="3"
+                               AutomationProperties.AutomationId="TheDiscIconPicture" />
+                    </Border>
+
+                    <TextBlock Grid.Column="1"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"
+                               TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding DiscIcon}"
+                               Text="{Binding DiscIcon, TargetNullValue=Nothing chosen}"
+                               AutomationProperties.AutomationId="TheDiscIcon" />
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Choose"
+                                Theme="{StaticResource Ordinary}"
+                                Click="ChooseTheDiscIcon"
+                                AutomationProperties.AutomationId="ChooseTheDiscIcon" />
+                        <Button Content="Clear"
+                                Theme="{StaticResource Ordinary}"
+                                Margin="8,0,0,0"
+                                Click="ClearTheDiscIcon"
+                                AutomationProperties.AutomationId="ClearTheDiscIcon" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- =========================================== the background -->
+                <TextBlock Classes="Step" Margin="0,22,0,0" Text="THE MENU BACKGROUND" />
+                <TextBlock Classes="Aside"
+                           Margin="0,2,0,6"
+                           Text="The picture the menu is drawn on, at 760 by 480." />
+
+                <Grid ColumnDefinitions="200,*,Auto">
+                    <Border Grid.Column="0" Width="190" Height="120"
+                            HorizontalAlignment="Left"
+                            Background="{DynamicResource Panel}"
+                            BorderBrush="{DynamicResource Edge}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            ClipToBounds="True">
+                        <Panel>
+                            <!-- The colour, shown where the picture would be,
+                                 because a backdrop somebody chose is only
+                                 really confirmed by seeing it. Never both:
+                                 choosing either takes the other off. -->
+                            <Border Margin="2"
+                                    CornerRadius="3"
+                                    Background="{Binding BackgroundColour, Converter={x:Static app:AsABrush.Instance}}"
+                                    IsVisible="{Binding BackgroundColour, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                    AutomationProperties.AutomationId="TheBackgroundColour" />
+                            <Image Source="{Binding Background, Converter={x:Static app:APicture.Instance}}"
+                                   Stretch="UniformToFill"
+                                   Margin="2"
+                                   AutomationProperties.AutomationId="TheBackgroundPicture" />
+                        </Panel>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,10,0">
+                        <TextBlock TextWrapping="NoWrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding Background}"
+                                   Text="{Binding Background, TargetNullValue=Nothing chosen}"
+                                   AutomationProperties.AutomationId="TheBackground" />
+
+                        <CheckBox Margin="0,8,0,0"
+                                  Content="Stretch to fit"
+                                  IsChecked="{Binding BackgroundAsIs}"
+                                  AutomationProperties.AutomationId="BackgroundAsIs" />
+
+                        <TextBlock Classes="Aside"
+                                   Margin="0,4,0,0"
+                                   TextWrapping="Wrap"
+                                   Text="Cropping keeps the proportions, which is almost always what somebody wants from cover art or a screenshot." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Choose"
+                                Theme="{StaticResource Ordinary}"
+                                Click="ChooseTheBackground"
+                                AutomationProperties.AutomationId="ChooseTheBackground" />
+                        <Button Content="Clear"
+                                Theme="{StaticResource Ordinary}"
+                                Margin="8,0,0,0"
+                                Click="ClearTheBackground"
+                                AutomationProperties.AutomationId="ClearTheBackground" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- A colour instead of a picture, discwright#98: "a solid
+                     color option by choosing a hex value". Swatches for the
+                     colours that suit the panel, a box for any other, and
+                     choosing either backdrop takes the other off. No picture
+                     and no colour is itself a look: the menu's own dark
+                     stage. -->
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <TextBlock VerticalAlignment="Center" Text="Or a colour instead" />
+
+                    <ItemsControl ItemsSource="{Binding TheColoursOffered}"
+                                  Margin="12,0,0,0"
+                                  VerticalAlignment="Center"
+                                  AutomationProperties.AutomationId="TheColoursOffered">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <!-- Its own flat template, because a button's
+                                     own look would paint over the one thing a
+                                     swatch is: the colour itself. -->
+                                <Button Click="PickAColour"
+                                        Cursor="Hand"
+                                        ToolTip.Tip="{Binding}"
+                                        AutomationProperties.Name="{Binding}">
+                                    <Button.Template>
+                                        <ControlTemplate>
+                                            <Border Width="22" Height="22"
+                                                    Margin="0,0,6,0"
+                                                    CornerRadius="3"
+                                                    Background="{Binding Converter={x:Static app:AsABrush.Instance}}"
+                                                    BorderBrush="{DynamicResource Edge}"
+                                                    BorderThickness="1" />
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBox Width="86"
+                             Margin="6,0,0,0"
+                             VerticalAlignment="Center"
+                             Text="{Binding BackgroundColourText}"
+                             ToolTip.Tip="Six hex figures, with or without the #."
+                             AutomationProperties.AutomationId="BackgroundColourText" />
+                </StackPanel>
+
+                <TextBlock Margin="0,4,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource WorryInk}"
+                           Text="{Binding WhatTheColourSays}"
+                           IsVisible="{Binding WhatTheColourSays, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           AutomationProperties.AutomationId="WhatTheColourSays" />
+
+                <!-- ============================================ music, manual -->
+                <TextBlock Classes="Step" Margin="0,22,0,0" Text="AND THE REST OF IT" />
+
+                <Grid Margin="0,8,0,0" ColumnDefinitions="110,*,Auto">
+                    <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Music" />
+                    <TextBlock Grid.Column="1"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"
+                               TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Music}"
+                               Text="{Binding Music, TargetNullValue=Nothing chosen}"
+                               AutomationProperties.AutomationId="TheMusic" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button Content="Choose"
+                                Theme="{StaticResource Ordinary}"
+                                Click="ChooseTheMusic"
+                                AutomationProperties.AutomationId="ChooseTheMusic" />
+                        <Button Content="Clear"
+                                Theme="{StaticResource Ordinary}"
+                                Margin="8,0,0,0"
+                                Click="ClearTheMusic"
+                                AutomationProperties.AutomationId="ClearTheMusic" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,10,0,0" ColumnDefinitions="110,*,Auto">
+                    <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Manual" />
+                    <TextBlock Grid.Column="1"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"
+                               TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Manual}"
+                               Text="{Binding Manual, TargetNullValue=Nothing chosen}"
+                               AutomationProperties.AutomationId="TheManual" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button Content="Choose"
+                                Theme="{StaticResource Ordinary}"
+                                Click="ChooseTheManual"
+                                AutomationProperties.AutomationId="ChooseTheManual" />
+                        <Button Content="Clear"
+                                Theme="{StaticResource Ordinary}"
+                                Margin="8,0,0,0"
+                                Click="ClearTheManual"
+                                AutomationProperties.AutomationId="ClearTheManual" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,10,0,0" ColumnDefinitions="110,*,Auto">
+                    <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Extras folder" />
+                    <TextBlock Grid.Column="1"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"
+                               TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding ExtrasFolder}"
+                               Text="{Binding ExtrasFolder, TargetNullValue=Nothing chosen}"
+                               AutomationProperties.AutomationId="TheExtrasFolder" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button Content="Choose"
+                                Theme="{StaticResource Ordinary}"
+                                Click="ChooseTheExtras"
+                                AutomationProperties.AutomationId="ChooseTheExtras" />
+                        <Button Content="Clear"
+                                Theme="{StaticResource Ordinary}"
+                                Margin="8,0,0,0"
+                                Click="ClearTheExtras"
+                                AutomationProperties.AutomationId="ClearTheExtras" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- ============================================== for printing -->
+                <TextBlock Classes="Step" Margin="0,22,0,0" Text="FOR PRINTING" />
+                <TextBlock Classes="Aside"
+                           Margin="0,2,0,6"
+                           TextWrapping="NoWrap"
+                           Text="Choosing them is not printing them. They go on the disc in an ARTWORK folder to print later." />
+
+                <Grid ColumnDefinitions="110,*,Auto">
+                    <Border Grid.Column="0" Width="52" Height="72"
+                            HorizontalAlignment="Left"
+                            Background="{DynamicResource Panel}"
+                            BorderBrush="{DynamicResource Edge}"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                        <Image Source="{Binding Cover, Converter={x:Static app:APicture.Instance}}"
+                               Stretch="Uniform"
+                               Margin="2"
+                               AutomationProperties.AutomationId="TheCoverPicture" />
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,10,0">
+                        <TextBlock Text="Cover" />
+                        <TextBlock Classes="Aside"
+                                   TextWrapping="NoWrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding Cover}"
+                                   Text="{Binding Cover, TargetNullValue=Nothing chosen}"
+                                   AutomationProperties.AutomationId="TheCover" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Choose"
+                                Theme="{StaticResource Ordinary}"
+                                Click="ChooseTheCover"
+                                AutomationProperties.AutomationId="ChooseTheCover" />
+                        <Button Content="Clear"
+                                Theme="{StaticResource Ordinary}"
+                                Margin="8,0,0,0"
+                                Click="ClearTheCover"
+                                AutomationProperties.AutomationId="ClearTheCover" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,12,0,0" ColumnDefinitions="110,*,Auto">
+                    <!-- Round, with a hole in the middle, because it is the
+                         face of a disc and a square of it says nothing about
+                         what will be cut away. -->
+                    <Border Grid.Column="0" Width="72" Height="72"
+                            HorizontalAlignment="Left"
+                            Background="{DynamicResource Panel}"
+                            BorderBrush="{DynamicResource Edge}"
+                            BorderThickness="1"
+                            CornerRadius="36">
+                        <Panel Width="66" Height="66">
+                            <Image Source="{Binding DiscFace, Converter={x:Static app:APicture.Instance}}"
+                                   Stretch="UniformToFill"
+                                   AutomationProperties.AutomationId="TheDiscFacePicture">
+                                <Image.Clip>
+                                    <EllipseGeometry Center="33,33" RadiusX="33" RadiusY="33" />
+                                </Image.Clip>
+                            </Image>
+                            <Ellipse Width="14" Height="14"
+                                     Fill="{DynamicResource Page}"
+                                     Stroke="{DynamicResource Edge}"
+                                     StrokeThickness="1" />
+                        </Panel>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,10,0">
+                        <TextBlock Text="Disc face" />
+                        <TextBlock Classes="Aside"
+                                   TextWrapping="NoWrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding DiscFace}"
+                                   Text="{Binding DiscFace, TargetNullValue=Nothing chosen}"
+                                   AutomationProperties.AutomationId="TheDiscFace" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Choose"
+                                Theme="{StaticResource Ordinary}"
+                                Click="ChooseTheDiscFace"
+                                AutomationProperties.AutomationId="ChooseTheDiscFace" />
+                        <Button Content="Clear"
+                                Theme="{StaticResource Ordinary}"
+                                Margin="8,0,0,0"
+                                Click="ClearTheDiscFace"
+                                AutomationProperties.AutomationId="ClearTheDiscFace" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Why a picture just chosen was not taken, with the file
+                     named, said the moment it was chosen. -->
+                <TextBlock Foreground="{DynamicResource WorryInk}"
+                           FontSize="12"
+                           Margin="0,14,0,0"
+                           TextWrapping="Wrap"
+                           Text="{Binding WhyNotThatPicture}"
+                           IsVisible="{Binding WhyNotThatPicture, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           AutomationProperties.AutomationId="WhyNotThatPicture" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Button Grid.Row="2"
+                Content="Done"
+                Theme="{StaticResource TheButton}"
+                HorizontalAlignment="Right"
+                Margin="0,16,0,0"
+                IsDefault="True"
+                Click="Done"
+                AutomationProperties.AutomationId="Done" />
+    </Grid>
+</Window>
