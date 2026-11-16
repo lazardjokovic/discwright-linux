@@ -1810,6 +1810,53 @@ public sealed class MakeADisc : INotifyPropertyChanged
         return null;
     }
 
+    /// <summary>
+    /// A refusal when there is plainly not room where the discs are to be
+    /// built, or nothing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Asked before a build, after the two questions about what has gone.
+    /// Twice what goes on the discs, because every disc is laid out as a
+    /// folder and then made into an image of the same size, both under the
+    /// folder that was chosen.
+    /// </para>
+    /// <para>
+    /// What is already in that folder is counted as room, because a build
+    /// over an old one replaces it. That counts things a build would not
+    /// replace as well, which errs towards letting a build go ahead, and
+    /// that is the side to err on: this is for refusing what could not have
+    /// worked, and not for promising that the rest will.
+    /// </para>
+    /// <para>
+    /// Nothing when the disk cannot say how much room it has, and nothing
+    /// when the plan itself is refused, which is said elsewhere and better.
+    /// </para>
+    /// </remarks>
+    public Refusal? ThereIsNotRoomToBuildIt()
+    {
+        if (OutputFolder.Length == 0 || _machine.Disk.RoomUnder(OutputFolder) is not long free)
+        {
+            return null;
+        }
+
+        if (WhatWouldBeMade.For(AsAProject(), Medium, _machine.HowBigIs) is not Outcome<PlannedBuild>.Ok planned)
+        {
+            return null;
+        }
+
+        long onTheDiscs = planned.Value.Outputs.Sum(output => output.Layout.Discs.Sum(disc => disc.Bytes));
+        long needed = 2 * onTheDiscs;
+
+        long alreadyThere = _machine.Disk.FolderExists(OutputFolder)
+            ? _machine.Disk.List(OutputFolder).Files.Sum(file => file.Bytes)
+            : 0;
+
+        return free + alreadyThere >= needed
+            ? null
+            : Refusals.ThereIsNotRoomToBuildItThere(OutputFolder, needed, free);
+    }
+
     public async Task MakeIt(CancellationToken ct = default)
     {
         // CanMakeIt is already false while a build is running, so this is the
@@ -1834,6 +1881,16 @@ public sealed class MakeADisc : INotifyPropertyChanged
         if (AGameIsGone() is Refusal away)
         {
             ItWentWrong = away;
+            Tell(nameof(ItWentWrong));
+            return;
+        }
+
+        // And whether there is room, last, because it is the one that reads
+        // the disk. A build onto a disk that was nearly full copied until it
+        // could not, and left half a disc folder behind.
+        if (ThereIsNotRoomToBuildIt() is Refusal noRoom)
+        {
+            ItWentWrong = noRoom;
             Tell(nameof(ItWentWrong));
             return;
         }

@@ -1056,6 +1056,145 @@ public class SeeingTheMenuFirst
         Assert.NotNull(screen.AGameIsGone());
     }
 
+    // ---------------------------------------------- not room to build it there
+    //
+    // The third thing asked before a build, after what has gone. Found on
+    // 2026-11-16 by building onto a disk made too small on purpose: it
+    // copied what fitted, failed on the menu, called that a fault worth
+    // reporting, and left half a disc folder behind.
+    //
+    // A game in this file is one file of a thousand bytes, so a disc of one
+    // game needs two thousand: the folder, and its image.
+
+    [Fact]
+    public void With_room_for_the_folder_and_its_image_nothing_is_said()
+    {
+        MakeADisc screen = AScreenBuildingInto(new ADiskWithRoomFor(free: 2000));
+
+        Assert.Null(screen.ThereIsNotRoomToBuildIt());
+    }
+
+    [Fact]
+    public void One_byte_short_of_the_folder_and_its_image_it_says_so_with_both_figures()
+    {
+        MakeADisc screen = AScreenBuildingInto(new ADiskWithRoomFor(free: 1999));
+
+        Refusal noRoom = Assert.IsType<Refusal>(screen.ThereIsNotRoomToBuildIt());
+
+        Assert.Equal("There is not room to build it there", noRoom.Headline);
+        Assert.StartsWith(@"The discs were to be built in C:\out. ", noRoom.Because, StringComparison.Ordinal);
+
+        // Why it is twice what goes on the disc, since that is the part
+        // nobody would guess.
+        Assert.Contains("a disc folder and then makes an image of it, the same size again", noRoom.Because, StringComparison.Ordinal);
+        Assert.Contains("Make room there or choose another folder, and build again.", noRoom.Because, StringComparison.Ordinal);
+        Assert.EndsWith("Nothing has been laid out.", noRoom.Because, StringComparison.Ordinal);
+
+        Assert.Equal(
+            [new Figure("building needs", ByteSize.Describe(2000)), new Figure("free there", ByteSize.Describe(1999))],
+            noRoom.Figures);
+    }
+
+    [Fact]
+    public void Two_games_need_room_for_both_twice()
+    {
+        MakeADisc enough = AScreenBuildingInto(new ADiskWithRoomFor(free: 4000), "Hollow Knight", "The Witcher");
+        MakeADisc short_ = AScreenBuildingInto(new ADiskWithRoomFor(free: 3999), "Hollow Knight", "The Witcher");
+
+        Assert.Null(enough.ThereIsNotRoomToBuildIt());
+        Assert.Equal(
+            ByteSize.Describe(4000),
+            Assert.IsType<Refusal>(short_.ThereIsNotRoomToBuildIt()).Figures[0].Value);
+    }
+
+    [Fact]
+    public void What_is_already_in_that_folder_counts_as_room_because_a_build_replaces_it()
+    {
+        // A build over an old one: little free, and the old disc folder and
+        // image sitting where the new ones will go.
+        Assert.Null(AScreenBuildingInto(new ADiskWithRoomFor(free: 500, alreadyThere: 1500)).ThereIsNotRoomToBuildIt());
+
+        Refusal noRoom = Assert.IsType<Refusal>(
+            AScreenBuildingInto(new ADiskWithRoomFor(free: 500, alreadyThere: 1499)).ThereIsNotRoomToBuildIt());
+
+        // What is free is what is said, and not the sum that was used to
+        // decide: it is the number somebody can check for themselves.
+        Assert.Equal(ByteSize.Describe(500), noRoom.Figures[1].Value);
+    }
+
+    [Fact]
+    public void A_disk_that_cannot_say_how_much_room_it_has_is_not_refused()
+    {
+        // A share on another machine, and every fake disk in this suite.
+        // Not knowing is not the same as knowing there is none.
+        Assert.Null(AScreenBuildingInto(new ADiskWhereSomethingMoved()).ThereIsNotRoomToBuildIt());
+        Assert.Null(AScreenBuildingInto(new ADiskWithRoomFor(free: null)).ThereIsNotRoomToBuildIt());
+    }
+
+    [Fact]
+    public void A_disc_the_plan_refuses_is_not_also_refused_for_room()
+    {
+        // Nothing on the list, which is said elsewhere and better. No room
+        // at all, and still nothing from here.
+        MakeADisc screen = TheScreen(disk: new ADiskWithRoomFor(free: 0));
+        screen.Label = "HOLLOW KNIGHT";
+        screen.OutputFolder = @"C:\out";
+
+        Assert.Null(screen.ThereIsNotRoomToBuildIt());
+
+        // And with nowhere chosen there is nowhere to ask about.
+        MakeADisc nowhere = TheScreen(disk: new ADiskWithRoomFor(free: 0));
+        nowhere.Add(AGame("Hollow Knight"));
+
+        Assert.Null(nowhere.ThereIsNotRoomToBuildIt());
+    }
+
+    [Fact]
+    public async Task A_build_stops_for_want_of_room_before_anything_is_begun()
+    {
+        MakeADisc screen = AScreenBuildingInto(new ADiskWithRoomFor(free: 10));
+
+        Assert.True(screen.CanMakeIt);
+
+        await screen.MakeIt();
+
+        Assert.Equal("There is not room to build it there", screen.ItWentWrong?.Headline);
+        Assert.False(screen.IsWorking);
+        Assert.Null(screen.Made);
+    }
+
+    [Fact]
+    public async Task A_game_that_has_gone_is_said_before_want_of_room()
+    {
+        // Both wrong at once. The game is named first: with the game gone
+        // there is no knowing how much room it would have needed.
+        GameFolder game = AGame("Hollow Knight");
+        MakeADisc screen = TheScreen(disk: new ADiskWithRoomFor(free: 10, gone: game.Path));
+        screen.Add(game);
+        screen.Label = "HOLLOW KNIGHT";
+        screen.OutputFolder = @"C:\out";
+
+        await screen.MakeIt();
+
+        Assert.Equal("Hollow Knight is not where it was added from", screen.ItWentWrong?.Headline);
+    }
+
+    /// <summary>A screen with these games on it, about to build into a folder on that disk.</summary>
+    private static MakeADisc AScreenBuildingInto(IFileSystem disk, params string[] games)
+    {
+        MakeADisc screen = TheScreen(disk: disk);
+
+        foreach (string game in games.Length == 0 ? ["Hollow Knight"] : games)
+        {
+            screen.Add(AGame(game));
+        }
+
+        screen.Label = "HOLLOW KNIGHT";
+        screen.OutputFolder = @"C:\out";
+
+        return screen;
+    }
+
     private static readonly string Look = WhereAPreviewGoes.Under(
         System.IO.Path.GetTempPath(), "HOLLOW KNIGHT", @"F:\sets\hk", null);
 
@@ -1144,6 +1283,23 @@ public class SeeingTheMenuFirst
         public bool FileExists(string path) => !moved.Contains(path, StringComparer.OrdinalIgnoreCase);
 
         public FolderListing List(string path) => new(path, []);
+    }
+
+    /// <summary>
+    /// A disk with so much room on it, and so much already in the folder
+    /// the discs are built into. Everything is there, bar one path that can
+    /// be said to have gone.
+    /// </summary>
+    private sealed class ADiskWithRoomFor(long? free, long alreadyThere = 0, string? gone = null) : IFileSystem
+    {
+        public bool FolderExists(string path) => !string.Equals(path, gone, StringComparison.OrdinalIgnoreCase);
+
+        public bool FileExists(string path) => true;
+
+        public FolderListing List(string path) =>
+            new(path, alreadyThere > 0 ? [new ListedFile("what was built before", alreadyThere)] : []);
+
+        public long? RoomUnder(string folder) => free;
     }
 
     /// <summary>A disk where these are folders, and no file is anywhere.</summary>

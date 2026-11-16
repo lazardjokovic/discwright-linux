@@ -863,6 +863,54 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
         Directory.Move(Path.Combine(_room, "unplugged"), Path.Combine(_room, "downloads"));
     }
 
+    // ------------------------------------------------- with not room to build
+
+    [AvaloniaFact]
+    public void With_not_room_where_the_disc_is_to_be_built_it_says_so_with_the_figures_and_lays_nothing_out()
+    {
+        // The real machine, with a disk that says it has a kilobyte left.
+        MakeADisc screen = new(
+            TheLinuxMachine.Composed(new NothingIsLogged()) with { Disk = new ARealDiskWithLittleRoom(free: 1024) });
+        MainWindow window = TheWindow.Showing(
+            screen, new ADesktopThatAnswers(), new ChoosingTheLook(null, _ => { }, App.WhatTheLookFollows));
+
+        string discs = Path.Combine(_room, "discs");
+
+        screen.Add(AGame());
+        screen.Label = "FIXTURE GAME";
+        screen.OutputFolder = discs;
+        Dispatcher.UIThread.RunJobs();
+
+        Press(window, window.Found<Button>("MakeTheDisc"));
+        Until(() => window.OwnedWindows.OfType<SayingSo>().Any(each => each.IsVisible), "it to say so", seconds: 30);
+
+        SayingSo box = window.OwnedWindows.OfType<SayingSo>().Single();
+        string because = box.Found<SelectableTextBlock>("Because").Text!;
+
+        Assert.Equal("There is not room to build it there", box.Found<TextBlock>("Headline").Text);
+        Assert.StartsWith($"The discs were to be built in {discs}. ", because, StringComparison.Ordinal);
+        Assert.DoesNotContain("worth reporting", because, StringComparison.Ordinal);
+
+        // What it needs beside what there is, where an eye can compare
+        // them: the two numbers are the whole of the argument.
+        ItemsControl figures = box.Found<ItemsControl>("Figures");
+
+        Assert.True(figures.CanBeSeen());
+        Assert.Equal(
+            ["building needs", "free there"],
+            figures.GetVisualDescendants().OfType<TextBlock>().Where(each => each is not SelectableTextBlock).Select(each => each.Text));
+        Assert.Equal(
+            ByteSize.Describe(1024),
+            figures.GetVisualDescendants().OfType<SelectableTextBlock>().Last().Text);
+
+        // What it did before: copied until the disk was full, and left half
+        // a disc folder behind.
+        Assert.False(Directory.Exists(discs), "A disc folder was begun where there was not room for it.");
+        Assert.True(screen.NothingIsRunning);
+
+        box.Close();
+    }
+
     // ------------------------------------------------------------ during a run
 
     [AvaloniaFact]
@@ -950,6 +998,28 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
             .Where(each => each.CanBeSeen() && each.IsEffectivelyEnabled)
             .Select(each => Avalonia.Automation.AutomationProperties.GetAutomationId(each)!)
             .Distinct();
+
+    /// <summary>
+    /// The real disk in everything but how much room it says it has.
+    /// </summary>
+    private sealed class ARealDiskWithLittleRoom(long free) : IFileSystem
+    {
+        private readonly IFileSystem _real = new WindowsFileSystem();
+
+        public bool FolderExists(string path) => _real.FolderExists(path);
+
+        public bool FileExists(string path) => _real.FileExists(path);
+
+        public FolderListing List(string path) => _real.List(path);
+
+        public FolderListing ListHere(string path) => _real.ListHere(path);
+
+        public string? ReadText(string path) => _real.ReadText(path);
+
+        public byte[]? ReadBytes(string path) => _real.ReadBytes(path);
+
+        public long? RoomUnder(string folder) => free;
+    }
 
     /// <summary>A builder that begins and then waits to be told it may finish.</summary>
     private sealed class ABuilderThatWaits : DiscWright.Staging.IBuildDiscs

@@ -75,6 +75,25 @@ public interface IFileSystem
     /// </remarks>
     byte[]? ReadBytes(string path) => null;
 
+    /// <summary>
+    /// How many bytes can still be written under that folder, or null when
+    /// nobody can say.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Asked before a build, so a disc that plainly will not fit where it is
+    /// being built is refused before any of it is copied. Null is "cannot
+    /// say", and then nothing is refused: a network share, a folder on a
+    /// system that will not answer, and every fake that stands in for this
+    /// in a test, which is why it is defaulted.
+    /// </para>
+    /// <para>
+    /// The folder need not be there yet. The answer is for wherever it
+    /// would be made, which is the nearest folder above it that is.
+    /// </para>
+    /// </remarks>
+    long? RoomUnder(string folder) => null;
+
     /// <summary>Whether there is a file at that path.</summary>
     /// <remarks>
     /// Asked of every file somebody chose for a disc before the disc is built

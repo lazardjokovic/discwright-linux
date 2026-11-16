@@ -646,9 +646,30 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   artwork, music and extras and never of the games. A game by its folder
   and an add-on by its file. It is the drive that has been unplugged.
   Shared code, so the Windows app says it too once this is moved there.
-- **Still not accounted for in either app**: the disk filling up part of
-  the way through, and one file gone from a game's folder that is still
-  there. Both arrive as a fault nobody expected.
+- **A build with plainly not room for it is refused before it copies**
+  (`MakeADisc.ThereIsNotRoomToBuildIt`, `IFileSystem.RoomUnder`,
+  `Refusals.ThereIsNotRoomToBuildItThere`). A build copies every game
+  into the disc folder and makes an image the same size again, so it needs
+  twice what goes on the discs. What is already in the folder counts as
+  room, since a build replaces it. It refuses only what could not have
+  finished and promises nothing about the rest. Shared code. Found by
+  building onto a 400 KB disk on the VM (`/mnt/tiny`, a tmpfs).
+- **Three things are asked before a build now, in this order**: has
+  anything chosen gone, has a game gone, is there room. The last reads
+  the disk, so it is last.
+- **Still not accounted for in either app**: one file gone from a game's
+  folder that is still there, and a disk that fills up although there was
+  room when it was asked, because something else filled it. Both arrive
+  as a fault nobody expected.
+- **A fault run that prints no line for "nothing planted" has run
+  nothing.** A file variable named `F` in a list of faults overwrote the
+  test filter of the same name, every shared run matched no tests, and
+  the script printed nothing for them and returned nought. Read the line
+  for the run that plants nothing first. If it is not there, nothing
+  after it means anything.
+- **A fake disk says how much room it has only if it is taught to.**
+  `RoomUnder` is defaulted to "cannot say", so no test that does not care
+  is refused for room.
 - **The Windows suite can be run on the owner's PC without taking the
   desktop**, all but the class that opens a preview window:
   `--filter "FullyQualifiedName!~OnePreviewOnScreen&FullyQualifiedName!~BurningARealDisc"`.
