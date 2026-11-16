@@ -1,0 +1,29 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=DiscWright
+GenericName=Game disc builder
+Comment=Turn a GOG offline installer into a game disc
+# Rewritten by install.sh to the full path of the file it put in place: an
+# entry that leans on PATH opens nothing on a desktop whose session does not
+# have ~/.local/bin on it, and says nothing about why.
+#
+# %F, because a folder named on the command line is a game added, so a folder
+# dropped on the icon is one too.
+Exec=DiscWright %F
+TryExec=DiscWright
+Icon=com.discwright.DiscWright
+Terminal=false
+# DiscBurning belongs to AudioVideo in the menu specification, so both are
+# here, and AudioVideo is the only main category: with Utility beside it the
+# desktop is free to list DiscWright twice, and desktop-file-validate says so.
+Categories=AudioVideo;DiscBurning;
+Keywords=GOG;ISO;disc;burn;autorun;game;menu;
+StartupNotify=true
+# The window's class, measured with xprop, so the running window is known
+# for this entry's and wears its icon and name. A window gives two names:
+# the first is the name of the file that was started, DiscWright here, and
+# the second, the class, is the program's own and stays DiscWright.LinuxApp
+# whatever the file is called. A desktop matches on the class.
+# see-the-linux-tarball-install.sh holds the two together.
+StartupWMClass=DiscWright.LinuxApp

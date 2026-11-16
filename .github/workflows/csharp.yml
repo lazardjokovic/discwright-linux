@@ -109,6 +109,24 @@ jobs:
         run: |
           sudo apt-get install -y -qq xvfb xdotool
           xvfb-run -a bash tools/see-the-published-app-start.sh
+      # The download itself: put together, unpacked somewhere fresh, installed
+      # into a home folder with nothing in it, started the way the menu
+      # would, and taken out again. On its first run it found a menu entry
+      # with carriage returns in it and libraries left behind in ~/.net.
+      - name: The Linux download installs, starts and comes out again
+        run: |
+          sudo apt-get install -y -qq desktop-file-utils x11-utils file
+          bash tools/make-the-linux-tarball.sh
+          xvfb-run -a bash tools/see-the-linux-tarball-install.sh
+      # Kept with the run so it can be tried on a real machine. Not a release:
+      # nothing is tagged from here, and the name carries no version.
+      - name: Upload the Linux download
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiscWright-linux-x64
+          path: app/artifacts/DiscWright-linux-x64.tar.gz
+          if-no-files-found: ignore
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
