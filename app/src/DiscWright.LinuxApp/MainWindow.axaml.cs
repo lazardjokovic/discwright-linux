@@ -1,6 +1,8 @@
 using System.Text;
 
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 
 using DiscWright.Core;
@@ -52,12 +54,123 @@ public partial class MainWindow : Window
         // The one control not about the disc being made, so it reads its
         // words from the choice rather than from the screen.
         HowItDresses.DataContext = look;
+
+        // A double press on the list begins a rename. Listened for here and
+        // not in the markup, and for presses already dealt with: a row of
+        // the tree opens and shuts on a double press and says it has dealt
+        // with it, so a listener that waited to be asked never heard one.
+        // The row opening and the rename beginning on the same press is what
+        // the Windows window does too.
+        Games.AddHandler(DoubleTappedEvent, RenameWhatIsPicked, RoutingStrategies.Bubble, handledEventsToo: true);
+    }
+
+    static MainWindow()
+    {
+        // The box a row is renamed in wakes as it comes into view. WPF has an
+        // event for that on the box. Here every text box is listened to once,
+        // and the ones that are not a row's rename box are let pass.
+        IsVisibleProperty.Changed.AddClassHandler<TextBox>((box, _) => AwakenTheRenameBox(box));
     }
 
     /// <summary>The log the app keeps, for the link that opens it.</summary>
     public TheLogOnDisk? TheLog { get; init; }
 
     private void ChooseTheNextLook(object? sender, RoutedEventArgs e) => _look.Next();
+
+    // --------------------------------------------- renaming a game in place
+    //
+    // The window's share is only the gestures: a double click opens the row
+    // the screen allows, Enter and Escape close it, and wandering off
+    // commits like Enter does. Who may rename and what a name is are the
+    // screen's decisions.
+
+    private void RenameWhatIsPicked(object? sender, TappedEventArgs e) =>
+        _screen.BeginRenaming(_screen.WhatIsSelected);
+
+    /// <summary>
+    /// The box waking up: it takes the name as it stands, so a rename
+    /// abandoned last time leaves nothing stale, and the whole name is
+    /// selected because the commonest rename replaces all of it.
+    /// </summary>
+    private static void AwakenTheRenameBox(TextBox box)
+    {
+        if (box.IsVisible && box.DataContext is AThingOnTheDisc row && row.IsBeingRenamed)
+        {
+            // The width the name it stands in for would have had.
+            box.Width = row.HowWideTheNameIs;
+            box.Text = row.Name;
+            box.Focus();
+            box.SelectAll();
+        }
+    }
+
+    private void TheRenameKeys(object? sender, KeyEventArgs e)
+    {
+        if (sender is not TextBox box || box.DataContext is not AThingOnTheDisc row)
+        {
+            return;
+        }
+
+        if (e.Key == Key.Enter)
+        {
+            _screen.FinishRenaming(row, box.Text ?? string.Empty);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            _screen.CancelRenaming(row);
+            e.Handled = true;
+        }
+    }
+
+    private void TheRenameBoxLostItsFocus(object? sender, RoutedEventArgs e)
+    {
+        if (sender is TextBox box
+            && box.DataContext is AThingOnTheDisc row
+            && row.IsBeingRenamed)
+        {
+            _screen.FinishRenaming(row, box.Text ?? string.Empty);
+        }
+    }
+
+    // ------------------------------------------------- the list of what goes on
+
+    private void WhatIsPickedChanged(object? sender, SelectionChangedEventArgs e) =>
+        _screen.WhatIsSelected = Games.SelectedItem as AThingOnTheDisc;
+
+    private void TakeOffThisRow(object? sender, RoutedEventArgs e)
+    {
+        // The row whose cross was pressed, which is the row the button was
+        // drawn on: no selection in between, so there is no way to press one
+        // row's cross and lose a different row.
+        if (sender is Control pressed && pressed.DataContext is AThingOnTheDisc row)
+        {
+            _screen.TakeOff(row);
+        }
+    }
+
+    private void TheListKeys(object? sender, KeyEventArgs e)
+    {
+        // Delete takes the picked row off, the keyboard's half of the cross
+        // on the row.
+        //
+        // Not from inside the rename box, where Delete is an editing key. On
+        // Windows that needs saying here, because the box lets the key go at
+        // the end of its text and it arrives. Here the box keeps every Delete
+        // it is given, even with nothing left to delete, and a key that was
+        // kept never reaches this. A check for it was written, a fault was
+        // planted by taking the check out, and nothing changed: it was a line
+        // that read as though it did something. What holds the behaviour is
+        // the test that presses Delete in an empty box and counts the rows.
+        if (e.Key == Key.Delete && _screen.CanTakeSomethingOff)
+        {
+            _screen.TakeOff(_screen.WhatIsSelected);
+            e.Handled = true;
+        }
+    }
+
+    private void TakeOffWhatIsLeftOff(object? sender, RoutedEventArgs e) =>
+        _screen.TakeOffWhatIsLeftOff();
 
     /// <summary>
     /// Opens a disc that was built before, from the file it carries.

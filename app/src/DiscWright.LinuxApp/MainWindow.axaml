@@ -152,5 +152,307 @@
                 </StackPanel>
             </Grid>
         </Border>
+
+        <!-- ===================================================== the middle -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,28,340">
+
+            <!-- What goes on it -->
+            <DockPanel Grid.Column="0">
+                <!-- Alone on its row, like WHAT IT IS CALLED across the way. -->
+                <TextBlock DockPanel.Dock="Top"
+                           Classes="Step"
+                           Text="WHAT GOES ON IT" />
+
+                <!-- Said under the tree rather than beside a row, because
+                     it is about the disc and not about one file. -->
+                <!-- What the recogniser noticed about the folder a game came
+                     out of. An unfinished download is the one that matters:
+                     it builds an ISO that looks perfect and fails when the
+                     installer is run off the burned disc.
+
+                     Here rather than in a box when the game is added, because
+                     a box is dismissed and the burn is an hour later. -->
+                <TextBlock DockPanel.Dock="Bottom"
+                           Margin="0,2,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource WorryInk}"
+                           Text="{Binding WhatTheDownloadsSay}"
+                           IsVisible="{Binding WhatTheDownloadsSay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           AutomationProperties.AutomationId="WhatTheDownloadsSay" />
+
+                <TextBlock DockPanel.Dock="Bottom"
+                           Margin="0,2,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource WorryInk}"
+                           Text="{Binding APatchWithNothingToPatch}"
+                           IsVisible="{Binding APatchWithNothingToPatch, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           AutomationProperties.AutomationId="APatchWithNothingToPatch" />
+
+                <!-- Two rows reading alike here are two menu buttons reading
+                     alike on the burned disc. A notice and never a refusal:
+                     two editions of one game are an ordinary thing to burn,
+                     and what was asked for (discwright#98) was being told,
+                     not being stopped. -->
+                <TextBlock DockPanel.Dock="Bottom"
+                           Margin="0,2,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource WorryInk}"
+                           Text="{Binding WhoWearsTheSameName}"
+                           IsVisible="{Binding WhoWearsTheSameName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           AutomationProperties.AutomationId="WhoWearsTheSameName" />
+
+                <!-- What the opened project named that is no longer where it
+                     left it, discwright#98. The games that did not come back
+                     cannot be rows, so this line is their only trace. It used
+                     to be a box, and a box is gone at OK while the games are
+                     still gone an hour later. -->
+                <TextBlock DockPanel.Dock="Bottom"
+                           Margin="0,2,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource WorryInk}"
+                           Text="{Binding WhatDidNotComeBack}"
+                           IsVisible="{Binding WhatDidNotComeBack, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           AutomationProperties.AutomationId="WhatDidNotComeBack" />
+
+                <TextBlock DockPanel.Dock="Bottom"
+                           Margin="0,2,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource WorryInk}"
+                           Text="{Binding WhyThatMatters}"
+                           IsVisible="{Binding WhyThatMatters, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           AutomationProperties.AutomationId="WhyThatMatters" />
+
+                <!-- A disc that copies a folder rather than starting it is a
+                     thing somebody may well mean to make, so this is ordinary
+                     ink beside the amber. What it is not is something to find
+                     out by burning the disc and pressing the button. -->
+                <TextBlock DockPanel.Dock="Bottom"
+                           Classes="Aside"
+                           Margin="0,8,0,0"
+                           TextWrapping="Wrap"
+                           Text="{Binding WhatWillNotStartItself}"
+                           IsVisible="{Binding WhatWillNotStartItself, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           AutomationProperties.AutomationId="WhatWillNotStartItself" />
+
+                <Border Background="{DynamicResource Panel}"
+                        BorderBrush="{DynamicResource Edge}"
+                        BorderThickness="1"
+                        CornerRadius="4">
+                    <!-- The list, and a line under it that adds the list up.
+                         Two rows rather than one, so the total sits inside
+                         the panel it is about rather than floating under it
+                         among the lines about what was left off. -->
+                    <Grid RowDefinitions="*,Auto">
+
+                        <!-- Said once, on an empty list, and gone the moment
+                             there is anything to show. The words and nothing
+                             else: a button beside them sat under the tree on
+                             Windows and could not be pressed. -->
+                        <TextBlock Classes="Aside"
+                                   VerticalAlignment="Top"
+                                   Margin="16,16,16,0"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding !Games.Count}"
+                                   AutomationProperties.AutomationId="NothingYet"
+                                   Text="Nothing yet. Add the folder a game was downloaded into, or the folder it is installed in. Dropping one here works too, the installer's own exe included." />
+
+                        <!-- A tree, because a game is not one thing.
+                             It is an installer, its parts, whatever folders
+                             came with it and the patches that were taken on
+                             beside it, and the only way to leave one of those
+                             off used to be to not add the game at all.
+
+                             Every row carries a tick. Everything under a row
+                             follows it, and a row follows what is under it, so
+                             a folder with some of its files left out shows
+                             neither on nor off rather than lying about what
+                             will be written. -->
+                        <TreeView x:Name="Games"
+                                  SelectionChanged="WhatIsPickedChanged"
+                                  KeyDown="TheListKeys"
+                                  ItemsSource="{Binding WhatGoesOnIt}"
+                                  BorderThickness="0"
+                                  Background="Transparent"
+                                  Padding="4"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                  IsEnabled="{Binding NothingIsRunning}"
+                                  AutomationProperties.AutomationId="Games">
+                            <!-- Without this a row answers to whatever the
+                                 thing in it prints as. A reader would say all
+                                 of it aloud, and a window test would see it
+                                 instead of a name. -->
+                            <TreeView.ItemContainerTheme>
+                                <!-- On top of the row's own look, not instead
+                                     of it. -->
+                                <ControlTheme TargetType="TreeViewItem"
+                                              BasedOn="{StaticResource {x:Type TreeViewItem}}"
+                                              x:DataType="screen:AThingOnTheDisc">
+                                    <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+
+                                    <!-- A game is open and the folders inside
+                                         it are shut, which is the row's own
+                                         IsOpened default. The state lives on
+                                         the row rather than here, because
+                                         taking a row off rebuilds its branch,
+                                         and open state the window kept alone
+                                         died with the old rows. Two way, so
+                                         what somebody opens by hand reaches
+                                         the row and survives the rebuild. -->
+                                    <Setter Property="IsExpanded" Value="{Binding IsOpened, Mode=TwoWay}" />
+                                </ControlTheme>
+                            </TreeView.ItemContainerTheme>
+
+                            <TreeView.ItemTemplate>
+                                <TreeDataTemplate ItemsSource="{Binding Inside}" x:DataType="screen:AThingOnTheDisc">
+                                    <!-- Laid out left to right with the name
+                                         given a width, rather than a grid
+                                         with a column pushed to the right.
+                                         Bounding the name is what keeps a
+                                         row inside the panel whatever is in
+                                         it, and what puts every size in one
+                                         column. -->
+                                    <StackPanel Classes="ARow"
+                                                Orientation="Horizontal"
+                                                Margin="0,3"
+                                                Background="Transparent">
+                                        <CheckBox VerticalAlignment="Center"
+                                                  Margin="0,0,7,0"
+                                                  IsThreeState="{Binding HasThingsInside}"
+                                                  IsChecked="{Binding IsOn, Mode=TwoWay}"
+                                                  AutomationProperties.Name="{Binding Name}" />
+
+                                        <!-- Narrowed by however far the tree has
+                                             already pushed this row in, which
+                                             is what puts every size in one
+                                             column. Worked out by the row
+                                             rather than here, where a number
+                                             is a number no test can ask
+                                             about. -->
+                                        <TextBlock Width="{Binding HowWideTheNameIs}"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding Name}"
+                                                   TextWrapping="NoWrap"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   IsVisible="{Binding !IsBeingRenamed}"
+                                                   AutomationProperties.HelpText="{Binding InFull}"
+                                                   ToolTip.Tip="{Binding InFull}" />
+
+                                        <!-- The name again, open for typing,
+                                             only while the row is being
+                                             renamed. Its text is set as it
+                                             appears and read as it closes, in
+                                             the code behind, so a rename
+                                             abandoned with Escape leaves no
+                                             stale text for next time. Its
+                                             width too: it stands in for the
+                                             name and only ever instead of
+                                             it. -->
+                                        <TextBox VerticalAlignment="Center"
+                                                 Padding="4,2"
+                                                 IsVisible="{Binding IsBeingRenamed}"
+                                                 KeyDown="TheRenameKeys"
+                                                 LostFocus="TheRenameBoxLostItsFocus"
+                                                 AutomationProperties.AutomationId="RenameBox" />
+
+                                        <!-- The installer and a patch are
+                                             worth naming. An ordinary file is
+                                             not, and this is empty for one. -->
+                                        <Panel Width="70" Margin="8,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Classes="Aside"
+                                                       TextWrapping="NoWrap"
+                                                       Text="{Binding What}" />
+                                        </Panel>
+
+                                        <!-- Up against its own right edge, so
+                                             the figures end under each other
+                                             and the column can be read down. -->
+                                        <TextBlock Classes="Aside"
+                                                   Width="76"
+                                                   TextAlignment="Right"
+                                                   TextWrapping="NoWrap"
+                                                   VerticalAlignment="Center"
+                                                   Margin="4,0,2,0"
+                                                   Text="{Binding HowBig}" />
+
+                                        <!-- The row's own way off the list,
+                                             shown while the row is under the
+                                             pointer and unseen rather than
+                                             gone otherwise, so the columns
+                                             stand still. The tick stays what
+                                             it always was, on this disc or
+                                             off it; the cross is off the
+                                             list. -->
+                                        <Button Margin="4,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Classes="OffTheRow"
+                                                Theme="{StaticResource OffTheRow}"
+                                                Click="TakeOffThisRow"
+                                                ToolTip.Tip="Take it off the list"
+                                                AutomationProperties.Name="Take it off the list"
+                                                AutomationProperties.AutomationId="TakeOffThisRow" />
+                                    </StackPanel>
+                                </TreeDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+
+                        <!-- What the whole list comes to.
+                             Every row shows its own size and a game shows the
+                             sum of what is under it, and there was nowhere at
+                             all that said what the lot came to.
+
+                             It follows the ticks, because what is going on
+                             the disc is what is ticked. -->
+                        <Border Grid.Row="1"
+                                BorderBrush="{DynamicResource Edge}"
+                                BorderThickness="0,1,0,0"
+                                Padding="10,6"
+                                IsVisible="{Binding !!Games.Count}"
+                                AutomationProperties.AutomationId="TheTotals">
+                            <WrapPanel Orientation="Horizontal">
+                                <TextBlock Classes="Aside"
+                                           Text="{Binding WhatIsOnIt}"
+                                           AutomationProperties.AutomationId="WhatIsOnIt" />
+
+                                <!-- Only between the two sentences, never
+                                     leading the line: with everything
+                                     unticked the total says nothing at all,
+                                     and a separator with nothing on its left
+                                     is a smudge. -->
+                                <TextBlock Classes="Aside"
+                                           Text="·"
+                                           Margin="6,0"
+                                           AutomationProperties.AutomationId="BetweenTheTwo">
+                                    <TextBlock.IsVisible>
+                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                            <Binding Path="WhatIsOnIt" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
+                                            <Binding Path="WhatIsLeftOff" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
+                                        </MultiBinding>
+                                    </TextBlock.IsVisible>
+                                </TextBlock>
+
+                                <TextBlock Classes="Aside"
+                                           Text="{Binding WhatIsLeftOff}"
+                                           IsVisible="{Binding WhatIsLeftOff, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                           AutomationProperties.AutomationId="WhatIsLeftOff" />
+
+                                <!-- The sentence's own remedy, in link ink
+                                     rather than the quiet grey because grey
+                                     in this corner is what was being missed.
+                                     It carries no count of its own, the count
+                                     is an inch to the left. -->
+                                <Button Content="{Binding WhatTakingTheLeftOffOnesSays}"
+                                        Theme="{StaticResource AsALink}"
+                                        Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        IsEnabled="{Binding NothingIsRunning}"
+                                        IsVisible="{Binding WhatTakingTheLeftOffOnesSays, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                        Click="TakeOffWhatIsLeftOff"
+                                        AutomationProperties.AutomationId="TakeOffWhatIsLeftOff" />
+                            </WrapPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+            </DockPanel>
+        </Grid>
     </Grid>
 </Window>

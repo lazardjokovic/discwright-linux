@@ -33,6 +33,12 @@ namespace DiscWright.LinuxAppTests;
 /// </remarks>
 public sealed class TheTopLineOnLinux : IDisposable
 {
+    /// <summary>
+    /// A point on the main window that is page and nothing else: in the
+    /// margin down its left side, which nothing is ever laid out in.
+    /// </summary>
+    private static readonly Point InTheMargin = new(14, 400);
+
     private readonly string _room = Path.Combine(Path.GetTempPath(), "dw-top-line-" + Guid.NewGuid().ToString("N"));
 
     public TheTopLineOnLinux() => Directory.CreateDirectory(_room);
@@ -108,7 +114,7 @@ public sealed class TheTopLineOnLinux : IDisposable
             Assert.Equal(ThemeVariant.Dark, app.RequestedThemeVariant);
 
             // And the window it was pressed on is dark by then.
-            Assert.Equal(WhatWasDrawn.Of("Page", ThemeVariant.Dark), window.ColourAt(new Point(460, 600)));
+            Assert.Equal(WhatWasDrawn.Of("Page", ThemeVariant.Dark), window.ColourAt(InTheMargin));
 
             Press(window, control);
 
@@ -509,7 +515,7 @@ public sealed class TheTopLineOnLinux : IDisposable
             using Avalonia.Media.Imaging.WriteableBitmap drawn = window.CaptureRenderedFrame()!;
             drawn.Save(kept, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
 
-            Assert.Equal(WhatWasDrawn.Of("Page", look), window.ColourAt(new Point(460, 600)));
+            Assert.Equal(WhatWasDrawn.Of("Page", look), window.ColourAt(InTheMargin));
         });
     }
 

@@ -317,11 +317,32 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   to shared code or its 25 tests, and the disk is read off the window's
   thread. A nested dispatcher frame would be closer to WPF and cannot be
   answered by a headless test, which is stuck inside the press.
-- Next: the list of what goes on the disc (the toolbar, the tree and its
-  rows with `OffTheRow`, the lines under it), then the right hand column,
-  then the other dialogs. The questions asked while adding a folder are
-  four plain functions in shared code, and here an answer is awaited: that
-  needs settling before Add a game. The root of a disc assumed to be a
+- **The list of what goes on the disc is on the window**: the tree over
+  `WhatGoesOnIt` with the Windows row (tick, name at the row's own width,
+  kind, size in one column, the cross), the line that adds it up, and the
+  six lines under it. Picking, the cross, Delete, the link that takes
+  unticked rows off, and renaming in place all work.
+- **A row of Avalonia's tree keeps a double press to itself.** It opens and
+  shuts on one and says the press is dealt with, so a `DoubleTapped` written
+  in the markup never fires. The window listens with `handledEventsToo`.
+- **A text box here keeps every Delete**, even with nothing left to delete.
+  The check the Windows window needs for that did nothing here and was taken
+  out after a planted fault showed it.
+- **The cross is shown by `StackPanel.ARow:pointerover`**, the row's own
+  line, as two styles at the foot of `Look.axaml`. A tree row is under the
+  pointer whenever anything inside it is.
+- **A file in a GOG download that is not the installer or one of its parts
+  is not part of the game.** It is "left behind", and asked about. A test
+  that wants a long name on a row has to give it to the installer.
+- **A shell command with an apostrophe in a heredoc after another heredoc
+  can fail to parse, and then nothing in it runs.** Write the script, the
+  commit message and the pull request's words to files and name the files.
+- Not on the list yet: Add a game and the preview button above it, drag and
+  drop, the link that turns a manual into an extra, and the picked game's
+  own manual and extras. Games reach the list in tests through the screen.
+- Next: Add a game (the folder picker through `IAskTheDesktop`, the walk on
+  a worker as decided above, `WhatElseIsInThere` and `PickOne`), then the
+  right hand column, then building. The root of a disc assumed to be a
   drive letter waits for the Linux recorder, and burning waits for a real
   machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in

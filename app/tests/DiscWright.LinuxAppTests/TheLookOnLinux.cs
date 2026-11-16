@@ -42,6 +42,12 @@ public class TheLookOnLinux
 {
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
 
+    /// <summary>
+    /// A point on the main window that is page and nothing else: in the
+    /// margin down its left side, which nothing is ever laid out in.
+    /// </summary>
+    private static readonly Point InTheMargin = new(14, 400);
+
     public static TheoryData<string> BothLooks => new() { "Light", "Dark" };
 
     [Theory]
@@ -93,7 +99,7 @@ public class TheLookOnLinux
 
             // A pixel, not the property: a window whose background was set
             // and never painted is a white window in the dark.
-            Assert.Equal(WhatWasDrawn.Of("Page", look), window.ColourAt(new Point(460, 370)));
+            Assert.Equal(WhatWasDrawn.Of("Page", look), window.ColourAt(InTheMargin));
         });
     }
 
@@ -104,11 +110,11 @@ public class TheLookOnLinux
         window.Show();
 
         WhatWasDrawn.Wearing(ThemeVariant.Light, () =>
-            Assert.Equal(WhatWasDrawn.Of("Page", ThemeVariant.Light), window.ColourAt(new Point(460, 370))));
+            Assert.Equal(WhatWasDrawn.Of("Page", ThemeVariant.Light), window.ColourAt(InTheMargin)));
 
         // The whole reason every palette reference is a DynamicResource.
         WhatWasDrawn.Wearing(ThemeVariant.Dark, () =>
-            Assert.Equal(WhatWasDrawn.Of("Page", ThemeVariant.Dark), window.ColourAt(new Point(460, 370))));
+            Assert.Equal(WhatWasDrawn.Of("Page", ThemeVariant.Dark), window.ColourAt(InTheMargin)));
     }
 
     [AvaloniaFact]
