@@ -24,6 +24,10 @@ namespace DiscWright.LinuxAppTests;
 /// </remarks>
 public class ASheetOfTheLook
 {
+    private static readonly string[] Sizes = ["CD, 700 MB", "DVD, 4.7 GB", "Blu-ray, 25 GB"];
+    private static readonly string[] NoDrive = ["No drive"];
+    private static readonly string[] Drives = ["D: HL-DT-ST BD-RE", "E: ASUS DRW-24"];
+
     [AvaloniaTheory]
     [InlineData("Light")]
     [InlineData("Dark")]
@@ -37,7 +41,7 @@ public class ASheetOfTheLook
 
         WhatWasDrawn.Wearing(look, () =>
         {
-            Window sheet = new() { Width = 560, Height = 420, Content = TheSheet() };
+            Window sheet = new() { Width = 560, Height = 860, Content = TheSheet() };
             sheet.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -95,7 +99,60 @@ public class ASheetOfTheLook
                     new Button { Content = "Check for a new version", Theme = Theme("Quietly") },
                     new Button { Content = "Take it off the list", Theme = Theme("AsALink") },
                     new Button { Content = "Not just now", Theme = Theme("AsALink"), IsEnabled = false }),
-                new ProgressBar { Value = 40, Maximum = 100, Margin = new Thickness(0, 4, 0, 0) },
+                new ProgressBar { Value = 40, Maximum = 100, Margin = new Thickness(0, 4, 0, 18) },
+
+                new TextBlock { Text = "2. What it is called", Classes = { "Step" } },
+                Row(
+                    new TextBox { Text = "HOLLOW KNIGHT", Width = 200 },
+                    new TextBox { Text = "cannot be typed in", Width = 160, IsEnabled = false }),
+                Row(
+                    new ComboBox { ItemsSource = Sizes, SelectedIndex = 1, Width = 200 },
+                    new ComboBox { ItemsSource = NoDrive, SelectedIndex = 0, Width = 160, IsEnabled = false }),
+                new CheckBox { Content = "A menu when the disc goes in", IsChecked = true },
+                new CheckBox { Content = "Checksums, so the disc can be checked later" },
+                new CheckBox { Content = "Some of this game, but not all of it", IsThreeState = true, IsChecked = null },
+                new CheckBox { Content = "Readable by Windows 98 and Mac OS 9", IsEnabled = false, Margin = new Thickness(0, 0, 0, 14) },
+                new Border
+                {
+                    BorderBrush = (Avalonia.Media.IBrush)app.FindResource(app.ActualThemeVariant, "Edge")!,
+                    Background = (Avalonia.Media.IBrush)app.FindResource(app.ActualThemeVariant, "Panel")!,
+                    BorderThickness = new Thickness(1),
+                    Margin = new Thickness(0, 0, 0, 14),
+                    Child = new TreeView
+                    {
+                        Height = 110,
+                        ItemsSource = new[]
+                        {
+                            new TreeViewItem
+                            {
+                                Header = "Hollow Knight",
+                                IsExpanded = true,
+                                ItemsSource = new[]
+                                {
+                                    new TreeViewItem { Header = "setup_hollow_knight_1.5.78.exe", IsSelected = true },
+                                    new TreeViewItem { Header = "setup_hollow_knight_1.5.78-1.bin" },
+                                },
+                            },
+                            new TreeViewItem { Header = "Alan Wake", ItemsSource = new[] { new TreeViewItem { Header = "setup_alan_wake.exe" } } },
+                            new TreeViewItem { Header = "Manual.pdf" },
+                            new TreeViewItem { Header = "Soundtrack" },
+                            new TreeViewItem { Header = "Wallpapers" },
+                        },
+                    },
+                },
+                new ListBox
+                {
+                    ItemsSource = Drives,
+                    SelectedIndex = 1,
+                    Background = Avalonia.Media.Brushes.Transparent,
+                    Margin = new Thickness(0, 0, 0, 14),
+                },
+                new Expander
+                {
+                    Header = "More options",
+                    IsExpanded = true,
+                    Content = new TextBlock { Text = "What is in the drawer sits under its handle.", Classes = { "Aside" }, Margin = new Thickness(15, 6, 0, 0) },
+                },
             },
         };
     }
