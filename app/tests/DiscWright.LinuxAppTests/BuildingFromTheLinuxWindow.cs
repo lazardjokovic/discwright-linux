@@ -296,13 +296,23 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
         string hover = ((TextBlock)ToolTip.GetTip(tick)!).Text!;
 
         Assert.Contains(".xdg-volume-info", hover, StringComparison.Ordinal);
-        Assert.Contains("GNOME", hover, StringComparison.Ordinal);
         Assert.Contains("Windows reads neither", hover, StringComparison.Ordinal);
         Assert.DoesNotContain("every", hover, StringComparison.OrdinalIgnoreCase);
 
-        // And says where it does nothing, which was seen too: Dolphin
+        // The one thing that was seen to change: GNOME's file manager wrote
+        // the full name where it had written the volume id.
+        Assert.Contains("GNOME's file manager then shows the disc by its full name", hover, StringComparison.Ordinal);
+
+        // And where it does nothing, which was seen too: Dolphin and Thunar
         // showed the same disc by its volume id, with and without the file.
-        Assert.Contains("KDE's file manager shows the short name either way", hover, StringComparison.Ordinal);
+        Assert.Contains("KDE's and XFCE's file managers show the short name either way", hover, StringComparison.Ordinal);
+
+        // No picture is promised. It said "with its picture" once, because
+        // GIO hands the picture over when asked, and no file manager that
+        // was tried draws it. What is said of the picture is that.
+        Assert.Contains("none of the three drew the picture", hover, StringComparison.Ordinal);
+        Assert.DoesNotContain("with its picture", hover, StringComparison.Ordinal);
+        Assert.DoesNotContain("plain icon", hover, StringComparison.Ordinal);
     }
 
     [AvaloniaFact]
