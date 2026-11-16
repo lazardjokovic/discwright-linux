@@ -425,12 +425,28 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - **A branch stacked on an open pull request carries that pull request's
   commit.** If the commit is amended before it is merged, the stacked
   branch conflicts on rebase: `git rebase --skip` the old one.
-- Not on the window yet: the drive picker and what is in the drive, drag
-  and drop, the version link, and the Linux name and icon files as a disc
-  option.
-- Next, in the order I would take them: drag and drop onto the list; the
-  Linux name and icon as a disc option (on by default here, off on
-  Windows), which is shared code and the project file; then the recorder,
+- **A folder dropped on the list is taken on**, and so is the installer's
+  own exe, which brings its game. Seen on the VM's KDE desktop: a folder
+  dragged out of Dolphin onto the empty list, and again over the rows, where
+  it was added once and not twice.
+- **A real drag is done with xdotool in steps**: `mousedown`, thirty small
+  `mousemove`s, `mouseup`. A pointer that jumps is not a drag. Put the two
+  windows side by side and take a picture first, to read off where the
+  thing to drag is.
+- **In Avalonia whether an element takes drops is inherited** from what it
+  sits in. Saying so on the panel is enough for the tree. On Windows the
+  tree has to say so itself.
+- **The line that listens for the drop is held by no test.** Nothing
+  headless can drop a file. Taking that line out passes every test, and
+  only the real drag shows it.
+- **A sentence on the window is a promise.** The empty list said dropping
+  worked for seven pull requests before it did, copied from Windows with a
+  test holding the words. Read what a copied sentence claims.
+- Not on the window yet: the drive picker and what is in the drive, the
+  version link, and the Linux name and icon files as a disc option.
+- Next: the Linux name and icon as a disc option (on by default here, off
+  on Windows), which is shared code and the project file, so it wants
+  reading against what the Windows session is doing; then the recorder,
   which needs a real machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite

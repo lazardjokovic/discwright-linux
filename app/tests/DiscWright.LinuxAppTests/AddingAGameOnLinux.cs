@@ -520,6 +520,76 @@ public sealed class AddingAGameOnLinux : IDisposable
         Assert.Empty(window.OwnedWindows);
     }
 
+    // -------------------------------------------------------- dropped on the list
+
+    [AvaloniaFact]
+    public void A_folder_dropped_on_the_list_goes_the_road_Add_a_game_goes()
+    {
+        string download = ADownloadWithAManual("Fixture Game");
+        (MainWindow window, MakeADisc screen) = AWindowOver(new ADesktopThatAnswers());
+
+        Task taking = window.TakeWhatWasDropped([download]);
+
+        // Questions and all: there is more in that folder than the game.
+        WhatElseIsInThere question = TheOneThatOpens<WhatElseIsInThere>(window);
+        Press(question, question.Found<Button>("TakeThem"));
+
+        Until(() => taking.IsCompleted, "the drop to be taken on");
+
+        Assert.Equal("Fixture Game: Directors Cut", Assert.Single(screen.Games).Name);
+        Assert.Single(screen.Games[0].OwnOrNone);
+    }
+
+    [AvaloniaFact]
+    public void The_installer_dropped_by_itself_brings_its_game_with_it()
+    {
+        string download = ADownload("Fixture Game");
+        (MainWindow window, MakeADisc screen) = AWindowOver(new ADesktopThatAnswers());
+
+        // The setup exe pulled straight out of a Downloads window.
+        Task taking = window.TakeWhatWasDropped([Path.Combine(download, Installer)]);
+
+        Until(() => taking.IsCompleted, "the drop to be taken on");
+
+        Assert.Equal("Fixture Game: Directors Cut", Assert.Single(screen.Games).Name);
+
+        // The whole game, and not the one file that was dropped.
+        Assert.Equal(2, screen.WhatGoesOnIt[0].Inside.Count);
+    }
+
+    [AvaloniaFact]
+    public void Two_files_dropped_out_of_one_folder_are_one_game_and_two_folders_are_two()
+    {
+        string first = ADownload("First Game");
+        string second = ADownload("Second Game");
+        (MainWindow window, MakeADisc screen) = AWindowOver(new ADesktopThatAnswers());
+
+        Task taking = window.TakeWhatWasDropped(
+        [
+            Path.Combine(first, Installer),
+            Path.Combine(first, Installer.Replace(".exe", "-1.bin", StringComparison.Ordinal)),
+            second,
+        ]);
+
+        Until(() => taking.IsCompleted, "the drop to be taken on");
+
+        Assert.Equal(2, screen.Games.Count);
+        Assert.Empty(window.OwnedWindows);
+    }
+
+    [AvaloniaFact]
+    public void Nothing_dropped_is_nothing_done()
+    {
+        (MainWindow window, MakeADisc screen) = AWindowOver(new ADesktopThatAnswers());
+
+        Task taking = window.TakeWhatWasDropped([]);
+
+        Until(() => taking.IsCompleted, "nothing to be taken on");
+
+        Assert.Empty(screen.Games);
+        Assert.Empty(window.OwnedWindows);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static (MainWindow Window, MakeADisc Screen) AWindowOver(ADesktopThatAnswers desktop)

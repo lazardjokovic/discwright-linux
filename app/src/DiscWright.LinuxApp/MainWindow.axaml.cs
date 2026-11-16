@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 
 using DiscWright.Core;
@@ -59,6 +60,14 @@ public partial class MainWindow : Window
         // The one control not about the disc being made, so it reads its
         // words from the choice rather than from the screen.
         HowItDresses.DataContext = look;
+
+        // A drop anywhere on the list's panel, the tree in it included.
+        // Listened for once, here, and not on the tree as well: a drop goes
+        // up from the tree to the panel, and heard in both places every
+        // folder dragged in was added twice. That happened on Windows, on
+        // 2.0.1, discwright#98.
+        TheList.AddHandler(DragDrop.DragOverEvent, SayWhetherADropWouldLand);
+        TheList.AddHandler(DragDrop.DropEvent, SomethingWasDropped);
 
         // A double press on the list begins a rename. Listened for here and
         // not in the markup, and for presses already dealt with: a row of
@@ -287,6 +296,52 @@ public partial class MainWindow : Window
 
         await Add(folders);
     }
+
+    /// <summary>
+    /// Whether a drop would land, said while the drag is still in the air.
+    /// </summary>
+    /// <remarks>
+    /// The pointer wears no-entry over the list during a run, for the same
+    /// reason every box is held then: a list that cannot be changed must not
+    /// look like it can.
+    /// </remarks>
+    private void SayWhetherADropWouldLand(object? sender, DragEventArgs e)
+    {
+        e.DragEffects = _screen.NothingIsRunning && e.DataTransfer.Contains(DataFormat.File)
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// Folders dropped onto the list, discwright#98. What a drop means is
+    /// WhatWasDropped's judgement; everything after that is the same road
+    /// Add a game takes, questions and all.
+    /// </summary>
+    /// <remarks>
+    /// Dealt with the moment it arrives, whatever becomes of it, so that
+    /// nothing further up hears it again.
+    /// </remarks>
+    private async void SomethingWasDropped(object? sender, DragEventArgs e)
+    {
+        e.Handled = true;
+
+        if (!_screen.NothingIsRunning || e.DataTransfer.TryGetFiles() is not { } dropped)
+        {
+            return;
+        }
+
+        // Only what this machine can read by a path, as with anything picked.
+        await TakeWhatWasDropped([.. dropped.Select(each => each.TryGetLocalPath()).OfType<string>()]);
+    }
+
+    /// <summary>
+    /// Takes on what was dropped: a folder as it is, and a file as the folder
+    /// it is in, so the installer's own exe dragged out of a Downloads window
+    /// brings its game with it.
+    /// </summary>
+    public Task TakeWhatWasDropped(IReadOnlyList<string> dropped) =>
+        Add(WhatWasDropped.AsFolders(dropped, _disk.FolderExists));
 
     /// <summary>
     /// Adds folders somebody named on the command line, so DiscWright can be
