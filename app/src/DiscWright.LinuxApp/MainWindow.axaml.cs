@@ -60,6 +60,10 @@ public partial class MainWindow : Window
         // words from the choice rather than from the screen.
         HowItDresses.DataContext = look;
 
+        // Fitted to the screen once it is up, which is the first moment the
+        // room can be known here. See OnThisScreen.
+        Opened += (_, _) => OnThisScreen.Fit(this);
+
         // A double press on the list begins a rename. Listened for here and
         // not in the markup, and for presses already dealt with: a row of
         // the tree opens and shuts on a double press and says it has dealt
