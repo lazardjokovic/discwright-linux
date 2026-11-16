@@ -59,6 +59,38 @@
                  machine does have differs from one to the next. -->
             <FontFamily x:Key="Face">fonts:Inter#Inter</FontFamily>
 
+            <!-- The cross at a row's right edge that takes the row off the
+                 list. Unseen rather than gone while the pointer is elsewhere,
+                 so the row is the same width whether or not it is being
+                 looked at. What shows it is the row's own line being under
+                 the pointer, and that rule is among the styles at the foot of
+                 this file: a row of the tree is under the pointer whenever
+                 anything inside it is, and hovering one file would light the
+                 cross on every row above it. -->
+            <ControlTheme x:Key="OffTheRow" TargetType="Button">
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Width" Value="18" />
+                <Setter Property="Height" Value="18" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Background="{TemplateBinding Background}">
+                            <Path x:Name="Cross"
+                                  Data="M 0 0 L 7 7 M 7 0 L 0 7"
+                                  Stroke="{DynamicResource Quiet}"
+                                  StrokeThickness="1.3"
+                                  StrokeLineCap="Round"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^:pointerover /template/ Path#Cross">
+                    <Setter Property="Stroke" Value="{DynamicResource Ink}" />
+                </Style>
+            </ControlTheme>
+
             <!-- An ordinary button: the things somebody does on the way. -->
             <!-- Every button in the program is this shape. The one that
                  matters wears the accent colour and a heavier weight, and is
@@ -807,6 +839,18 @@
         <Setter Property="FontSize" Value="12" />
         <Setter Property="Foreground" Value="{DynamicResource Quiet}" />
         <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- The cross on a row of the list, unseen until the row's own line is
+         under the pointer. Unseen and not there to be pressed, the two
+         together: a cross nobody can see must not take a row off. -->
+    <Style Selector="StackPanel.ARow Button.OffTheRow">
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <Style Selector="StackPanel.ARow:pointerover Button.OffTheRow">
+        <Setter Property="Opacity" Value="1" />
+        <Setter Property="IsHitTestVisible" Value="True" />
     </Style>
 
     <Style Selector="ProgressBar">
