@@ -527,6 +527,49 @@ public partial class MainWindow : Window
     private void TakeOffWhatIsLeftOff(object? sender, RoutedEventArgs e) =>
         _screen.TakeOffWhatIsLeftOff();
 
+    /// <summary>One of a game's own, turned from its manual into an extra or back.</summary>
+    private void SwapWhatItIs(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control pressed && pressed.DataContext is AThingOnTheDisc row)
+        {
+            _screen.SwapWhatItIs(row);
+        }
+    }
+
+    /// <summary>A manual of the picked game's own, from anywhere on the machine.</summary>
+    private async void AddAManualToThePickedGame(object? sender, RoutedEventArgs e)
+    {
+        IReadOnlyList<string> chosen = await _desktop.ForFiles(
+            this,
+            "The manual of " + _screen.ThePickedGame,
+            [
+                new AKindOfFile("A manual", ["*.pdf", "*.txt", "*.htm", "*.html", "*.rtf", "*.chm"]),
+                new AKindOfFile("Anything", ["*"]),
+            ]);
+
+        if (chosen.Count > 0)
+        {
+            _screen.AddTheGamesOwn(chosen, GameExtraKind.Manual);
+        }
+    }
+
+    /// <summary>
+    /// Extras of the picked game's own: a folder, going on whole, the way an
+    /// artbook or a folder of maps is kept.
+    /// </summary>
+    /// <remarks>
+    /// One folder at a time, and the link pressed again for the next, as on
+    /// Windows, where the folder dialog refused two at once. Kept the same
+    /// here so that the two windows ask the same thing.
+    /// </remarks>
+    private async void AddExtrasToThePickedGame(object? sender, RoutedEventArgs e)
+    {
+        if (await _desktop.ForAFolder(this, "An extra of " + _screen.ThePickedGame + ", one folder at a time") is string folder)
+        {
+            _screen.AddTheGamesOwn([folder], GameExtraKind.Extra);
+        }
+    }
+
     /// <summary>
     /// Opens a disc that was built before, from the file it carries.
     /// </summary>
