@@ -4494,7 +4494,9 @@ public class TheMainWindowWithoutAWindow
         // Every row showed its own size and a game showed the sum of what was
         // under it. Nothing said what the lot came to, so with four games on
         // the window it was an addition somebody had to do by eye.
-        Assert.Equal("3.8 MB in 2 files", screen.WhatIsOnIt);
+        // The number as this machine writes numbers, which is how the size
+        // itself is written: "3,8 MB" where a decimal point is a comma.
+        Assert.Equal(string.Create(System.Globalization.CultureInfo.CurrentCulture, $"{3.8:0.#} MB in 2 files"), screen.WhatIsOnIt);
     }
 
     [Fact]
@@ -4503,13 +4505,13 @@ public class TheMainWindowWithoutAWindow
         MakeADisc screen = New();
         screen.Add(AGame("Hollow Knight", 1_000_000, parts: 1));
 
-        Assert.Equal("1.9 MB in 2 files", screen.WhatIsOnIt);
+        Assert.Equal(string.Create(System.Globalization.CultureInfo.CurrentCulture, $"{1.9:0.#} MB in 2 files"), screen.WhatIsOnIt);
 
         // What goes on the disc is what is ticked. A total that counted rows
         // somebody had just turned off would be worse than no total.
         screen.WhatGoesOnIt[0].Inside[1].IsOn = false;
 
-        Assert.Equal("976.6 KB in one file", screen.WhatIsOnIt);
+        Assert.Equal(string.Create(System.Globalization.CultureInfo.CurrentCulture, $"{976.6:0.#} KB in one file"), screen.WhatIsOnIt);
     }
 
     [Fact]

@@ -619,6 +619,21 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   `DiscWright-Lab\linux-plan\spike-2-what-the-vm-can-say.md`: xorriso lists
   the VM's two virtual drives with no root, tells an empty one from a
   finished disc, and the xorriso in the AppImage answers the same.
+- **The suites pass in eight languages** (2026-11-16): English, German,
+  Polish, Turkish, Serbian, Persian, Japanese and Arabic.
+  `tools/the-suites-in-other-languages.sh` runs them with the machine set
+  to each and compares with English, so the waiting list is not counted
+  against any of them. Its first run found four of the Windows app's own
+  tests that wanted "1.3 KB" where a German machine writes "1,3 KB". Sizes
+  are in the machine's format on purpose (`ByteSize`). Not in CI.
+- **A test that expects a number in words writes it the machine's way**:
+  `string.Create(CultureInfo.CurrentCulture, $"{1.3:0.#} KB in 3 files")`.
+- **The test runner answers in the machine's language too.** Under German
+  its last line is not "Passed!". `DOTNET_CLI_UI_LANGUAGE=en` keeps its
+  words English and leaves the tests in the language asked for.
+- **Add a game always has a folder picker to open**, seen three ways: the
+  desktop's portal on KDE, GTK's with no session bus to find the portal
+  on, and Avalonia's own in a container with neither.
 - Not on the window yet: the drive picker and what is in the drive, and
   the version link.
 - Next: the recorder, which needs a real machine with a drive, and a GNOME
