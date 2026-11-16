@@ -305,9 +305,18 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - **Not on the top line yet: the link that asks about a newer version.** It
   asks about the Windows app's releases, and what a Linux DiscWright's
   version is has not been decided. The owner has to say.
-- **No handler yet for a fault nobody expected.** The Windows app logs it
-  and shows it. Here an exception in an `async void` handler would end the
-  program. To do before anything long runs from the window.
+- **`AFaultNobodyExpected`** hears a fault inside a press through the
+  dispatcher, writes it down whole, says it in a box and lets the program
+  carry on, as the Windows app does. It is what catches a fault in an
+  `async void` handler, which has no caller to land on.
+- **How Add a game will ask its questions** (decided 2026-11-16, not built):
+  `TakingFoldersOn` asks through four plain functions that return on the
+  spot, which WPF's blocking dialogs allow. Here the walk runs on a worker
+  thread, each question is put to the window's thread and the worker waits
+  for the answer, and each step is applied on the window's thread. No change
+  to shared code or its 25 tests, and the disk is read off the window's
+  thread. A nested dispatcher frame would be closer to WPF and cannot be
+  answered by a headless test, which is stuck inside the press.
 - Next: the list of what goes on the disc (the toolbar, the tree and its
   rows with `OffTheRow`, the lines under it), then the right hand column,
   then the other dialogs. The questions asked while adding a folder are

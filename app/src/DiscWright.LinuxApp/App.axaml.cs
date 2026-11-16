@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 
 using DiscWright.Platform;
 using DiscWright.ViewModels;
@@ -41,6 +42,10 @@ public partial class App : Application
 
             // Every question asked in front of somebody, and what they said.
             WorthAsking.Log = log;
+
+            // A fault inside a press would otherwise close the program with
+            // no word about why. Kept for as long as the program runs.
+            _ = AFaultNobodyExpected.IsHeardBy(Dispatcher.UIThread, log, () => desktop.MainWindow);
 
             MakeADisc screen = new(TheLinuxMachine.Composed(log));
 
