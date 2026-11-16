@@ -414,13 +414,23 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   fails about one run in fifty on Linux**, twice so far (#32 on GitHub, #50
   on the VM). It is the Windows app's own test, about a progress report
   arriving while a disc is read back. Not looked into, not fixed.
+- **A game's own manual and extras are on the window**: while a game is
+  picked, the line under the list names it and offers Add a manual and Add
+  extras. A row that is a game's own says what it is as a link, and a press
+  makes the manual an extra or back.
+- **A game's own sit in a group under the game that starts shut**, and a
+  press on that link moves the row to the other group, which may be shut
+  too, so the row can go from under the pointer. Shared code. A test that
+  wants the row has to open down to it each time (`OpenDownTo`).
+- **A branch stacked on an open pull request carries that pull request's
+  commit.** If the commit is amended before it is merged, the stacked
+  branch conflicts on rebase: `git rebase --skip` the old one.
 - Not on the window yet: the drive picker and what is in the drive, drag
-  and drop, the link that turns a manual into an extra, the picked game's
-  own manual and extras, the version link, and the Linux name and icon files
-  as a disc option.
-- Next, in the order I would take them: the Linux name and icon as a disc
-  option (on by default here, off on Windows), which is shared code and the
-  project file; the smaller things in the list above; then the recorder,
+  and drop, the version link, and the Linux name and icon files as a disc
+  option.
+- Next, in the order I would take them: drag and drop onto the list; the
+  Linux name and icon as a disc option (on by default here, off on
+  Windows), which is shared code and the project file; then the recorder,
   which needs a real machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite

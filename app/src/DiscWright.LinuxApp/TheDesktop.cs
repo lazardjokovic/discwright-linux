@@ -31,6 +31,9 @@ public interface IAskTheDesktop
     /// <summary>One file somebody picked, or nothing if they would rather not.</summary>
     Task<string?> ForAFile(Window owner, string title, IReadOnlyList<AKindOfFile> kinds);
 
+    /// <summary>The files somebody picked, as many as they like, or none.</summary>
+    Task<IReadOnlyList<string>> ForFiles(Window owner, string title, IReadOnlyList<AKindOfFile> kinds);
+
     /// <summary>The folders somebody picked, as many as they like, or none.</summary>
     Task<IReadOnlyList<string>> ForFolders(Window owner, string title);
 
@@ -63,18 +66,29 @@ public sealed class TheDesktop(string opener = "xdg-open") : IAskTheDesktop
 
     public async Task<string?> ForAFile(Window owner, string title, IReadOnlyList<AKindOfFile> kinds)
     {
+        IReadOnlyList<string> picked = await Files(owner, title, kinds, several: false);
+
+        return picked.Count == 0 ? null : picked[0];
+    }
+
+    public Task<IReadOnlyList<string>> ForFiles(Window owner, string title, IReadOnlyList<AKindOfFile> kinds) =>
+        Files(owner, title, kinds, several: true);
+
+    private static async Task<IReadOnlyList<string>> Files(
+        Window owner, string title, IReadOnlyList<AKindOfFile> kinds, bool several)
+    {
         IReadOnlyList<IStorageFile> picked = await owner.StorageProvider.OpenFilePickerAsync(
             new FilePickerOpenOptions
             {
                 Title = title,
-                AllowMultiple = false,
+                AllowMultiple = several,
                 FileTypeFilter = [.. kinds.Select(kind => new FilePickerFileType(kind.Name) { Patterns = kind.Patterns })],
             });
 
-        // A file that is somewhere this machine can read by a path. One that
+        // Files that are somewhere this machine can read by a path. One that
         // is not, a phone over a portal, say, is no file as far as a disc
         // is concerned.
-        return picked.Count == 0 ? null : picked[0].TryGetLocalPath();
+        return [.. picked.Select(file => file.TryGetLocalPath()).OfType<string>()];
     }
 
     public Task<IReadOnlyList<string>> ForFolders(Window owner, string title) => Folders(owner, title, several: true);

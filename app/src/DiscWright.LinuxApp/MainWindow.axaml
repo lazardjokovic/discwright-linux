@@ -400,10 +400,25 @@
                                         <!-- The installer and a patch are
                                              worth naming. An ordinary file is
                                              not, and this is empty for one. -->
+                                        <!-- One of the game's own says what
+                                             it is as a link, and a press
+                                             makes the manual an extra or the
+                                             extra the manual, so one put in
+                                             the wrong place is one press from
+                                             the right one. -->
                                         <Panel Width="70" Margin="8,0,0,0" VerticalAlignment="Center">
                                             <TextBlock Classes="Aside"
                                                        TextWrapping="NoWrap"
-                                                       Text="{Binding What}" />
+                                                       Text="{Binding What}"
+                                                       IsVisible="{Binding !CanBeEither}" />
+                                            <Button Theme="{StaticResource AsALink}"
+                                                    HorizontalAlignment="Left"
+                                                    Content="{Binding What}"
+                                                    ToolTip.Tip="{Binding WhatItCouldBe}"
+                                                    AutomationProperties.HelpText="{Binding WhatItCouldBe}"
+                                                    IsVisible="{Binding CanBeEither}"
+                                                    Click="SwapWhatItIs"
+                                                    AutomationProperties.AutomationId="SwapWhatItIs" />
                                         </Panel>
 
                                         <!-- Up against its own right edge, so
@@ -451,6 +466,7 @@
                                 Padding="10,6"
                                 IsVisible="{Binding !!Games.Count}"
                                 AutomationProperties.AutomationId="TheTotals">
+                            <StackPanel>
                             <WrapPanel Orientation="Horizontal">
                                 <TextBlock Classes="Aside"
                                            Text="{Binding WhatIsOnIt}"
@@ -492,6 +508,34 @@
                                         Click="TakeOffWhatIsLeftOff"
                                         AutomationProperties.AutomationId="TakeOffWhatIsLeftOff" />
                             </WrapPanel>
+
+                            <!-- The picked game's own manual and extras, for
+                                 goodies kept apart from the installer. Only
+                                 while a game is picked, and named, so it is
+                                 plain which game they go to. -->
+                            <WrapPanel Orientation="Horizontal"
+                                       Margin="0,4,0,0"
+                                       IsVisible="{Binding ThePickedGame, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                       AutomationProperties.AutomationId="ForThePickedGame">
+                                <TextBlock Classes="Aside"
+                                           Text="{Binding ThePickedGame, StringFormat={}{0}:}"
+                                           AutomationProperties.AutomationId="ThePickedGame" />
+                                <Button Content="Add a manual"
+                                        Theme="{StaticResource AsALink}"
+                                        Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        IsEnabled="{Binding NothingIsRunning}"
+                                        Click="AddAManualToThePickedGame"
+                                        AutomationProperties.AutomationId="AddAManual" />
+                                <TextBlock Classes="Aside" Text="·" Margin="6,0" />
+                                <Button Content="Add extras"
+                                        Theme="{StaticResource AsALink}"
+                                        VerticalAlignment="Center"
+                                        IsEnabled="{Binding NothingIsRunning}"
+                                        Click="AddExtrasToThePickedGame"
+                                        AutomationProperties.AutomationId="AddExtras" />
+                            </WrapPanel>
+                            </StackPanel>
                         </Border>
                     </Grid>
                 </Border>

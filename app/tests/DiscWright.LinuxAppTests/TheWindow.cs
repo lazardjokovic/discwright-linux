@@ -71,6 +71,16 @@ internal sealed class ADesktopThatAnswers : IAskTheDesktop
         return Task.FromResult(WillPick);
     }
 
+    /// <summary>The files somebody will be said to have picked, where several may be.</summary>
+    public IReadOnlyList<string> WillPickFiles { get; set; } = [];
+
+    public Task<IReadOnlyList<string>> ForFiles(Window owner, string title, IReadOnlyList<AKindOfFile> kinds)
+    {
+        AskedFor.Add((title, kinds));
+
+        return Task.FromResult(WillPickFiles);
+    }
+
     public Task<IReadOnlyList<string>> ForFolders(Window owner, string title)
     {
         AskedForFolders.Add(title);
