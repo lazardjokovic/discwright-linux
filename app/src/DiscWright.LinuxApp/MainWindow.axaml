@@ -504,9 +504,9 @@
                  times the answer was a taller window. A scrollbar appears only
                  when it is needed and nothing can be lost again.
 
-                 Not here yet, and in the Windows window: which drive, what
-                 is in it, and the window for artwork, music and extras. One
-                 thing in the Windows window is never coming: "Readable by
+                 Not here yet, and in the Windows window: which drive, and
+                 what is in it. One thing in the Windows window is never
+                 coming: "Readable by
                  Windows 98 and Mac OS 9". A disc made here is laid out the
                  older way to begin with, so it is not a choice. -->
             <ScrollViewer Grid.Column="2"
@@ -588,6 +588,23 @@
                                 Click="ChooseWhereItGoes"
                                 AutomationProperties.AutomationId="ChooseWhereItGoes" />
                     </Grid>
+
+                    <!-- A window of its own. There are seven of these, most
+                         of them pictures, and a picture somebody chose is
+                         only really confirmed by seeing it again. -->
+                    <Button Content="Artwork, music and extras"
+                            IsEnabled="{Binding NothingIsRunning}"
+                            Theme="{StaticResource Ordinary}"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,18,0,0"
+                            Click="WhatElseGoesOnIt"
+                            AutomationProperties.AutomationId="OpenWhatElseGoesOnIt" />
+
+                    <TextBlock Classes="Aside"
+                               Margin="0,5,0,0"
+                               TextWrapping="Wrap"
+                               Text="{Binding WhatElseIsChosen}"
+                               AutomationProperties.AutomationId="WhatElseIsChosen" />
 
                     <Expander Margin="0,16,0,0"
                               Foreground="{DynamicResource Quiet}"

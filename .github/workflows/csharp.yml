@@ -45,6 +45,17 @@ jobs:
           -c Release --no-build --nologo
           --logger "trx;LogFileName=suite.trx"
           --results-directory artifacts/test-results
+      # The Linux window's tests, here as well. They draw with no screen, so
+      # they run anywhere, and one thing only Windows can tell them: a file
+      # still held open after it was shown. Linux lets a held file be deleted
+      # and Windows does not. The ones that need xorriso or a shell say
+      # nothing here.
+      - name: The Linux window's tests, on Windows
+        run: >
+          dotnet test tests/DiscWright.LinuxAppTests/DiscWright.LinuxAppTests.csproj
+          -c Release --no-build --nologo
+          --logger "trx;LogFileName=window.trx"
+          --results-directory artifacts/test-results
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
