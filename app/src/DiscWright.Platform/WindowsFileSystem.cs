@@ -41,6 +41,31 @@ public sealed class WindowsFileSystem : IFileSystem
         }
     }
 
+    /// <inheritdoc />
+    public long? RoomUnder(string folder)
+    {
+        try
+        {
+            // The nearest folder above it that is there, because the one
+            // asked about is usually still to be made.
+            string? there = Path.GetFullPath(folder);
+
+            while (there is not null && !Directory.Exists(there))
+            {
+                there = Path.GetDirectoryName(there);
+            }
+
+            return there is null ? null : new DriveInfo(there).AvailableFreeSpace;
+        }
+        catch (Exception wrong) when (wrong is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            // A share on another machine has no drive to ask, and a path
+            // that cannot be read cannot be asked. Not knowing is an answer:
+            // nothing is refused for it.
+            return null;
+        }
+    }
+
     public FolderListing List(string path) => Walk(path, goingDown: true);
 
     /// <inheritdoc />

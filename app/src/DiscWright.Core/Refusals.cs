@@ -214,6 +214,39 @@ public static class Refusals
                 + "that is no longer attached. Attach the drive and build again, or take it off the list and add it "
                 + "again from where it is now. Nothing has been laid out.");
 
+    /// <summary>
+    /// There is not room where the discs were to be built.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A build copies every game into a disc folder and then makes an image
+    /// of that folder, which is the same size again. Nothing asked whether
+    /// there was room for either, so a build onto a disk that was nearly
+    /// full copied what fitted, failed on whichever file came next, and
+    /// reached the window as a fault nobody had accounted for, with a half
+    /// made disc folder left behind. Found on 2026-11-16 by building onto a
+    /// disk made too small on purpose.
+    /// </para>
+    /// <para>
+    /// Refused only when it could not have finished: what is free, and
+    /// whatever is already in that folder and would be replaced, together
+    /// come to less than the folder and its image need. So this never stops
+    /// a build that would have worked. It does not promise that one it lets
+    /// through will.
+    /// </para>
+    /// </remarks>
+    public static Refusal ThereIsNotRoomToBuildItThere(string folder, long needed, long free) =>
+        new("There is not room to build it there",
+            $"The discs were to be built in {folder}. Building copies everything into a disc folder and then makes "
+                + $"an image of it, the same size again, which comes to {ByteSize.Describe(needed)}, and there is "
+                + $"{ByteSize.Describe(free)} free. Make room there or choose another folder, and build again. "
+                + "Nothing has been laid out.",
+            [
+                new Figure("building needs", ByteSize.Describe(needed)),
+                new Figure("free there", ByteSize.Describe(free))
+            ],
+            null);
+
     public static Refusal ThatFolderIsNotThere(string path) =>
         new("That folder is not there",
             $"Nothing was found at {path}. It may have been moved, renamed, or be on a drive that is no longer attached.",
