@@ -49,6 +49,12 @@ internal sealed class ADesktopThatAnswers : IAskTheDesktop
     /// <summary>The file somebody will be said to have picked. Nothing, if they would rather not.</summary>
     public string? WillPick { get; set; }
 
+    /// <summary>The folders somebody will be said to have picked. None, if they would rather not.</summary>
+    public IReadOnlyList<string> WillPickFolders { get; set; } = [];
+
+    /// <summary>Every folder dialog asked for, by its title.</summary>
+    public List<string> AskedForFolders { get; } = [];
+
     /// <summary>Whether anything on this desktop opens anything.</summary>
     public bool OpensThings { get; set; } = true;
 
@@ -63,6 +69,13 @@ internal sealed class ADesktopThatAnswers : IAskTheDesktop
         AskedFor.Add((title, kinds));
 
         return Task.FromResult(WillPick);
+    }
+
+    public Task<IReadOnlyList<string>> ForFolders(Window owner, string title)
+    {
+        AskedForFolders.Add(title);
+
+        return Task.FromResult(WillPickFolders);
     }
 
     public bool Open(string what)

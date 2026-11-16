@@ -52,11 +52,19 @@ public partial class App : Application
             // Everything the window says, as it says it.
             WhatTheLogHears.Listen(screen, log);
 
-            desktop.MainWindow = new MainWindow(
+            MainWindow window = new(
                 screen, TheLinuxMachine.TheReaderOfFolders(), new WindowsFileSystem(), look, new TheDesktop())
             {
                 TheLog = log,
             };
+
+            desktop.MainWindow = window;
+
+            // Folders named on the command line, so DiscWright can be opened
+            // with a game. Once the window is up, because anything this asks
+            // about needs a window to stand in front of.
+            string[] openedWith = desktop.Args ?? [];
+            window.Opened += async (_, _) => await window.AddWhatWeWereOpenedWith(openedWith);
         }
 
         base.OnFrameworkInitializationCompleted();

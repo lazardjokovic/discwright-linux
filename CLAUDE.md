@@ -352,11 +352,32 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - **A double press on a list takes a row on the second press going down**,
   so the window is gone before the pointer comes up. A test that sends the
   release anyway throws on a disposed window.
-- Next: Add a game (the folder picker through `IAskTheDesktop`, the walk on
-  a worker as decided above, over the four question windows), then the
-  right hand column, then building. The root of a disc assumed to be a
-  drive letter waits for the Linux recorder, and burning waits for a real
-  machine with a drive.
+- **Add a game works**, from the press and from folders named on the
+  command line. The walk runs on a worker thread and comes back to the
+  window's thread for every question and every step (`OnTheWindow`), as
+  decided above. One walk at a time: a second press while a question stands
+  is let pass.
+- **A test of anything that walks on a worker waits for a thing, not for a
+  time.** `Until(() => ..., "what it was waiting for")` in
+  `AddingAGameOnLinux` runs the window's thread until the thing is so and
+  names it when five seconds pass without it.
+- **An add-on hangs under its game. It is not a second game.** `Games` still
+  counts one, and the add-on is a row in the tree.
+- **A folder of games added as one game goes on to ask which file starts
+  it**, since the installers in it are files that could.
+- **A disc folder DiscWright built, sitting inside a folder of games, is
+  offered as a game**, with `autorun.inf` and `Start Here.hta` as extras.
+  That is shared code, so the Windows app does the same. The owner has been
+  told and has not decided.
+- **The question windows show a minimise button on KDE.** The Windows ones
+  show none. Not looked into.
+- Not on the window yet: drag and drop onto the list, the preview button,
+  the link that turns a manual into an extra, the picked game's own manual
+  and extras, and the version link.
+- Next: the right hand column (the name, the size of disc, where it goes,
+  the menu and what else goes on it), then building a disc from the window.
+  The root of a disc assumed to be a drive letter waits for the Linux
+  recorder, and burning waits for a real machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.

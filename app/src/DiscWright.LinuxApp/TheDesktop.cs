@@ -31,6 +31,9 @@ public interface IAskTheDesktop
     /// <summary>One file somebody picked, or nothing if they would rather not.</summary>
     Task<string?> ForAFile(Window owner, string title, IReadOnlyList<AKindOfFile> kinds);
 
+    /// <summary>The folders somebody picked, as many as they like, or none.</summary>
+    Task<IReadOnlyList<string>> ForFolders(Window owner, string title);
+
     /// <summary>
     /// Opens a file, a folder or an address in whatever the desktop opens it
     /// with, and says whether anything took it.
@@ -69,6 +72,15 @@ public sealed class TheDesktop(string opener = "xdg-open") : IAskTheDesktop
         // is not, a phone over a portal, say, is no file as far as a disc
         // is concerned.
         return picked.Count == 0 ? null : picked[0].TryGetLocalPath();
+    }
+
+    public async Task<IReadOnlyList<string>> ForFolders(Window owner, string title)
+    {
+        IReadOnlyList<IStorageFolder> picked = await owner.StorageProvider.OpenFolderPickerAsync(
+            new FolderPickerOpenOptions { Title = title, AllowMultiple = true });
+
+        // Only the ones this machine can read by a path, as with a file.
+        return [.. picked.Select(folder => folder.TryGetLocalPath()).OfType<string>()];
     }
 
     /// <remarks>

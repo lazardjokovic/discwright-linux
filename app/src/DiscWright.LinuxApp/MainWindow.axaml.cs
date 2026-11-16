@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 
 using DiscWright.Core;
 using DiscWright.Platform;
@@ -33,6 +34,9 @@ public partial class MainWindow : Window
     private readonly IFileSystem _disk;
     private readonly ChoosingTheLook _look;
     private readonly IAskTheDesktop _desktop;
+
+    /// <summary>Whether folders are being taken on now, a question at a time.</summary>
+    private bool _takingFoldersOn;
 
     /// <param name="screen">Everything the window knows and can do, the same object the Windows window is handed.</param>
     /// <param name="reader">What recognises a folder as a game, for a disc opened again.</param>
@@ -132,6 +136,220 @@ public partial class MainWindow : Window
             _screen.FinishRenaming(row, box.Text ?? string.Empty);
         }
     }
+
+    // ------------------------------------------------------------ adding a game
+
+    private async void AddAGame(object? sender, RoutedEventArgs e)
+    {
+        IReadOnlyList<string> folders = await _desktop.ForFolders(this, "Which folder is the game in?");
+
+        if (folders.Count == 0)
+        {
+            return;
+        }
+
+        await Add(folders);
+    }
+
+    /// <summary>
+    /// Adds folders somebody named on the command line, so DiscWright can be
+    /// opened with a game rather than opened and then pointed at one.
+    /// </summary>
+    /// <remarks>
+    /// Anything that is not a folder is ignored rather than complained about.
+    /// A program started with a switch it does not know should open, not stop.
+    /// </remarks>
+    public Task AddWhatWeWereOpenedWith(IEnumerable<string> arguments) =>
+        Add([.. arguments.Where(_disk.FolderExists)]);
+
+    /// <summary>
+    /// Takes folders on: which are games, which hold games, what is asked
+    /// about each and in what order all live in TakingFoldersOn, where a test
+    /// can reach them. What is left here is the translation: a question
+    /// becomes a window, and a step becomes a change to the screen.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>The walk runs off the window's thread, and comes back to it
+    /// for every question and every step.</strong> TakingFoldersOn asks
+    /// through four plain functions that answer on the spot. On Windows a
+    /// dialog blocks, so they can. Here an answer is awaited, and a function
+    /// that has to return an answer cannot wait for one on the thread the
+    /// answer will arrive on. So the walk has a thread of its own, which can
+    /// wait: each question is put to the window's thread and the walk stands
+    /// still until it is answered. The shared code and its tests are as they
+    /// were, and the disk is read without the window standing still, which
+    /// on Windows it does.
+    /// </para>
+    /// <para>
+    /// The steps arrive one at a time, so a game appears on the list before
+    /// the next folder is asked about, which is how this has always behaved.
+    /// </para>
+    /// </remarks>
+    private async Task Add(IReadOnlyList<string> folders)
+    {
+        // One walk at a time. The Windows window cannot be pressed while a
+        // question stands, since its dialogs block. This one can, between
+        // two questions, and a second walk begun then would ask about the
+        // same folders across the first.
+        if (folders.Count == 0 || _takingFoldersOn)
+        {
+            return;
+        }
+
+        _takingFoldersOn = true;
+
+        try
+        {
+            TakingFoldersOn.TheQuestions asking = new(
+                (folder, inside, loose) => OnTheWindow(() => AddingThemSeparately(folder, inside, loose)),
+                game => OnTheWindow(() => LeavingItForItsGame(game)),
+                (game, left, after) => OnTheWindow(() => WhatElseIsInThere.Ask(this, game, left, after)),
+                game => OnTheWindow(() => WhicheverStartsIt(game)));
+
+            await Task.Run(() =>
+            {
+                foreach (TakingFoldersOn.WhatToDo step in new TakingFoldersOn(_disk, _reader).From(
+                    folders, asking, folder => OnTheWindow(() => Task.FromResult(_screen.IsOnAlready(folder)))))
+                {
+                    OnTheWindow(async () =>
+                    {
+                        await Do(step);
+                        return true;
+                    });
+                }
+            });
+        }
+        finally
+        {
+            _takingFoldersOn = false;
+        }
+    }
+
+    /// <summary>
+    /// Something done on the window's thread on behalf of the walk, which
+    /// stands still until it is done.
+    /// </summary>
+    private static T OnTheWindow<T>(Func<Task<T>> what) =>
+        Dispatcher.UIThread.InvokeAsync(what).GetAwaiter().GetResult();
+
+    private async Task Do(TakingFoldersOn.WhatToDo step)
+    {
+        switch (step)
+        {
+            case TakingFoldersOn.WhatToDo.PutItOn(GameFolder game, IReadOnlyList<LeftBehind> asAddOns):
+                _screen.Add(game, asAddOns);
+                break;
+
+            case TakingFoldersOn.WhatToDo.AlsoOnTheDisc(IReadOnlyList<string> paths):
+                _screen.AlsoOnTheDisc(paths);
+                break;
+
+            case TakingFoldersOn.WhatToDo.ItIsOnAlready(GameFolder game, IReadOnlyList<LeftBehind> left):
+                await OfferBackWhatIsMissing(game, left);
+                break;
+
+            case TakingFoldersOn.WhatToDo.Explain(Refusal refusal):
+                await SayingSo.Explain(this, refusal);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// A folder that is on the list already: offers back whatever it holds
+    /// that the disc does not, or says that there is nothing more in it.
+    /// </summary>
+    /// <remarks>
+    /// What is missing and the words are the screen's, so a test can read
+    /// them. What is left here is one window, and the one answer that puts
+    /// things back.
+    /// </remarks>
+    private async Task OfferBackWhatIsMissing(GameFolder game, IReadOnlyList<LeftBehind> left)
+    {
+        if (_screen.WhatIsMissingFrom(game, left) is not TheSameFolderAgain missing)
+        {
+            return;
+        }
+
+        if (missing.NothingIsMissing)
+        {
+            await SayingSo.Explain(this, missing.AlreadyWhole);
+        }
+        else if (await Ask(missing.Question))
+        {
+            _screen.PutBack(missing);
+        }
+    }
+
+    /// <summary>
+    /// Asks a question the screen worded, and answers true for the likely one.
+    /// </summary>
+    /// <remarks>
+    /// The words and which answer is the likely one are the screen's, so a
+    /// test can read them.
+    /// </remarks>
+    private Task<bool> Ask(AQuestion question) =>
+        WorthAsking.Ask(this, question.Headline, question.Because, question.TheLikelyOne, question.TheOtherWay);
+
+    /// <summary>
+    /// Which file starts a folder of game files, when more than one could.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The recogniser deliberately never picks one. The answer narrows the
+    /// candidates to the one chosen, which is all the menu has ever looked
+    /// at, so nothing downstream had to change.
+    /// </para>
+    /// <para>
+    /// Not asked for one candidate, because there is nothing to choose
+    /// between, and not asked for none. Saying no is allowed and leaves the
+    /// disc copying the folder, which the window then says out loud.
+    /// </para>
+    /// </remarks>
+    private async Task<GameFolder> WhicheverStartsIt(GameFolder game) =>
+        await PickOne.From(
+            this,
+            $"Which file starts {game.Name}?",
+            "Nothing is guessed here. A disc whose only button runs the wrong file is worse than one that "
+                + "copies the folder and opens it, which is what this does if you would rather not say.",
+            game.LauncherCandidates,
+            file => file.RelativePath) is ListedFile chosen
+            ? game with { LauncherCandidates = [chosen] }
+            : game;
+
+    private Task<bool> AddingThemSeparately(string folder, IReadOnlyList<string> inside, int loose) =>
+        WorthAsking.Ask(
+            this,
+            $"That folder holds {inside.Count} games",
+            $"{Path.GetFileName(folder.TrimEnd(Path.DirectorySeparatorChar))} "
+                + "is not a game itself, it is where these are kept. Added separately they each get their own "
+                + "entry on the disc and its menu. Added as one, the disc holds a single entry named after the "
+                + "folder, with everything inside it."
+                + (loose == 0
+                    ? string.Empty
+                    : loose == 1
+                        ? " The one file sitting loose in it goes on the disc either way."
+                        : $" The {loose} files sitting loose in it go on the disc either way."),
+            $"Add all {inside.Count} separately",
+            "Add it as one game");
+
+    /// <summary>
+    /// Whether to leave an add-on off and wait for the game it belongs to.
+    /// </summary>
+    /// <remarks>
+    /// Not a refusal. It still goes on if somebody wants it to; it just must
+    /// not go on in silence, because on the disc it becomes a game in the menu
+    /// and running it does nothing.
+    /// </remarks>
+    private Task<bool> LeavingItForItsGame(GameFolder game) =>
+        WorthAsking.Ask(
+            this,
+            "That looks like an add-on, not a game",
+            $"{game.Installer?.Name} installs onto a game rather than being one. On a disc of its own it appears "
+                + "in the menu as a game, and running it does nothing, because the game it belongs to is not "
+                + "there. To put it with its game, add the game first and attach this to it.",
+            "Leave it for now",
+            "Put it on anyway");
 
     // ------------------------------------------------- the list of what goes on
 
