@@ -75,6 +75,18 @@ public static class TheLinuxMachine
             ANewDiscStartsWith: new DiscOptions(LinuxNameAndIcon: true));
     }
 
+    /// <summary>
+    /// Why no image could be made on this machine at all, or nothing when
+    /// one could: whether xorriso is here, asked as Build is pressed and
+    /// before anything is laid out.
+    /// </summary>
+    /// <remarks>
+    /// Asked afresh each time, and not once as the app starts: somebody told
+    /// to install xorriso installs it and presses Build again.
+    /// </remarks>
+    public static Refusal? WhyNoImageCouldBeMade() =>
+        new XorrisoImageMaker(new WindowsFileSystem(), new RunningPrograms()).WhyNoImageCouldBeMade();
+
     /// <summary>The reader of folders, with an installer's name read the Linux way.</summary>
     public static GameFolderReader TheReaderOfFolders() =>
         GameFolderReader.InTheUsualOrder(new VersionResourceFacts());

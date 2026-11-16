@@ -198,6 +198,39 @@ public sealed class MakingAnImageWithXorriso : IDisposable
     }
 
     [Fact]
+    public void Asked_before_anything_is_laid_out_it_says_xorriso_is_not_installed_and_that_nothing_was_begun()
+    {
+        XorrisoPlayedBack xorriso = new(0, ItWorked) { Installed = false };
+
+        Refusal? refusal = new XorrisoImageMaker(new WindowsFileSystem(), xorriso).WhyNoImageCouldBeMade();
+
+        Assert.NotNull(refusal);
+        Assert.Equal("xorriso is not installed", refusal.Headline);
+
+        // The line to type for each kind of system, the same three as when
+        // it is found out later.
+        Assert.Equal(XorrisoImageMaker.HowToGetIt, refusal.Figures);
+        Assert.Contains(refusal.Figures, figure => figure.Value == "sudo apt install xorriso");
+
+        // And what is true at this moment, which is not what is true later:
+        // there is no disc folder yet to say is kept.
+        Assert.Contains("Nothing has been laid out yet.", refusal.Because, StringComparison.Ordinal);
+        Assert.DoesNotContain("already made", refusal.Because, StringComparison.Ordinal);
+
+        // Asking starts nothing.
+        Assert.Empty(xorriso.Runs);
+    }
+
+    [Fact]
+    public void Asked_before_anything_is_laid_out_with_xorriso_there_it_has_nothing_to_say()
+    {
+        XorrisoPlayedBack xorriso = new(0, ItWorked);
+
+        Assert.Null(new XorrisoImageMaker(new WindowsFileSystem(), xorriso).WhyNoImageCouldBeMade());
+        Assert.Empty(xorriso.Runs);
+    }
+
+    [Fact]
     public async Task Says_xorriso_is_not_installed_and_how_to_get_it()
     {
         XorrisoPlayedBack xorriso = new(0, ItWorked) { Installed = false };
@@ -209,6 +242,10 @@ public sealed class MakingAnImageWithXorriso : IDisposable
         Assert.Equal("xorriso is not installed", refusal.Headline);
         Assert.Contains(refusal.Figures, figure => figure.Value == "sudo apt install xorriso");
         Assert.Empty(xorriso.Runs);
+
+        // Found out this late, the disc folder is finished, and it says so:
+        // minutes of copying are not to be done again.
+        Assert.Contains("The disc folder is already made and nothing is lost.", refusal.Because, StringComparison.Ordinal);
     }
 
     [Fact]

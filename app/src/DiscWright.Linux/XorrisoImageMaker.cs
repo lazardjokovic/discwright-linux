@@ -50,6 +50,20 @@ public sealed class XorrisoImageMaker(IFileSystem files, IRunPrograms programs) 
     /// <summary>How much of what xorriso said last is kept to show when it fails.</summary>
     private const int LinesKept = 12;
 
+    /// <summary>
+    /// Why no image could be made on this machine at all, or nothing when
+    /// one could. For asking before anything is laid out.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Make"/> asks the same thing when it is its turn, which is
+    /// after the disc folder is finished. For a big game that is minutes of
+    /// copying, so the window asks here first, as Build is pressed. Found by
+    /// pressing Build on a desktop with no xorriso, on 2026-11-16: the
+    /// whole disc was laid out, and then it said so.
+    /// </remarks>
+    public Refusal? WhyNoImageCouldBeMade() =>
+        programs.Has(Program) ? null : Refusals.NothingHereMakesAnImage(Program, HowToGetIt);
+
     public async Task<Outcome<MadeImage>> Make(
         string stagedFolder,
         string imagePath,

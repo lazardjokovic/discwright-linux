@@ -89,6 +89,13 @@ public partial class MainWindow : Window
     /// <summary>The log the app keeps, for the link that opens it.</summary>
     public TheLogOnDisk? TheLog { get; init; }
 
+    /// <summary>
+    /// Why no image could be made on this machine at all, asked as Build is
+    /// pressed. Nothing to ask means nothing is asked, which is what a test
+    /// of something else wants.
+    /// </summary>
+    public Func<Refusal?>? WhyNoImageCouldBeMade { get; init; }
+
     private void ChooseTheNextLook(object? sender, RoutedEventArgs e) => _look.Next();
 
     // --------------------------------------------- renaming a game in place
@@ -229,6 +236,18 @@ public partial class MainWindow : Window
 
     private async void MakeTheDisc(object? sender, RoutedEventArgs e)
     {
+        // Before anything is laid out. The image is the last thing made, so
+        // a machine with nothing to make one with otherwise finds out when
+        // the whole disc has been copied into its folder, which for a big
+        // game is minutes. The Windows window has no such question to ask:
+        // what makes its images is part of Windows.
+        if (WhyNoImageCouldBeMade?.Invoke() is Refusal nothingMakesOne)
+        {
+            TheLog?.Write($"Refused: {nothingMakesOne.Headline}. {nothingMakesOne.Because}");
+            await SayingSo.Explain(this, nothingMakesOne);
+            return;
+        }
+
         // Everything it can throw is caught here rather than left to the
         // listener for faults nobody expected, so that what is said names
         // what was being done.

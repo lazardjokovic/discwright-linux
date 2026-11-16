@@ -684,6 +684,104 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
 
     // ------------------------------------------------------------------ helpers
 
+    // ------------------------------------------- with nothing to make an image
+
+    [AvaloniaFact]
+    public void With_nothing_to_make_an_image_Build_says_so_before_anything_is_laid_out()
+    {
+        int asked = 0;
+        MakeADisc screen = TheWindow.AScreen();
+        MainWindow window = TheWindow.Showing(
+            screen,
+            new ADesktopThatAnswers(),
+            new ChoosingTheLook(null, _ => { }, App.WhatTheLookFollows),
+            whyNoImageCouldBeMade: () =>
+            {
+                asked++;
+                return Refusals.NothingHereMakesAnImage("xorriso", DiscWright.Linux.XorrisoImageMaker.HowToGetIt);
+            });
+
+        string discs = Path.Combine(_room, "discs");
+
+        screen.Add(AGame());
+        screen.Label = "FIXTURE GAME";
+        screen.OutputFolder = discs;
+        Dispatcher.UIThread.RunJobs();
+
+        // Not asked until somebody presses: a line on the window that came
+        // and went with whether xorriso was installed would be news nobody
+        // asked for.
+        Assert.Equal(0, asked);
+
+        Press(window, window.Found<Button>("MakeTheDisc"));
+
+        SayingSo box = Assert.Single(window.OwnedWindows.OfType<SayingSo>());
+
+        Assert.Equal("xorriso is not installed", box.Found<TextBlock>("Headline").Text);
+        Assert.Contains("Nothing has been laid out yet.", box.Found<SelectableTextBlock>("Because").Text, StringComparison.Ordinal);
+
+        // With the line to type, which is the half of the sentence that was
+        // missing from the box.
+        Assert.Contains(
+            box.GetVisualDescendants().OfType<SelectableTextBlock>(),
+            each => each.Text == "sudo apt install xorriso");
+
+        // And nothing was laid out: no folder, no run, nothing that went
+        // wrong part of the way through.
+        Assert.False(Directory.Exists(discs), "A disc was laid out with nothing to make its image.");
+        Assert.True(screen.NothingIsRunning);
+        Assert.Null(screen.ItWentWrong);
+
+        Press(box, box.Found<Button>("Understood"));
+
+        Assert.Empty(window.OwnedWindows.OfType<SayingSo>());
+
+        // Asked afresh at every press, since what somebody does next is
+        // install it and press again.
+        Press(window, window.Found<Button>("MakeTheDisc"));
+
+        Assert.Equal(2, asked);
+
+        Assert.Single(window.OwnedWindows.OfType<SayingSo>()).Close();
+    }
+
+    [AvaloniaFact]
+    public void With_something_to_make_one_with_Build_goes_straight_on()
+    {
+        int asked = 0;
+        ABuilderThatWaits builder = new();
+        MakeADisc screen = new(TheLinuxMachine.Composed(new NothingIsLogged()) with { Builder = builder });
+        MainWindow window = TheWindow.Showing(
+            screen,
+            new ADesktopThatAnswers(),
+            new ChoosingTheLook(null, _ => { }, App.WhatTheLookFollows),
+            whyNoImageCouldBeMade: () =>
+            {
+                asked++;
+                return null;
+            });
+
+        screen.Add(AGame());
+        screen.Label = "FIXTURE GAME";
+        screen.OutputFolder = Path.Combine(_room, "discs");
+        Dispatcher.UIThread.RunJobs();
+
+        Press(window, window.Found<Button>("MakeTheDisc"));
+        Until(() => builder.IsBuilding, "the build to begin");
+
+        Assert.Equal(1, asked);
+        Assert.Empty(window.OwnedWindows.OfType<SayingSo>());
+
+        builder.LetItFinish();
+        Until(() => screen.NothingIsRunning, "the build to be over");
+        Dispatcher.UIThread.RunJobs();
+
+        foreach (Window left in window.OwnedWindows.ToArray())
+        {
+            left.Close();
+        }
+    }
+
     // ------------------------------------------------------------ during a run
 
     [AvaloniaFact]

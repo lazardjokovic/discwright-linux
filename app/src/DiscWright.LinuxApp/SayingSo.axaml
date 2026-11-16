@@ -13,6 +13,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:app="using:DiscWright.LinuxApp"
+        xmlns:core="using:DiscWright.Core"
         x:Class="DiscWright.LinuxApp.SayingSo"
         x:DataType="app:SayingSo"
         Title="DiscWright"
@@ -39,6 +40,42 @@
                              SelectionBrush="{DynamicResource Accent}"
                              IsVisible="{Binding HasMoreToSay}"
                              AutomationProperties.AutomationId="Because" />
+
+        <!-- A refusal's figures, one to a line, which a Windows message box
+             has no place for and this box left out for the same reason until
+             2026-11-16. On Linux they are not decoration: the refusal for a
+             missing xorriso carries the line to type for each kind of system
+             as its figures, and without them it said "install it" and not
+             how.
+
+             One to a line and not wrapped side by side as on the main
+             window's bottom line, because these are sentences to copy and
+             not numbers to glance at. The value can be selected, so it can
+             be copied into a terminal. -->
+        <ItemsControl Margin="0,12,0,0"
+                      ItemsSource="{Binding Figures}"
+                      IsVisible="{Binding HasFigures}"
+                      AutomationProperties.AutomationId="Figures">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="core:Figure">
+                    <Grid ColumnDefinitions="170,*" Margin="0,3,0,0">
+                        <TextBlock Classes="Aside"
+                                   VerticalAlignment="Top"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding Label}"
+                                   AutomationProperties.Name="{Binding Label}" />
+                        <SelectableTextBlock Grid.Column="1"
+                                             FontSize="12"
+                                             FontWeight="SemiBold"
+                                             TextWrapping="Wrap"
+                                             Foreground="{DynamicResource Ink}"
+                                             SelectionBrush="{DynamicResource Accent}"
+                                             Text="{Binding Value}"
+                                             AutomationProperties.Name="{Binding Value}" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <Grid Margin="0,22,0,0" ColumnDefinitions="*,Auto">
             <Button Grid.Column="1"

@@ -23,11 +23,20 @@ internal static class TheWindow
 
     /// <summary>The window over a screen, a desktop and a look the test keeps hold of.</summary>
     public static MainWindow Showing(
-        MakeADisc screen, IAskTheDesktop desktop, ChoosingTheLook look, TheLogOnDisk? log = null)
+        MakeADisc screen,
+        IAskTheDesktop desktop,
+        ChoosingTheLook look,
+        TheLogOnDisk? log = null,
+        Func<Refusal?>? whyNoImageCouldBeMade = null)
     {
         MainWindow window = new(screen, TheLinuxMachine.TheReaderOfFolders(), new WindowsFileSystem(), look, desktop)
         {
             TheLog = log,
+
+            // Nothing to ask unless a test says what the answer is. Asked of
+            // the machine, a test of anything else would pass or fail by
+            // whether the machine running it has xorriso.
+            WhyNoImageCouldBeMade = whyNoImageCouldBeMade,
         };
 
         window.Show();
