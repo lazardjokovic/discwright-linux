@@ -482,8 +482,20 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   icon. Dolphin on the same machine shows the volume id and a plain disc:
   KDE does not read the file, and the tick's hover says so. `gio mount -li`
   does not print an icon that is a file. Ask `Gio.VolumeMonitor` from
-  python3 (`m.get_name()`, `m.get_icon().to_string()`). Not seen: a GNOME
-  desktop drawing it.
+  python3 (`m.get_name()`, `m.get_icon().to_string()`).
+- **What three file managers drew for that disc** (same day, on the VM's
+  KDE session): Nautilus, GNOME's, wrote the full name in its location bar
+  and its sidebar. Dolphin and Thunar wrote the volume id. **None of the
+  three drew the picture**: Nautilus draws its own drive symbol. So the one
+  thing the tick is seen to change is the name in GNOME's file manager, and
+  the hover says that and no more. Not tried: a whole GNOME desktop, Nemo
+  on Mint, and desktop icons, any of which may draw the picture.
+- **What a library answers is not what anybody draws.** The hover said
+  "with its picture" for five pull requests because GIO hands the PNG over
+  when asked. Open the thing somebody would look at.
+- **The VM's screen turns itself off when left alone, and pictures come out
+  black.** `xset dpms force on; xset -dpms; xset s off` before a picture.
+  The session is not locked, and `xset q` says "Monitor is Off".
 - **A test disc goes in over ssh** with `udisksctl loop-setup -r -f the.iso`
   and `udisksctl mount -b /dev/loopN`. A polkit rule on the VM
   (`/etc/polkit-1/rules.d/49-dw-test-discs.rules`) lets `dw` do that with

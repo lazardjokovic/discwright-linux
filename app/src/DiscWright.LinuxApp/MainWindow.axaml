@@ -726,18 +726,22 @@
                             <!-- Last, because it is the one that is not about
                                  Windows. On when a new disc starts here and
                                  off on Windows, through TheLinuxMachine. The
-                                 hover says only what was seen, on 2026-11-16:
-                                 GIO named a mounted image by the file and
-                                 gave the PNG as its icon, and Dolphin on the
-                                 same machine showed the volume id and a
-                                 plain disc. -->
+                                 hover says only what was seen, on 2026-11-16,
+                                 with one mounted image and three file
+                                 managers: GNOME's showed the full name, KDE's
+                                 and XFCE's showed the volume id, and none of
+                                 the three drew the picture, though GIO hands
+                                 it over when asked. It said "with its
+                                 picture" for five pull requests on the
+                                 strength of what GIO answered, which is not
+                                 the same as anybody drawing it. -->
                             <CheckBox Content="Its name and icon on Linux"
                                       IsChecked="{Binding LinuxNameAndIcon}"
                                       IsEnabled="{Binding NothingIsRunning}"
                                       AutomationProperties.AutomationId="LinuxNameAndIcon">
                                 <ToolTip.Tip>
                                     <TextBlock TextWrapping="Wrap" MaxWidth="360"
-                                               Text="Puts .xdg-volume-info at the top of the disc, and the disc's icon beside the Windows one as a PNG. Desktops built on GNOME's file handling read them and show the disc by its full name with its picture; left off, they show the short name in capitals and a plain icon. KDE's file manager shows the short name either way. Windows reads neither, so the disc is the same there." />
+                                               Text="Puts .xdg-volume-info at the top of the disc, and the disc's icon beside the Windows one as a PNG. GNOME's file manager then shows the disc by its full name, where without them it shows the short name in capitals. KDE's and XFCE's file managers show the short name either way, and none of the three drew the picture. Windows reads neither file, so the disc is the same there." />
                                 </ToolTip.Tip>
                             </CheckBox>
                         </StackPanel>
