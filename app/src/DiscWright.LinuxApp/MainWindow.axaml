@@ -57,6 +57,98 @@
                                    Text="{Binding ThisBuild}"
                                    AutomationProperties.AutomationId="ThisBuild" />
                     </StackPanel>
+
+                    <!-- THE PROGRAM'S OWN LINKS, ON ONE LINE. Stacked one under
+                         another they made this corner four rows tall beside a
+                         column of buttons two rows tall. Side by side with a
+                         dot between, the way the totals bar under the list
+                         reads. A WrapPanel, so a long line wraps rather than
+                         running under the buttons.
+
+                         The link that asks whether there is a newer version
+                         is not here yet. On Windows it is first on this line.
+                         It asks about the Windows app's releases, and what a
+                         Linux DiscWright's version is has not been decided. -->
+                    <WrapPanel Margin="0,4,0,0">
+                        <!-- About the program, not about the disc being made.
+                             One quiet control cycling three answers rather than
+                             a dropdown, because it is touched once. Its words
+                             come from ChoosingTheLook, whose DataContext the
+                             window sets, so the screen stays ignorant of
+                             themes. -->
+                        <Button x:Name="HowItDresses"
+                                x:DataType="screen:ChoosingTheLook"
+                                Content="{Binding InWords}"
+                                Theme="{StaticResource Quietly}"
+                                Click="ChooseTheNextLook"
+                                ToolTip.Tip="Light, dark, or whatever the desktop wears. Following the desktop is the default."
+                                AutomationProperties.AutomationId="Appearance" />
+
+                        <TextBlock Text="·" Classes="Aside" Margin="7,0" VerticalAlignment="Center" />
+
+                        <!-- Asked for by the owner on 2026-11-10 after a night
+                             of rebuilding a failed set from screenshots. Opens
+                             today's file in whatever opens text, or the folder
+                             when today has nothing in it yet. -->
+                        <Button Content="Open the log"
+                                Theme="{StaticResource Quietly}"
+                                Click="OpenTheLog"
+                                ToolTip.Tip="What DiscWright did and what the drives said, one file a day. It stays on this machine."
+                                AutomationProperties.AutomationId="OpenTheLog" />
+                    </WrapPanel>
+                </StackPanel>
+
+                <!-- About the whole window rather than about one more game, which
+                     is why it sits up here and not beside Add a game. -->
+                <!-- Side by side rather than stacked. Two of these one above the
+                     other was eighty pixels of button beside sixty of title, and
+                     the whole top of the window was the taller of them. -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <Grid ColumnDefinitions="*,*">
+                        <Button Grid.Column="0"
+                                Content="Start a new disc"
+                                IsEnabled="{Binding CanStartAgain}"
+                                Theme="{StaticResource Ordinary}"
+                                HorizontalAlignment="Stretch"
+                                Margin="0,0,5,0"
+                                Click="StartANewDisc"
+                                AutomationProperties.AutomationId="StartANewDisc" />
+
+                        <Button Grid.Column="1"
+                                Content="Open one you built"
+                                IsEnabled="{Binding NothingIsRunning}"
+                                Theme="{StaticResource Ordinary}"
+                                HorizontalAlignment="Stretch"
+                                Margin="5,0,0,0"
+                                Click="OpenADisc"
+                                AutomationProperties.AutomationId="OpenADisc" />
+                    </Grid>
+
+                    <!-- The quiet third of the pair above. Saving writes the
+                         same discproject.json a build leaves behind, into the
+                         folder the discs go in, so Open one you built finds it
+                         the same way. Quiet rather than a third box because
+                         the row above is already as wide as its column, and
+                         because saving is the small act next to the two big
+                         ones. -->
+                    <Button Content="Save it for later, without building"
+                            Theme="{StaticResource Quietly}"
+                            HorizontalAlignment="Right"
+                            Margin="0,6,0,0"
+                            IsEnabled="{Binding CanSaveItForLater}"
+                            ToolTip.Tip="Writes discproject.json into the folder under WHERE TO SAVE THE ISO. Open one you built brings it back."
+                            Click="SaveItForLater"
+                            AutomationProperties.AutomationId="SaveItForLater" />
+
+                    <!-- Where it went, left where it can be read again, the
+                         same manners as the line about the last burn. -->
+                    <TextBlock Classes="Aside"
+                               Margin="0,4,0,0"
+                               TextWrapping="Wrap"
+                               TextAlignment="Right"
+                               Text="{Binding HowTheSaveWent}"
+                               IsVisible="{Binding HowTheSaveWent, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               AutomationProperties.AutomationId="HowTheSaveWent" />
                 </StackPanel>
             </Grid>
         </Border>

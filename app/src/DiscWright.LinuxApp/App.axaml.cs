@@ -13,6 +13,12 @@ namespace DiscWright.LinuxApp;
 /// </summary>
 public partial class App : Application
 {
+    /// <summary>
+    /// What sets the look when nobody has chosen one, as the control on the
+    /// window names it. The Windows app says Windows.
+    /// </summary>
+    public const string WhatTheLookFollows = "the desktop";
+
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
     public override void OnFrameworkInitializationCompleted()
@@ -26,7 +32,7 @@ public partial class App : Application
             // look on its way. Here and not above, because a test must not be
             // dressed by a note on the machine it happens to run on.
             ANoteAboutTheLook keptLook = ANoteAboutTheLook.ForThisUser();
-            ChoosingTheLook look = new(keptLook.Recalled(), keptLook.Keep);
+            ChoosingTheLook look = new(keptLook.Recalled(), keptLook.Keep, WhatTheLookFollows);
             WearingTheTheme.Follow(this, look);
 
             // Next, so that everything after it has somewhere to write. One
@@ -41,7 +47,11 @@ public partial class App : Application
             // Everything the window says, as it says it.
             WhatTheLogHears.Listen(screen, log);
 
-            desktop.MainWindow = new MainWindow(screen);
+            desktop.MainWindow = new MainWindow(
+                screen, TheLinuxMachine.TheReaderOfFolders(), new WindowsFileSystem(), look, new TheDesktop())
+            {
+                TheLog = log,
+            };
         }
 
         base.OnFrameworkInitializationCompleted();
