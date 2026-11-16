@@ -46,6 +46,28 @@ internal static class WhatWasDrawn
             ?? throw new InvalidOperationException($"The {control.GetType().Name} has no {typeof(T).Name} called {name} in it.");
 
     /// <summary>
+    /// A control on a window, found the way whatever drives the window finds
+    /// it: by the AutomationId the markup gave it. Exactly one, or a failure
+    /// that names what was looked for.
+    /// </summary>
+    public static T Found<T>(this Window window, string id)
+        where T : Control
+    {
+        Dispatcher.UIThread.RunJobs();
+
+        T[] found =
+        [
+            .. window.GetVisualDescendants().OfType<T>()
+                .Where(each => Avalonia.Automation.AutomationProperties.GetAutomationId(each) == id)
+        ];
+
+        return found.Length == 1
+            ? found[0]
+            : throw new InvalidOperationException(
+                $"Looked for one {typeof(T).Name} answering to {id} on the window and found {found.Length}.");
+    }
+
+    /// <summary>
     /// Whether a control is somewhere a person could see it: on a window,
     /// with nothing above it hidden, and taking up room.
     /// </summary>

@@ -275,10 +275,19 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - The window's tests run over the real Linux machine (`TheWindow`). Fakes
   for a screen a test can steer are still to be written: the Windows
   suite's are private classes inside its test files.
-- Next: the main window a section at a time over `MakeADisc`, starting with
-  the rest of the top line (the version link, the look, the log, the three
-  project buttons), then the tree, then the right hand column, then the
-  four dialogs and a box for refusals. The root of a disc assumed to be a
+- **`WorthAsking` and `SayingSo`** are the two small windows in front of the
+  main one. `WorthAsking` is the Windows one, awaited instead of blocking,
+  with the cross as the other answer. `SayingSo` is what a message box is on
+  Windows, and a refusal in it can be read by a test.
+- **An awaited answer in a test gets a time limit** (`WaitAsync`). A window
+  that never shuts otherwise hangs the whole run and reports nothing.
+- **A key released on a window that shut on the press throws.** Release only
+  if the window is still showing.
+- Next: the rest of the main window's top line (the version link, the look,
+  the log, the three project buttons), then the tree, then the right hand
+  column, then the other dialogs. The questions asked while adding a folder
+  are four plain functions in shared code, and here an answer is awaited:
+  that needs settling before Add a game. The root of a disc assumed to be a
   drive letter waits for the Linux recorder, and burning waits for a real
   machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in

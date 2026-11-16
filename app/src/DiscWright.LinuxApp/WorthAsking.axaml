@@ -1,0 +1,52 @@
+<!--
+    A question with two answers, where neither is a refusal.
+
+    The twin of WorthAsking.xaml in the Windows app: the same words in the
+    same places, under the same names. A window of our own because every
+    control here can be found by a test.
+
+    Shutting it with the cross is not the likely answer. It is the other one,
+    as it is on Windows.
+-->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="using:DiscWright.LinuxApp"
+        x:Class="DiscWright.LinuxApp.WorthAsking"
+        x:DataType="app:WorthAsking"
+        Title="DiscWright"
+        Icon="/DiscWright.ico"
+        SizeToContent="Height"
+        Width="560"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        AutomationProperties.AutomationId="WorthAsking">
+
+    <StackPanel Margin="24,20,24,18">
+        <TextBlock Classes="Title"
+                   FontSize="17"
+                   Text="{Binding Headline}"
+                   TextWrapping="Wrap"
+                   AutomationProperties.AutomationId="Headline" />
+
+        <TextBlock Margin="0,8,0,0"
+                   Text="{Binding Because}"
+                   AutomationProperties.AutomationId="Because" />
+
+        <Grid Margin="0,22,0,0" ColumnDefinitions="*,Auto,Auto">
+            <Button Grid.Column="1"
+                    Content="{Binding TheOtherWay}"
+                    Theme="{StaticResource Ordinary}"
+                    Margin="0,0,8,0"
+                    Click="TakeTheOtherWay"
+                    AutomationProperties.AutomationId="TheOtherWay" />
+
+            <Button Grid.Column="2"
+                    Content="{Binding TheLikelyOne}"
+                    Theme="{StaticResource TheButton}"
+                    Click="TakeTheLikelyOne"
+                    IsDefault="True"
+                    AutomationProperties.AutomationId="TheLikelyOne" />
+        </Grid>
+    </StackPanel>
+</Window>
