@@ -258,11 +258,29 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - `OffTheRow`, the cross at a row's right edge, is not carried yet: it is
   shown by the row being under the pointer, and wants the real rows to test
   against. It comes with the tree in the main window.
-- Next: a Linux `TheMachine` and the composition root (drives, burning and
-  the tray answering "not yet" until the recorder exists), then the main
-  window a section at a time over `MakeADisc`, then the four dialogs and a
-  box for refusals. The root of a disc assumed to be a drive letter waits for
-  the Linux recorder, and burning waits for a real machine with a drive.
+- **`TheLinuxMachine` in `LinuxApp` is the composition root**, the twin of
+  what `App.xaml.cs` builds on Windows, port for port. The window is handed
+  `MakeADisc`, the same screen as on Windows, and shows the name and the
+  version from it. The log lands in `~/.local/share/DiscWright/logs`.
+- **Drives, burning, erasing and the tray are `NothingBurnsYet`** until
+  there is a recorder over xorriso: no drives, and a refusal that says this
+  version does not burn and names K3b, Brasero and Xfburn. It is a fact about
+  DiscWright and not about the machine, so it is not `ThereIsNoDiscWriter`.
+- **The autorun codepage follows the machine's locale**, as on Windows, and
+  is not fixed at 1252 as the plan said. The owner has not been asked.
+- **The window's tests are stamped 0.0.1 on purpose.** Stamped like the app,
+  an app that read its version from whatever started the process passed.
+- **A build made from `git archive` carries no commit after the plus**, so
+  anything about the commit has to be asked of a function, not the assembly.
+- The window's tests run over the real Linux machine (`TheWindow`). Fakes
+  for a screen a test can steer are still to be written: the Windows
+  suite's are private classes inside its test files.
+- Next: the main window a section at a time over `MakeADisc`, starting with
+  the rest of the top line (the version link, the look, the log, the three
+  project buttons), then the tree, then the right hand column, then the
+  four dialogs and a box for refusals. The root of a disc assumed to be a
+  drive letter waits for the Linux recorder, and burning waits for a real
+  machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.

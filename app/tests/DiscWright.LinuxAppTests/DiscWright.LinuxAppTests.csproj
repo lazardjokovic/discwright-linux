@@ -19,6 +19,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+
+    <!-- A version of its own, and not the app's. The app says which build it
+         is by reading its own assembly, and under a test the assembly that
+         started the process is this one. With both stamped alike, an app that
+         read the wrong one of the two could not be told from one that read
+         the right one. -->
+    <Version>0.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>

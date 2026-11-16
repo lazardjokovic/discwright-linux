@@ -137,7 +137,7 @@ public class TheLinuxWindowOpens
 
     private static MainWindow Opened()
     {
-        MainWindow window = new();
+        MainWindow window = TheWindow.WithNothingOnIt();
         window.Show();
 
         return window;

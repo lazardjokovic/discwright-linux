@@ -1,24 +1,64 @@
 <!--
     The main window, on Linux.
 
-    Empty so far. What is here already is what MainWindow.xaml in the Windows
-    app says about the window itself, with its reasons: drawn at 920 by 740 and
-    resizable in height only. The games list lines its sizes up at a fixed
-    width (AThingOnTheDisc.HowWideTheNameIs), so narrower cut the sizes off and
-    wider left them stranded in the middle of the list. The width is held at
-    what was drawn.
+    It holds no decisions. Every question it asks is answered by MakeADisc,
+    the same screen the Windows window asks, so what is here is only
+    arrangement: where things sit, what they are called, and which of them is
+    bound to what. It is MainWindow.xaml in the Windows app said the way
+    Avalonia says it, a part at a time, and what is not here yet is not on the
+    window yet.
+
+    Drawn at 920 by 740 and resizable in height only. The games list lines its
+    sizes up at a fixed width (AThingOnTheDisc.HowWideTheNameIs), so narrower
+    cut the sizes off and wider left them stranded in the middle of the list.
+    The width is held at what was drawn.
 
     Everything an automated test touches carries an AutomationId, set here and
     never left to the framework to invent, and by the same names as the
     Windows window.
+
+    A binding here is checked when it is compiled, against MakeADisc, so a
+    property renamed in the shared code stops this build.
 -->
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:screen="using:DiscWright.ViewModels"
         x:Class="DiscWright.LinuxApp.MainWindow"
+        x:DataType="screen:MakeADisc"
         Title="DiscWright"
         Icon="/DiscWright.ico"
         Width="920" Height="740"
         MinHeight="560" MinWidth="920" MaxWidth="920"
         WindowStartupLocation="CenterScreen"
         AutomationProperties.AutomationId="TheWindow">
+
+    <Grid Margin="28,16,28,18" RowDefinitions="Auto,*,Auto">
+
+        <!-- ================================================== the top line -->
+        <!-- A rule under it, so the space to the right of the name reads as a
+             header bar rather than as somewhere a thing used to be. -->
+        <Border Grid.Row="0"
+                Margin="0,0,0,12"
+                Padding="0,0,0,10"
+                BorderBrush="{DynamicResource Edge}"
+                BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="*,28,340">
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <!-- The name, and which build it is. The version beside
+                         the name, not under it: on its own underneath, "2.0.0"
+                         could as easily have been about the disc being made. -->
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="DiscWright" Classes="Title" />
+
+                        <TextBlock Classes="Aside"
+                                   Margin="8,0,0,4"
+                                   VerticalAlignment="Bottom"
+                                   Text="{Binding ThisBuild}"
+                                   AutomationProperties.AutomationId="ThisBuild" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
 </Window>
