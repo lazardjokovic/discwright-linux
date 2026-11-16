@@ -187,6 +187,33 @@ public static class Refusals
             $"{own.Path} is not there any more. It may have been moved or renamed since it was chosen. "
                 + $"Take it off {game} in the list and add it again from where it is now.");
 
+    /// <summary>
+    /// A game on the list is not where it was added from any more.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The commonest way is a drive that has been unplugged since: a folder
+    /// of installers on an external disc is exactly where somebody making
+    /// discs keeps them. It is asked before a build, beside the same question
+    /// about everything chosen under Artwork, music and extras, which had
+    /// been asked from the start. The games themselves never were, and one
+    /// that had gone reached the window as a fault nobody had accounted for,
+    /// with an empty disc folder left behind it. Found on 2026-11-16 by
+    /// taking a game's folder away and pressing Build.
+    /// </para>
+    /// <para>
+    /// Both ways out are said, because which one it is depends on what
+    /// happened, and only the person reading knows.
+    /// </para>
+    /// </remarks>
+    /// <param name="what">The game, or the add-on, by the name on the list.</param>
+    /// <param name="path">Where it was added from.</param>
+    public static Refusal ThatGameIsNotThere(string what, string path) =>
+        new($"{what} is not where it was added from",
+            $"{path} is not there any more. It may have been moved or renamed since it was added, or be on a drive "
+                + "that is no longer attached. Attach the drive and build again, or take it off the list and add it "
+                + "again from where it is now. Nothing has been laid out.");
+
     public static Refusal ThatFolderIsNotThere(string path) =>
         new("That folder is not there",
             $"Nothing was found at {path}. It may have been moved, renamed, or be on a drive that is no longer attached.",

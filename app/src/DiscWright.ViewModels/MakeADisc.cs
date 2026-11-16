@@ -1771,6 +1771,45 @@ public sealed class MakeADisc : INotifyPropertyChanged
         return null;
     }
 
+    /// <summary>
+    /// The first game or add-on on the list that is no longer where it was
+    /// added from, as a refusal naming it, or nothing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Asked before a build, straight after <see cref="AChosenFileIsGone"/>,
+    /// which asks the same of everything that is not a game. Not asked
+    /// before a preview: a preview draws the menu and copies no game.
+    /// </para>
+    /// <para>
+    /// A game by its folder and an add-on by its file, which is what each
+    /// was added as. A drive that has been unplugged takes the folder with
+    /// it, and that is the case this is for. One file taken out of a folder
+    /// that is still there is not looked for here: that would be reading
+    /// every game's folder again before every build.
+    /// </para>
+    /// </remarks>
+    public Refusal? AGameIsGone()
+    {
+        foreach (GameFolder game in _games)
+        {
+            if (!_machine.Disk.FolderExists(game.Path))
+            {
+                return Refusals.ThatGameIsNotThere(game.Name, game.Path);
+            }
+        }
+
+        foreach (AddOn addOn in _addOns)
+        {
+            if (!_machine.Disk.FileExists(addOn.Path))
+            {
+                return Refusals.ThatGameIsNotThere(addOn.Name, addOn.Path);
+            }
+        }
+
+        return null;
+    }
+
     public async Task MakeIt(CancellationToken ct = default)
     {
         // CanMakeIt is already false while a build is running, so this is the
@@ -1785,6 +1824,16 @@ public sealed class MakeADisc : INotifyPropertyChanged
         if (AChosenFileIsGone() is Refusal gone)
         {
             ItWentWrong = gone;
+            Tell(nameof(ItWentWrong));
+            return;
+        }
+
+        // And the games themselves, for the same reason and at the same
+        // moment. Unasked, a game on a drive that had been unplugged was met
+        // by the first step that copies, as an exception with no name.
+        if (AGameIsGone() is Refusal away)
+        {
+            ItWentWrong = away;
             Tell(nameof(ItWentWrong));
             return;
         }

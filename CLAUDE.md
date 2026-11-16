@@ -640,10 +640,22 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   typed wrong reached the window as "Something went wrong... worth
   reporting". **Shared code, so the Windows app says it too** once this
   is moved there. Found by typing `/proc/discs` on the real window.
+- **A game that has gone since it was added is a refusal of its own**
+  (`MakeADisc.AGameIsGone`, `Refusals.ThatGameIsNotThere`), asked before a
+  build beside `AChosenFileIsGone`, which had always asked the same of
+  artwork, music and extras and never of the games. A game by its folder
+  and an add-on by its file. It is the drive that has been unplugged.
+  Shared code, so the Windows app says it too once this is moved there.
 - **Still not accounted for in either app**: the disk filling up part of
-  the way through, and a game's file that has gone or cannot be read by
-  the time it is copied. Both arrive as a fault nobody expected. They
-  want refusals of their own, and words that are the owner's to settle.
+  the way through, and one file gone from a game's folder that is still
+  there. Both arrive as a fault nobody expected.
+- **The Windows suite can be run on the owner's PC without taking the
+  desktop**, all but the class that opens a preview window:
+  `--filter "FullyQualifiedName!~OnePreviewOnScreen&FullyQualifiedName!~BurningARealDisc"`.
+  Fifty seconds. Worth doing before pushing a change to shared code.
+- **A class with tests on the waiting list fails some with nothing
+  planted.** `SeeingTheMenuFirst` fails five on Linux. Count a fault as
+  caught when it fails more than the run that plants nothing.
 - **A path in a refusal is in the system's own words too.** A test that
   looked for the folder anywhere in the refusal found it in what the
   system said at the end, and passed a refusal that no longer named it.

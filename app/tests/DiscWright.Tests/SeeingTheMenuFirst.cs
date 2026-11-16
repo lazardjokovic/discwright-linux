@@ -942,6 +942,120 @@ public class SeeingTheMenuFirst
     /// would refuse to empty it, which is how a preview that wrote nothing
     /// at all went green through every one of them.
     /// </remarks>
+    // ------------------------------------------------- a game that has gone
+    //
+    // Beside the tests of AChosenFileIsGone, because it is the same question
+    // asked of the one kind of thing that was never asked: the games. Found
+    // on 2026-11-16 on the Linux window, by taking a game's folder away and
+    // pressing Build, which is what a drive that has been unplugged looks
+    // like. It said the fault was not accounted for and worth reporting.
+
+    [Fact]
+    public void A_game_that_is_where_it_was_added_from_is_not_spoken_of()
+    {
+        MakeADisc screen = TheScreen(disk: new ADiskWhereSomethingMoved());
+        screen.Add(AGame("Hollow Knight"));
+
+        Assert.Null(screen.AGameIsGone());
+    }
+
+    [Fact]
+    public void A_game_whose_folder_has_gone_is_named_with_where_it_was()
+    {
+        GameFolder game = AGame("Hollow Knight");
+        MakeADisc screen = TheScreen(disk: new ADiskWhereSomethingMoved(game.Path));
+        screen.Add(game);
+
+        Refusal gone = Assert.IsType<Refusal>(screen.AGameIsGone());
+
+        Assert.Equal("Hollow Knight is not where it was added from", gone.Headline);
+        Assert.StartsWith(game.Path + " is not there any more.", gone.Because, StringComparison.Ordinal);
+
+        // The likeliest reason, and both ways out, since which it is depends
+        // on what happened and only the person reading knows.
+        Assert.Contains("on a drive that is no longer attached", gone.Because, StringComparison.Ordinal);
+        Assert.Contains("Attach the drive and build again", gone.Because, StringComparison.Ordinal);
+        Assert.Contains("take it off the list and add it again from where it is now", gone.Because, StringComparison.Ordinal);
+        Assert.EndsWith("Nothing has been laid out.", gone.Because, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_first_on_the_list_that_has_gone_is_the_one_named()
+    {
+        GameFolder here = AGame("Hollow Knight");
+        GameFolder gone = AGame("The Witcher");
+        GameFolder alsoGone = AGame("Alan Wake");
+
+        MakeADisc screen = TheScreen(disk: new ADiskWhereSomethingMoved(alsoGone.Path, gone.Path));
+        screen.Add(here);
+        screen.Add(gone);
+        screen.Add(alsoGone);
+
+        Assert.Equal("The Witcher is not where it was added from", screen.AGameIsGone()?.Headline);
+    }
+
+    [Fact]
+    public void An_add_on_whose_file_has_gone_is_named_by_its_file()
+    {
+        GameFolder game = AGame("Hollow Knight");
+        string patch = System.IO.Path.Combine(game.Path, "patch_1.0_to_1.1.exe");
+
+        // The game's folder is there. The one file is not.
+        MakeADisc screen = TheScreen(disk: new ADiskWhereSomethingMoved(patch));
+        screen.Add(game, [new LeftBehind(new ListedFile("patch_1.0_to_1.1.exe", 50_000), LeftBehindKind.LooksLikeAnAddOn)]);
+
+        Refusal gone = Assert.IsType<Refusal>(screen.AGameIsGone());
+
+        Assert.EndsWith(" is not where it was added from", gone.Headline, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hollow Knight is not", gone.Headline, StringComparison.Ordinal);
+        Assert.StartsWith(patch + " is not there any more.", gone.Because, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_build_stops_for_a_game_that_has_gone_before_anything_is_begun()
+    {
+        GameFolder game = AGame("Hollow Knight");
+        MakeADisc screen = TheScreen(disk: new ADiskWhereSomethingMoved(game.Path));
+        screen.Add(game);
+        screen.Label = "HOLLOW KNIGHT";
+        screen.OutputFolder = @"C:\out";
+
+        Assert.True(screen.CanMakeIt);
+
+        await screen.MakeIt();
+
+        Assert.Equal("Hollow Knight is not where it was added from", screen.ItWentWrong?.Headline);
+        Assert.False(screen.IsWorking);
+        Assert.Null(screen.Made);
+    }
+
+    [Fact]
+    public async Task A_build_with_every_game_where_it_was_is_not_stopped_for_this()
+    {
+        MakeADisc screen = TheScreen(disk: new ADiskWhereSomethingMoved());
+        screen.Add(AGame("Hollow Knight"));
+        screen.Label = "HOLLOW KNIGHT";
+        screen.OutputFolder = @"C:\out";
+
+        await screen.MakeIt();
+
+        Assert.DoesNotContain(
+            "is not where it was added from", screen.ItWentWrong?.Headline ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void What_is_asked_before_a_preview_is_not_changed_by_it()
+    {
+        // A preview draws the menu and copies no game, so a game that has
+        // gone does not stop one. Only the build asks.
+        GameFolder game = AGame("Hollow Knight");
+        MakeADisc screen = TheScreen(disk: new ADiskWhereSomethingMoved(game.Path));
+        screen.Add(game);
+
+        Assert.Null(screen.AChosenFileIsGone());
+        Assert.NotNull(screen.AGameIsGone());
+    }
+
     private static readonly string Look = WhereAPreviewGoes.Under(
         System.IO.Path.GetTempPath(), "HOLLOW KNIGHT", @"F:\sets\hk", null);
 

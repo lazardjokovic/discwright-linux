@@ -821,6 +821,48 @@ public sealed class BuildingFromTheLinuxWindow : IDisposable
         box.Close();
     }
 
+    // --------------------------------------------- with a game that has gone
+
+    [AvaloniaFact]
+    public void A_game_taken_away_since_it_was_added_is_named_and_nothing_is_laid_out()
+    {
+        (MainWindow window, MakeADisc screen) = AWindow();
+        string discs = Path.Combine(_room, "discs");
+
+        GameFolder game = AGame();
+
+        screen.Add(game);
+        screen.Label = "FIXTURE GAME";
+        screen.OutputFolder = discs;
+        Dispatcher.UIThread.RunJobs();
+
+        // The drive is unplugged: the folder the game was added from goes,
+        // with the game still on the list.
+        Directory.Move(Path.Combine(_room, "downloads"), Path.Combine(_room, "unplugged"));
+
+        Press(window, window.Found<Button>("MakeTheDisc"));
+        Until(() => window.OwnedWindows.OfType<SayingSo>().Any(each => each.IsVisible), "it to say so", seconds: 30);
+
+        SayingSo box = window.OwnedWindows.OfType<SayingSo>().Single();
+        string because = box.Found<SelectableTextBlock>("Because").Text!;
+
+        Assert.Equal(game.Name + " is not where it was added from", box.Found<TextBlock>("Headline").Text);
+        Assert.StartsWith(game.Path + " is not there any more.", because, StringComparison.Ordinal);
+        Assert.Contains("on a drive that is no longer attached", because, StringComparison.Ordinal);
+
+        // What it said before: that something went wrong nobody had
+        // accounted for, and was worth reporting. And it left an empty disc
+        // folder behind it.
+        Assert.DoesNotContain("worth reporting", because, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(discs), "A disc folder was laid out for a game that is not there.");
+        Assert.True(screen.NothingIsRunning);
+
+        box.Close();
+
+        // Put back, so the room can be cleared away.
+        Directory.Move(Path.Combine(_room, "unplugged"), Path.Combine(_room, "downloads"));
+    }
+
     // ------------------------------------------------------------ during a run
 
     [AvaloniaFact]
