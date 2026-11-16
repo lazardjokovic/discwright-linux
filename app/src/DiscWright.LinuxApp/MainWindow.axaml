@@ -234,6 +234,30 @@
                            IsVisible="{Binding WhatWillNotStartItself, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                            AutomationProperties.AutomationId="WhatWillNotStartItself" />
 
+                <!-- Above the list, not under it. These act on the list, so
+                     they stay inside this panel's column rather than joining
+                     the project pair top right, but under the list they were
+                     the last thing in reading order and the first thing a
+                     new window needs: on an empty window the one thing to do
+                     sat below a large blank box. Above the panel rather than
+                     inside it, because a button inside is covered by the
+                     tree and cannot be pressed.
+
+                     The button that shows what the menu will look like is
+                     not here yet. On Windows it sits at the right of this
+                     row. The menu is a Windows page, and what a Linux
+                     DiscWright says in that button's place is a pull request
+                     of its own. -->
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,8" ColumnDefinitions="Auto,*">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <Button Content="Add a game"
+                                IsEnabled="{Binding NothingIsRunning}"
+                                Theme="{StaticResource Ordinary}"
+                                Click="AddAGame"
+                                AutomationProperties.AutomationId="AddAGame" />
+                    </StackPanel>
+                </Grid>
+
                 <Border Background="{DynamicResource Panel}"
                         BorderBrush="{DynamicResource Edge}"
                         BorderThickness="1"
