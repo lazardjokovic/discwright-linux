@@ -313,7 +313,7 @@ public class BurningOneDiscAndWatchingIt
                 Burner,
                 new AnEraserThatRefuses(),
                 new ADiskThatMatchesWhatWasBuilt(),
-                new NoHashing(),
+                new AHasherThatWaitsToBeHeard(this),
                 new NothingIsRemembered(),
                 new ATrayThatShuts { NotReadFor = discNotReadFor },
                 new NothingIsReleased(),
@@ -375,6 +375,15 @@ public class BurningOneDiscAndWatchingIt
         internal ABurnerThatSaysWhatItIsDoing Burner { get; } = new();
 
         internal List<string> Said { get; } = [];
+
+        /// <summary>What it has said up to now, as a list nothing else is writing to.</summary>
+        internal string[] SaidSoFar()
+        {
+            lock (Said)
+            {
+                return [.. Said];
+            }
+        }
 
         internal List<double> Far { get; } = [];
 
@@ -580,6 +589,41 @@ public class BurningOneDiscAndWatchingIt
     private sealed class NoHashing : IHasher
     {
         public string Sha256(string path, CancellationToken ct) => string.Empty;
+    }
+
+    /// <summary>
+    /// A hasher that takes no time, and does not begin until the window has
+    /// said it is checking the file it was handed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The reading back runs on another thread, says which file it is on, and
+    /// hashes it. A real hash takes seconds, which is all the time in the
+    /// world for that line to reach the window. One that takes no time lets
+    /// the whole reading back finish before the burn has got as far as waiting
+    /// for it. The burn then carries straight on to its end, and the lines
+    /// still on their way are dropped as lines about nothing.
+    /// </para>
+    /// <para>
+    /// That happened on 2026-11-16, on the push that merged discwright-linux#57:
+    /// everything was said but the two "checking the disc" lines. It is the
+    /// same fault <see cref="ABurnerThatSaysWhatItIsDoing"/> waits its way
+    /// round for the burner, one step later.
+    /// </para>
+    /// </remarks>
+    private sealed class AHasherThatWaitsToBeHeard(AWindowWatched watching) : IHasher
+    {
+        public string Sha256(string path, CancellationToken ct)
+        {
+            // Just the name, whichever way the path is written: the disc's
+            // is a Windows one and the test may be running anywhere.
+            string file = path[(path.LastIndexOfAny(['/', (char)92]) + 1)..];
+
+            OnTheWindowsThread.WaitUntil(
+                () => watching.SaidSoFar().Any(said => said.EndsWith(file, StringComparison.Ordinal)));
+
+            return string.Empty;
+        }
     }
 
     private sealed class NothingIsRemembered : IKeepTheSetsPlace

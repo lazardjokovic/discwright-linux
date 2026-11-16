@@ -227,11 +227,36 @@ public class WhatADiscIsReadBackAgainst
         List<string> said = [];
         ADiskThatRemembers disk = new() { TheFiles = [new ListedFile("one.bin", 3)] };
 
-        await new ReadingBackWhatWasWritten(disk, new NoHashing(), (doing, far) => said.Add(doing))
+        // Written under a lock, because the report is handed over on the
+        // thread pool and this test reads the list from its own thread.
+        void Heard(string doing, double far)
+        {
+            lock (said)
+            {
+                said.Add(doing);
+            }
+        }
+
+        string[] SoFar()
+        {
+            lock (said)
+            {
+                return [.. said];
+            }
+        }
+
+        await new ReadingBackWhatWasWritten(disk, new NoHashing(), Heard)
             .HowItCameOut(InDriveE, new WhichDisc.OfASet(3, 3), ASetOfThree, default);
 
-        Assert.NotEmpty(said);
-        Assert.All(said, line => Assert.StartsWith("disc 3 of 3: ", line, StringComparison.Ordinal));
+        // Waited for. Progress<T> hands the report to the thread pool, and
+        // the reading back can have returned before the pool hands it over.
+        // Looked at the moment it returned, the list was now and then still
+        // empty: twice on Linux, in #32 and #50.
+        Assert.True(
+            OnTheWindowsThread.WaitUntil(() => SoFar().Length > 0),
+            "it said nothing at all about the disc it was reading back.");
+
+        Assert.All(SoFar(), line => Assert.StartsWith("disc 3 of 3: ", line, StringComparison.Ordinal));
     }
 
     // ------------------------------------------------------------- the rig

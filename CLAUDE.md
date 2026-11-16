@@ -410,10 +410,33 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - **A run on the VM is judged by its exit code, taken before anything is
   piped.** `run | tail && next` runs `next` whatever happened: on 2026-11-16
   a pull request was opened over a red suite that way.
-- **`WhatADiscIsReadBackAgainst.Says_which_disc_of_the_set_it_is_working_on`
-  fails about one run in fifty on Linux**, twice so far (#32 on GitHub, #50
-  on the VM). It is the Windows app's own test, about a progress report
-  arriving while a disc is read back. Not looked into, not fixed.
+- **Two of the Windows app's own tests failed now and then, and both were
+  a report arriving late** (found and fixed 2026-11-16, in the test files,
+  which the Windows repository has too and has not been told through
+  anything but this repository's pull request):
+  - `WhatADiscIsReadBackAgainst.Says_which_disc_of_the_set_it_is_working_on`,
+    twice (#32, #50). With no window's thread, `Progress<T>` hands a report
+    to the thread pool, and the test looked the moment the work returned.
+    It waits now (`OnTheWindowsThread.WaitUntil`).
+  - `BurningOneDiscAndWatchingIt.Says_what_it_is_doing_...`, once, on the
+    push that merged #57, which left `main` red. The reading back runs on
+    another thread, and a hash that takes no time lets it finish before
+    the burn has got as far as waiting for it. The burn then ends and the
+    lines still queued are dropped. The fake hasher waits to be heard now,
+    as the fake burner in that file already did.
+- **To make such a race certain, slow one side on purpose** and run the
+  test as it was: hold the report (`Thread.Sleep` in the `Progress`
+  callback), or hold the thread that is about to await (`Thread.Sleep`
+  between `Task.Run` and the `return`). A loop of 250 runs under load is
+  the slow way to the same answer.
+- **`ThePageOnADiscOfASet.Installs_a_set_whose_files_have_names_past_ASCII`
+  failed once on the Windows runner** (#58, 2026-11-16: "1 of the files on
+  this disc would not copy") and passed on the next run of the same tree.
+  The Windows app's own test, of the menu under Windows Script Host. Not
+  reproduced, cause not known.
+- **This session's access cannot rerun a CI job.** An empty commit pushed
+  to the branch runs every check again. `main` cannot be run again at all
+  from here: a red run there stays red until the next merge.
 - **A game's own manual and extras are on the window**: while a game is
   picked, the line under the list names it and offers Add a manual and Add
   extras. A row that is a game's own says what it is as a link, and a press
