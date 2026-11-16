@@ -80,6 +80,24 @@ jobs:
         run: dotnet build tests/DiscWright.LinuxTests/DiscWright.LinuxTests.csproj -c Release --nologo
       - name: The suite
         run: python3 tests/DiscWright.LinuxTests/the-suite.py
+      # The Linux window, opened for real with no screen and drawn with real
+      # Skia. A step of its own because it is an xunit v3 project, which the
+      # suite above is not, and it has no waiting list: every test passes.
+      - name: Build the window and its tests
+        run: dotnet build tests/DiscWright.LinuxAppTests/DiscWright.LinuxAppTests.csproj -c Release --nologo
+      - name: The window's tests
+        run: >
+          dotnet test tests/DiscWright.LinuxAppTests/DiscWright.LinuxAppTests.csproj
+          -c Release --no-build --nologo
+          --logger "trx;LogFileName=window.trx"
+          --results-directory artifacts/linux-test-results
+      # The file people would download, started for real. The tests above run
+      # the app out of its build folder, and the published file is put
+      # together differently: it once died as it started while they passed.
+      - name: The published app opens its window
+        run: |
+          sudo apt-get install -y -qq xvfb xdotool
+          xvfb-run -a bash tools/see-the-published-app-start.sh
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

@@ -16,10 +16,17 @@
     <!-- Pictures. System.Drawing has been Windows only since .NET 7, and Skia
          is what the Linux window will be drawn with as well, so this is one
          dependency for both jobs. The second package is Skia itself built for
-         Linux with nothing else needed from the system, which is what lets the
-         app run on a machine that has never had it installed. -->
-    <PackageReference Include="SkiaSharp" Version="4.156.1" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.156.1" />
+         Linux.
+
+         The version is the one Avalonia brings, and follows it. This asked for
+         4.156.1 with the NoDependencies package until the window arrived:
+         Avalonia 12.1.6 brings 3.119.4 with the ordinary package, the two
+         native libraries landed in one folder, and the app died as it started
+         with "The version of the native libSkiaSharp library (119.0) is
+         incompatible" (measured 2026-11-16). The ordinary package wants
+         fontconfig and freetype from the system, which every desktop has. -->
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.4" />
   </ItemGroup>
 
   <PropertyGroup>

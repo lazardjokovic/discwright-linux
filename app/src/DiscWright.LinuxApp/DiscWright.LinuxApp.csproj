@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The window, on Linux.
+
+    The twin of DiscWright.App. It reaches the view models, which are the whole
+    of what a DiscWright window knows and does, and the two projects that give
+    a Linux machine's answers, and nothing that is Windows. It holds the
+    arrangement and the composition root and no decisions, the same as its twin.
+
+    Avalonia, because it is XAML with bindings over the view models as they
+    are, every control can carry an AutomationId, a test can open the real
+    window with no screen, and it publishes as one file. Measured on
+    2026-11-16: 94 MB as one self-contained file, open in 0.75 s on the test
+    machine, and KDE's own folder picker through the desktop portal.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\DiscWright.ViewModels\DiscWright.ViewModels.csproj" />
+    <ProjectReference Include="..\DiscWright.Machine\DiscWright.Machine.csproj" />
+    <ProjectReference Include="..\DiscWright.Linux\DiscWright.Linux.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- One version for all four, and DiscWright.Linux's SkiaSharp follows the
+         one this brings: two Skias in one process is an app that dies as it
+         starts. -->
+    <PackageReference Include="Avalonia" Version="12.1.6" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.6" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.6" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The Windows app's own icon, from where it sits. Nothing in app/ is
+         moved until this work goes into the Windows repository. -->
+    <AvaloniaResource Include="..\DiscWright.App\DiscWright.ico" Link="DiscWright.ico" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- A binding is checked when it is compiled, against the view model it
+         names, so a property that was renamed stops the build instead of
+         leaving a blank where a number was. -->
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+</Project>

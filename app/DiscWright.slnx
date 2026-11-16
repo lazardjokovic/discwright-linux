@@ -5,6 +5,7 @@
     <Project Path="src/DiscWright.Core/DiscWright.Core.csproj" />
     <Project Path="src/DiscWright.Imaging/DiscWright.Imaging.csproj" />
     <Project Path="src/DiscWright.Linux/DiscWright.Linux.csproj" />
+    <Project Path="src/DiscWright.LinuxApp/DiscWright.LinuxApp.csproj" />
     <Project Path="src/DiscWright.Machine/DiscWright.Machine.csproj" />
     <Project Path="src/DiscWright.Menu/DiscWright.Menu.csproj" />
     <Project Path="src/DiscWright.Platform/DiscWright.Platform.csproj" />
@@ -12,6 +13,7 @@
     <Project Path="src/DiscWright.ViewModels/DiscWright.ViewModels.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DiscWright.LinuxAppTests/DiscWright.LinuxAppTests.csproj" />
     <Project Path="tests/DiscWright.LinuxTests/DiscWright.LinuxTests.csproj" />
     <Project Path="tests/DiscWright.Tests/DiscWright.Tests.csproj" />
   </Folder>
