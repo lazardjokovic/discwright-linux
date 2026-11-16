@@ -382,6 +382,85 @@ public sealed class WhatElseGoesOnItOnLinux : IDisposable
         Assert.Equal(screen.WhatElseIsChosen, main.Found<TextBlock>("WhatElseIsChosen").Text);
     }
 
+    [AvaloniaFact]
+    public void A_disc_built_after_choosing_an_icon_and_a_background_here_carries_both()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            // The image is xorriso's.
+            return;
+        }
+
+        (MainWindow main, MakeADisc screen, ADesktopThatAnswers desktop) = TheMainWindow();
+        string discs = Path.Combine(_room, "discs");
+
+        // A game, a name, somewhere to put it.
+        string download = Path.Combine(_room, "downloads", "Fixture Game");
+        Directory.CreateDirectory(download);
+        File.Copy(
+            Repository.File("tests", "DiscWright.Tests", "fixtures", "pe", "with-product.exe"),
+            Path.Combine(download, "setup_fixture_game_1.2.3_(64bit)_(12345).exe"));
+
+        screen.Add(Assert.IsType<DiscWright.Core.Outcome<DiscWright.Core.GameFolder>.Ok>(
+            new DiscWright.Core.GameFolders(new DiscWright.Platform.WindowsFileSystem(), TheLinuxMachine.TheReaderOfFolders())
+                .At(download)).Value);
+        screen.Label = "FIXTURE GAME";
+        screen.OutputFolder = discs;
+        Dispatcher.UIThread.RunJobs();
+
+        // The icon and the background, chosen through the window.
+        Press(main, main.Found<Button>("OpenWhatElseGoesOnIt"));
+        WhatElseGoesOnIt window = Assert.Single(main.OwnedWindows.OfType<WhatElseGoesOnIt>());
+
+        desktop.WillPick = APicture("icon.png", 512, 512, new SKColor(40, 160, 150));
+        Press(window, window.Found<Button>("ChooseTheDiscIcon"));
+
+        desktop.WillPick = APicture("backdrop.png", 1920, 1080, new SKColor(60, 70, 120));
+        Press(window, window.Found<Button>("ChooseTheBackground"));
+
+        Press(window, window.Found<Button>("Done"));
+
+        // Built from the main window.
+        Press(main, main.Found<Button>("MakeTheDisc"));
+
+        DateTime giveUp = DateTime.UtcNow.AddSeconds(60);
+
+        while (!main.OwnedWindows.OfType<WorthAsking>().Any(each => each.IsVisible))
+        {
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(DateTime.UtcNow < giveUp, "Waited a minute for the disc to be ready, and it was not.");
+            Thread.Sleep(5);
+        }
+
+        main.OwnedWindows.OfType<WorthAsking>().Single().Close();
+        Dispatcher.UIThread.RunJobs();
+
+        // What is in the image, read from the image's own records.
+        string image = Assert.Single(Directory.EnumerateFiles(discs, "*.iso", SearchOption.AllDirectories));
+        IReadOnlyList<TheJolietRecords.Recorded> onIt = TheJolietRecords.FilesIn(image);
+
+        // The icon, as a Windows icon of seven frames, named by autorun.inf.
+        TheJolietRecords.Recorded icon = Assert.Single(onIt, file => file.Path.EndsWith(".ico", StringComparison.Ordinal) && !file.Path.Contains('/'));
+        byte[] itsBytes = TheJolietRecords.BytesOf(image, icon);
+
+        Assert.Equal(1, BitConverter.ToInt16(itsBytes, 2));
+        Assert.Equal(7, BitConverter.ToInt16(itsBytes, 4));
+
+        string autorun = System.Text.Encoding.Latin1.GetString(
+            TheJolietRecords.BytesOf(image, onIt.Single(file => file.Path == "autorun.inf")));
+
+        Assert.Contains("icon=" + icon.Path, autorun, StringComparison.Ordinal);
+
+        // The background, at the size of the menu, in the colour chosen.
+        TheJolietRecords.Recorded backdrop = Assert.Single(onIt, file => file.Path == "AUTORUN/background.png");
+
+        using SKBitmap made = SKBitmap.Decode(TheJolietRecords.BytesOf(image, backdrop));
+
+        Assert.Equal(760, made.Width);
+        Assert.Equal(480, made.Height);
+        Assert.Equal(new SKColor(60, 70, 120), made.GetPixel(380, 240));
+    }
+
     [AvaloniaTheory]
     [InlineData("Light")]
     [InlineData("Dark")]
