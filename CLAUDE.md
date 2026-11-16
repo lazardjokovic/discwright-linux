@@ -240,12 +240,29 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
   have the script say NOT PLANTED when nothing changed.
 - **`pkill -f` with the app's path kills the shell that typed it**, since the
   path is in that shell's own command line. `pkill -x DiscWright.Linu`.
-- Next: the rest of the look (the checkbox, the dropdown, the tree of games
-  and its rows, list rows, the drawer, the scrollbars, the text box), then
-  the main window a section at a time over `MakeADisc`, then the four
-  dialogs and a box for refusals, then the composition root with a Linux
-  `TheMachine`. The root of a disc assumed to be a drive letter waits for the
-  Linux recorder, and burning waits for a real machine with a drive.
+- **The controls are ours too**: the text box, checkbox, dropdown and its
+  rows, the tree and its rows, list rows, the drawer and the scrollbars are
+  control themes in `Look.axaml`, each used in `TheControlsOnLinux` with the
+  pointer and the keyboard as well as looked at. The tree steps in by
+  nineteen the Windows template's way (a nineteen wide opener column and a
+  nineteen margin), not Avalonia's.
+- **`IsEffectivelyVisible` is true of a control that was never put on a
+  window.** Ask `CanBeSeen()` in `WhatWasDrawn`.
+- **A fault planted by swapping a state for `:focus` is no fault where the
+  test clicks**, because clicking focuses. Swap for `:pressed`. And move the
+  pointer away before judging what the keyboard did.
+- **The picture code opens its own files and hands Skia bytes.** The Windows
+  suite once failed in CI with "background.png is being used by another
+  process" on a temp folder being cleared. Never reproduced, cause not
+  proven. If it comes back the picture code is ruled out.
+- `OffTheRow`, the cross at a row's right edge, is not carried yet: it is
+  shown by the row being under the pointer, and wants the real rows to test
+  against. It comes with the tree in the main window.
+- Next: a Linux `TheMachine` and the composition root (drives, burning and
+  the tray answering "not yet" until the recorder exists), then the main
+  window a section at a time over `MakeADisc`, then the four dialogs and a
+  box for refusals. The root of a disc assumed to be a drive letter waits for
+  the Linux recorder, and burning waits for a real machine with a drive.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.

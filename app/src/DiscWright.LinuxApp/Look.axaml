@@ -232,6 +232,543 @@
                 <Setter Property="Foreground" Value="{DynamicResource Accent}" />
             </ControlTheme>
 
+            <!-- Where words are typed. Ours, because the theme's box answers
+                 the pointer and the keyboard in its own colours, a blue the
+                 palette has never heard of. The edge takes the accent while
+                 somebody is typing in it, which is the one thing the theme's
+                 box says that is worth saying. -->
+            <ControlTheme x:Key="{x:Type TextBox}" TargetType="TextBox">
+                <Setter Property="FontFamily" Value="{StaticResource Face}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="Padding" Value="8,6" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Edge}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Background" Value="{DynamicResource Panel}" />
+                <Setter Property="CaretBrush" Value="{DynamicResource Ink}" />
+                <Setter Property="SelectionBrush" Value="{DynamicResource Accent}" />
+                <Setter Property="SelectionForegroundBrush" Value="{DynamicResource InkOnAccent}" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Name="PART_BorderElement"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer Name="PART_ScrollViewer"
+                                          HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                          VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}">
+                                <Panel Margin="{TemplateBinding Padding}">
+                                    <TextPresenter Name="PART_TextPresenter"
+                                                   Text="{TemplateBinding Text, Mode=TwoWay}"
+                                                   CaretBlinkInterval="{TemplateBinding CaretBlinkInterval}"
+                                                   CaretIndex="{TemplateBinding CaretIndex}"
+                                                   SelectionStart="{TemplateBinding SelectionStart}"
+                                                   SelectionEnd="{TemplateBinding SelectionEnd}"
+                                                   TextAlignment="{TemplateBinding TextAlignment}"
+                                                   TextWrapping="{TemplateBinding TextWrapping}"
+                                                   LineHeight="{TemplateBinding LineHeight}"
+                                                   LetterSpacing="{TemplateBinding LetterSpacing}"
+                                                   PasswordChar="{TemplateBinding PasswordChar}"
+                                                   RevealPassword="{TemplateBinding RevealPassword}"
+                                                   SelectionBrush="{TemplateBinding SelectionBrush}"
+                                                   SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                                                   CaretBrush="{TemplateBinding CaretBrush}"
+                                                   HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                   VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                </Panel>
+                            </ScrollViewer>
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^:focus /template/ Border#PART_BorderElement">
+                    <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+                </Style>
+
+                <!-- Opacity, as on Windows, because it is applied to the
+                     whole control and nothing within it can set it back. -->
+                <Style Selector="^:disabled">
+                    <Setter Property="Opacity" Value="0.45" />
+                </Style>
+            </ControlTheme>
+
+            <!-- Our own box, not the theme's. The box takes the accent when
+                 ticked, and the tree's third state, some of this but not all
+                 of it, is a smaller square of the same accent inside a
+                 resting box. -->
+            <ControlTheme x:Key="{x:Type CheckBox}" TargetType="CheckBox">
+                <Setter Property="FontFamily" Value="{StaticResource Face}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <!-- The paper is here so the words can be pressed as
+                             well as the box. -->
+                        <StackPanel Orientation="Horizontal" Background="Transparent">
+                            <Border x:Name="Box"
+                                    Width="15" Height="15"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource Panel}"
+                                    BorderBrush="{DynamicResource Quiet}"
+                                    BorderThickness="1"
+                                    CornerRadius="3">
+                                <Panel>
+                                    <Path x:Name="Tick"
+                                          Data="M 3 7.5 L 6 10.5 L 10.5 4"
+                                          Stroke="{DynamicResource InkOnAccent}"
+                                          StrokeThickness="1.8"
+                                          StrokeLineCap="Round" />
+                                    <Rectangle x:Name="Partly"
+                                               Margin="3.5"
+                                               RadiusX="1" RadiusY="1"
+                                               Fill="{DynamicResource Accent}" />
+                                </Panel>
+                            </Border>
+                            <ContentPresenter x:Name="PART_ContentPresenter"
+                                              Margin="7,0,0,0"
+                                              VerticalAlignment="Center"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              FontSize="{TemplateBinding FontSize}"
+                                              FontFamily="{TemplateBinding FontFamily}" />
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter>
+
+                <!-- Neither mark shows until its state says so. Said here and
+                     not on the marks themselves: a value written on a part is
+                     the part's own and a state could never change it. -->
+                <Style Selector="^ /template/ Path#Tick">
+                    <Setter Property="IsVisible" Value="False" />
+                </Style>
+                <Style Selector="^ /template/ Rectangle#Partly">
+                    <Setter Property="IsVisible" Value="False" />
+                </Style>
+
+                <Style Selector="^:pointerover /template/ Border#Box">
+                    <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+                </Style>
+                <Style Selector="^:checked /template/ Border#Box">
+                    <Setter Property="Background" Value="{DynamicResource Accent}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+                </Style>
+                <Style Selector="^:checked /template/ Path#Tick">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+                <Style Selector="^:indeterminate /template/ Rectangle#Partly">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+
+                <Style Selector="^:disabled">
+                    <Setter Property="Opacity" Value="0.45" />
+                </Style>
+            </ControlTheme>
+
+            <!-- A closed dropdown. The shape is the Ordinary button's,
+                 because a closed dropdown is a button that opens a list. -->
+            <ControlTheme x:Key="{x:Type ComboBox}" TargetType="ComboBox">
+                <Setter Property="FontFamily" Value="{StaticResource Face}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Padding" Value="8,5" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="Background" Value="{DynamicResource Panel}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Edge}" />
+                <Setter Property="MinHeight" Value="30" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Panel>
+                            <Border x:Name="Shape"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4">
+                                <Path HorizontalAlignment="Right"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,11,0"
+                                      Data="M 0 0 L 4 4 L 8 0"
+                                      Stroke="{DynamicResource Quiet}"
+                                      StrokeThickness="1.5" />
+                            </Border>
+                            <ContentControl x:Name="Chosen"
+                                            Margin="10,0,30,0"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"
+                                            IsHitTestVisible="False"
+                                            Foreground="{TemplateBinding Foreground}"
+                                            Content="{TemplateBinding SelectionBoxItem}"
+                                            ContentTemplate="{TemplateBinding ItemTemplate}" />
+                            <Popup Name="PART_Popup"
+                                   WindowManagerAddShadowHint="False"
+                                   IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
+                                   MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"
+                                   MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                   PlacementTarget="Shape"
+                                   IsLightDismissEnabled="True"
+                                   InheritsTransform="True">
+                                <Border x:Name="TheList"
+                                        Background="{DynamicResource Panel}"
+                                        BorderBrush="{DynamicResource Edge}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Margin="0,2,0,0">
+                                    <ScrollViewer>
+                                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                                        ItemsPanel="{TemplateBinding ItemsPanel}" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Panel>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^:pointerover /template/ Border#Shape">
+                    <Setter Property="Background" Value="{DynamicResource Page}" />
+                </Style>
+
+                <Style Selector="^:disabled">
+                    <Setter Property="Opacity" Value="0.45" />
+                </Style>
+            </ControlTheme>
+
+            <!-- A row in a dropdown. Ours because the dropdown is ours, and
+                 the theme's row paints its highlight in its own colours. -->
+            <ControlTheme x:Key="{x:Type ComboBoxItem}" TargetType="ComboBoxItem">
+                <Setter Property="Padding" Value="10,6" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border x:Name="Row"
+                                Background="Transparent"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^:pointerover /template/ Border#Row">
+                    <Setter Property="Background" Value="{DynamicResource Page}" />
+                </Style>
+                <Style Selector="^:focus /template/ Border#Row">
+                    <Setter Property="Background" Value="{DynamicResource Page}" />
+                </Style>
+            </ControlTheme>
+
+            <!-- The arrow that opens a row of the tree, and the drawer: on
+                 its side when shut, pointing down when open. -->
+            <ControlTheme x:Key="TheOpener" TargetType="ToggleButton">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Background="{TemplateBinding Background}">
+                            <Path x:Name="Arrow"
+                                  Data="M 0 0 L 4 4 L 8 0"
+                                  Stroke="{DynamicResource Quiet}"
+                                  StrokeThickness="1.5"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^ /template/ Path#Arrow">
+                    <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+                </Style>
+                <Style Selector="^:checked /template/ Path#Arrow">
+                    <Setter Property="RenderTransform" Value="rotate(0deg)" />
+                </Style>
+            </ControlTheme>
+
+            <!--
+                The list of what goes on the disc, when nothing may be changed
+                on it.
+
+                Opacity rather than a colour, because every row draws its own
+                words in its own ink: the name, the size and the kind each
+                carry a class of their own, and a Foreground set here would
+                lose to all three. Dimming the whole control cannot be beaten
+                by anything inside it.
+
+                The line under it that says what the lot comes to is a sibling
+                rather than a child, so it stays readable while the list is
+                held.
+            -->
+            <ControlTheme x:Key="{x:Type TreeView}" TargetType="TreeView">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                          VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}">
+                                <ItemsPresenter Name="PART_ItemsPresenter"
+                                                ItemsPanel="{TemplateBinding ItemsPanel}"
+                                                Margin="{TemplateBinding Padding}" />
+                            </ScrollViewer>
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^:disabled">
+                    <Setter Property="Opacity" Value="0.45" />
+                </Style>
+            </ControlTheme>
+
+            <!-- A row of the list, drawn like a row of the dialogs: the
+                 chosen one wears the deeper paper and the short accent band.
+
+                 The children indent by nineteen exactly, because every row
+                 gives its name back whatever the tree pushed it in by, at
+                 nineteen a level (AThingOnTheDisc.EachLevelIndentsBy), and
+                 the sizes only line up if the markup and that arithmetic
+                 agree. Avalonia's own tree indents another way, by a margin
+                 worked out from how deep a row is, and by a different number,
+                 so this is the Windows template's way: the column the opener
+                 sits in is nineteen wide and so is the step in. -->
+            <ControlTheme x:Key="{x:Type TreeViewItem}" TargetType="TreeViewItem">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <StackPanel>
+                            <Border x:Name="Row"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="3"
+                                    Focusable="True"
+                                    TemplatedControl.IsTemplateFocusTarget="True">
+                                <Grid Name="PART_Header" ColumnDefinitions="19,*">
+                                    <Rectangle x:Name="Chosen"
+                                               Width="3"
+                                               HorizontalAlignment="Left"
+                                               Margin="0,4"
+                                               RadiusX="1.5" RadiusY="1.5"
+                                               Fill="{DynamicResource Accent}" />
+
+                                    <!-- The opener, unseen rather than gone
+                                         on a row with nothing under it, so
+                                         the names start in one column either
+                                         way. -->
+                                    <ToggleButton x:Name="Opener"
+                                                  Theme="{StaticResource TheOpener}"
+                                                  Focusable="False"
+                                                  IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}" />
+
+                                    <ContentPresenter Name="PART_HeaderPresenter"
+                                                      Grid.Column="1"
+                                                      VerticalAlignment="Center"
+                                                      Background="Transparent"
+                                                      Content="{TemplateBinding Header}"
+                                                      ContentTemplate="{TemplateBinding HeaderTemplate}" />
+                                </Grid>
+                            </Border>
+
+                            <ItemsPresenter Name="PART_ItemsPresenter"
+                                            Margin="19,0,0,0"
+                                            IsVisible="{TemplateBinding IsExpanded}"
+                                            ItemsPanel="{TemplateBinding ItemsPanel}" />
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^ /template/ Rectangle#Chosen">
+                    <Setter Property="IsVisible" Value="False" />
+                </Style>
+                <Style Selector="^:empty /template/ ToggleButton#Opener">
+                    <Setter Property="Opacity" Value="0" />
+                    <Setter Property="IsHitTestVisible" Value="False" />
+                </Style>
+                <Style Selector="^:selected /template/ Border#Row">
+                    <Setter Property="Background" Value="{DynamicResource Page}" />
+                </Style>
+                <Style Selector="^:selected /template/ Rectangle#Chosen">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+            </ControlTheme>
+
+            <!-- A row somebody picks one of. The chosen one wears a short
+                 band of the accent at its left edge as well as the deeper
+                 paper, because on the dialogs that use this the choice is the
+                 whole question and a shade of grey alone is a quiet answer to
+                 a loud one. -->
+            <ControlTheme x:Key="{x:Type ListBoxItem}" TargetType="ListBoxItem">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border x:Name="Row"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="3">
+                            <Panel>
+                                <Rectangle x:Name="Chosen"
+                                           Width="3"
+                                           HorizontalAlignment="Left"
+                                           Margin="1,4"
+                                           RadiusX="1.5" RadiusY="1.5"
+                                           Fill="{DynamicResource Accent}" />
+                                <ContentPresenter Name="PART_ContentPresenter"
+                                                  Margin="6,0,0,0"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}" />
+                            </Panel>
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^ /template/ Rectangle#Chosen">
+                    <Setter Property="IsVisible" Value="False" />
+                </Style>
+                <Style Selector="^:pointerover /template/ Border#Row">
+                    <Setter Property="Background" Value="{DynamicResource Page}" />
+                </Style>
+                <Style Selector="^:selected /template/ Border#Row">
+                    <Setter Property="Background" Value="{DynamicResource Page}" />
+                </Style>
+                <Style Selector="^:selected /template/ Rectangle#Chosen">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+            </ControlTheme>
+
+            <!-- The handle of the drawer: the opener's arrow and the words
+                 beside it, drawn by name so their ink is the drawer's own. -->
+            <ControlTheme x:Key="TheDrawersHandle" TargetType="ToggleButton">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <StackPanel Orientation="Horizontal" Background="{TemplateBinding Background}">
+                            <Path x:Name="Arrow"
+                                  Data="M 0 0 L 4 4 L 8 0"
+                                  Stroke="{DynamicResource Quiet}"
+                                  StrokeThickness="1.5"
+                                  VerticalAlignment="Center" />
+                            <TextBlock x:Name="Words"
+                                       Margin="7,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       FontFamily="{TemplateBinding FontFamily}" />
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^ /template/ Path#Arrow">
+                    <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+                </Style>
+                <Style Selector="^:checked /template/ Path#Arrow">
+                    <Setter Property="RenderTransform" Value="rotate(0deg)" />
+                </Style>
+            </ControlTheme>
+
+            <!-- The drawer under More options. Ours because the theme's is a
+                 boxed panel with a button across its whole top, and this one
+                 is a line of words that opens. -->
+            <ControlTheme x:Key="{x:Type Expander}" TargetType="Expander">
+                <Setter Property="FontFamily" Value="{StaticResource Face}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <StackPanel>
+                            <ToggleButton x:Name="Handle"
+                                          Theme="{StaticResource TheDrawersHandle}"
+                                          Focusable="False"
+                                          HorizontalAlignment="Left"
+                                          Content="{TemplateBinding Header}"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          FontSize="{TemplateBinding FontSize}"
+                                          FontFamily="{TemplateBinding FontFamily}"
+                                          IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}" />
+                            <!-- The drawer itself is what opens and shuts, with
+                                 what is in it inside, the way the theme's own
+                                 drawer is built. -->
+                            <Border x:Name="Inside" IsVisible="{TemplateBinding IsExpanded}">
+                                <ContentPresenter x:Name="PART_ContentPresenter"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}" />
+                            </Border>
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <!-- The scrollbars, slimmed to a thumb. The theme's arrive wide
+                 with arrow buttons and grow under the pointer. A track that
+                 can still be clicked to page, a thumb that can be dragged,
+                 and nothing else. -->
+            <ControlTheme x:Key="APageOfNothing" TargetType="RepeatButton">
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <ControlTheme x:Key="TheThumb" TargetType="Thumb">
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Background="{DynamicResource Dead}" CornerRadius="4" Margin="2" />
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <ControlTheme x:Key="{x:Type ScrollBar}" TargetType="ScrollBar">
+                <Setter Property="Background" Value="Transparent" />
+
+                <Style Selector="^:vertical">
+                    <Setter Property="Width" Value="10" />
+                    <Setter Property="Template">
+                        <ControlTemplate>
+                            <Border Background="{TemplateBinding Background}">
+                                <Track Minimum="{TemplateBinding Minimum}"
+                                       Maximum="{TemplateBinding Maximum}"
+                                       Value="{TemplateBinding Value, Mode=TwoWay}"
+                                       ViewportSize="{TemplateBinding ViewportSize}"
+                                       Orientation="{TemplateBinding Orientation}"
+                                       IsDirectionReversed="True">
+                                    <Track.DecreaseButton>
+                                        <RepeatButton Name="PART_PageUpButton" Theme="{StaticResource APageOfNothing}" Focusable="False" />
+                                    </Track.DecreaseButton>
+                                    <Track.IncreaseButton>
+                                        <RepeatButton Name="PART_PageDownButton" Theme="{StaticResource APageOfNothing}" Focusable="False" />
+                                    </Track.IncreaseButton>
+                                    <Thumb Theme="{StaticResource TheThumb}" MinHeight="20" />
+                                </Track>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter>
+                </Style>
+
+                <Style Selector="^:horizontal">
+                    <Setter Property="Height" Value="10" />
+                    <Setter Property="Template">
+                        <ControlTemplate>
+                            <Border Background="{TemplateBinding Background}">
+                                <Track Minimum="{TemplateBinding Minimum}"
+                                       Maximum="{TemplateBinding Maximum}"
+                                       Value="{TemplateBinding Value, Mode=TwoWay}"
+                                       ViewportSize="{TemplateBinding ViewportSize}"
+                                       Orientation="{TemplateBinding Orientation}">
+                                    <Track.DecreaseButton>
+                                        <RepeatButton Name="PART_PageUpButton" Theme="{StaticResource APageOfNothing}" Focusable="False" />
+                                    </Track.DecreaseButton>
+                                    <Track.IncreaseButton>
+                                        <RepeatButton Name="PART_PageDownButton" Theme="{StaticResource APageOfNothing}" Focusable="False" />
+                                    </Track.IncreaseButton>
+                                    <Thumb Theme="{StaticResource TheThumb}" MinWidth="20" />
+                                </Track>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter>
+                </Style>
+            </ControlTheme>
+
         </ResourceDictionary>
     </Styles.Resources>
 

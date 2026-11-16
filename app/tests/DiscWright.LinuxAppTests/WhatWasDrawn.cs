@@ -45,6 +45,24 @@ internal static class WhatWasDrawn
         control.GetVisualDescendants().OfType<T>().FirstOrDefault(part => part.Name == name)
             ?? throw new InvalidOperationException($"The {control.GetType().Name} has no {typeof(T).Name} called {name} in it.");
 
+    /// <summary>
+    /// Whether a control is somewhere a person could see it: on a window,
+    /// with nothing above it hidden, and taking up room.
+    /// </summary>
+    /// <remarks>
+    /// Not IsEffectivelyVisible alone. A control that was never put on a
+    /// window has nothing above it to be hidden, and says it is visible.
+    /// </remarks>
+    public static bool CanBeSeen(this Control control)
+    {
+        Dispatcher.UIThread.RunJobs();
+
+        return TopLevel.GetTopLevel(control) is not null
+            && control.IsEffectivelyVisible
+            && control.Bounds.Width > 0
+            && control.Bounds.Height > 0;
+    }
+
     /// <summary>Where a control's middle is, in the window it is in.</summary>
     public static Point MiddleIn(this Control control, Window window) =>
         control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)
