@@ -145,6 +145,7 @@ public sealed class MakeADisc : INotifyPropertyChanged
     public MakeADisc(TheMachine machine)
     {
         _machine = machine;
+        _options = machine.ANewDiscStartsWith ?? new DiscOptions();
         _settling = new SettlingOnADrive(machine.Drives, machine.Eraser, Say, machine.Patience);
         _reading = new ReadingBackWhatWasWritten(machine.Disk, machine.Hasher, Say);
         _comingBack = new WaitingForTheDiscToComeBack(
@@ -1475,6 +1476,13 @@ public sealed class MakeADisc : INotifyPropertyChanged
     {
         get => Options.StartHere;
         set => Switch(Options with { StartHere = value });
+    }
+
+    /// <summary>Whether the disc carries its name and icon for a Linux desktop.</summary>
+    public bool LinuxNameAndIcon
+    {
+        get => Options.LinuxNameAndIcon;
+        set => Switch(Options with { LinuxNameAndIcon = value });
     }
 
     /// <summary>
@@ -3546,6 +3554,7 @@ public sealed class MakeADisc : INotifyPropertyChanged
         Tell(nameof(LegacyFileSystems));
         Tell(nameof(CutFiles));
         Tell(nameof(StartHere));
+        Tell(nameof(LinuxNameAndIcon));
 
         // The artwork, the manual, the tune and the folder of extras, which a
         // project file carries and which nothing here announced.

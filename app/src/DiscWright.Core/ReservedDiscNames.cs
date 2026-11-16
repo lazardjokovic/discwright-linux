@@ -83,5 +83,11 @@ public static class ReservedDiscNames
     public static bool Claims(string name, string? discIcon = null) =>
         name.StartsWith("setup_", StringComparison.OrdinalIgnoreCase)
         || All.Any(reserved => string.Equals(reserved, name, StringComparison.OrdinalIgnoreCase))
-        || (discIcon is not null && DiscIconName.Claims(name, discIcon));
+        || (discIcon is not null && DiscIconName.Claims(name, discIcon))
+
+        // The same icon as a PNG, which a disc named for Linux carries beside
+        // it. Kept whether or not this disc is one, as disc.png always was:
+        // a name that is free on one build and taken on the next is a
+        // surprise waiting for a ticked box.
+        || (discIcon is not null && TheLinuxIcon.Claims(name, discIcon));
 }

@@ -95,7 +95,12 @@ public static class AProjectFile
 
                     // Absent in every file written before the option, and on
                     // in all of them, so absent means on.
-                    StartHere: Yes(root, "StartHere", whenMissing: true)),
+                    StartHere: Yes(root, "StartHere", whenMissing: true),
+
+                    // The key is v1's, and every file the C# app wrote before
+                    // the option came back says false under it, which is
+                    // true of every one of those discs.
+                    LinuxNameAndIcon: Yes(root, "LinuxInfo")),
 
                 // Version 5. Absent is the automatic setting, which is what
                 // those projects always described.

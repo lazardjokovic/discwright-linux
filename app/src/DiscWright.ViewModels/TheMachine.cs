@@ -71,4 +71,9 @@ public sealed record TheMachine(
     // The copy's page in the Microsoft Store, when it came from there, and
     // nothing otherwise. The Store keeps such a copy up to date, so it never
     // asks GitHub and never updates itself: its version link is this page.
-    string? StorePage = null);
+    string? StorePage = null,
+    // The options a new disc starts with, where they are not the ordinary
+    // ones. The Linux window starts with the Linux name and icon on, since
+    // a disc made on Linux is likely to be put into a Linux machine; null
+    // is the ordinary ones, which is Windows.
+    DiscOptions? ANewDiscStartsWith = null);

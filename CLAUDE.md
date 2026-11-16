@@ -442,12 +442,41 @@ DiscWright 2.0 is C#, and it refuses a project file the Python port writes.
 - **A sentence on the window is a promise.** The empty list said dropping
   worked for seven pull requests before it did, copied from Windows with a
   test holding the words. Read what a copied sentence claims.
-- Not on the window yet: the drive picker and what is in the drive, the
-  version link, and the Linux name and icon files as a disc option.
-- Next: the Linux name and icon as a disc option (on by default here, off
-  on Windows), which is shared code and the project file, so it wants
-  reading against what the Windows session is doing; then the recorder,
-  which needs a real machine with a drive.
+- **The Linux name and icon are a disc option** (`LinuxNameAndIcon`, the
+  project file's old `LinuxInfo` key): `.xdg-volume-info` at the top and the
+  icon as a PNG beside the Windows one. On for a new disc on Linux through
+  `TheMachine.ANewDiscStartsWith`, off on Windows. The tick is on the Linux
+  window only. **The Windows window has no tick for it yet**: that comes
+  when the two apps are brought together, and until then a project saved on
+  Linux with it on builds with it on Windows and cannot be unticked there.
+- **The PNG is the largest frame of the icon already on the disc**, taken
+  out of the file and written by `APngFile`, which is plain .NET: no
+  drawing library, the same on both machines. With no icon chosen it is
+  DiscWright's own, `AUTORUN/menu.png`, 64 across.
+- **Seen on the VM (2026-11-16):** the image mounted through udisks, and
+  GIO (gvfs 1.60) names the mount by the file, "FIXTURE GAME: DIRECTORS
+  CUT" where the volume is `FIXTURE_GAME_DIR`, and gives the PNG as its
+  icon. Dolphin on the same machine shows the volume id and a plain disc:
+  KDE does not read the file, and the tick's hover says so. `gio mount -li`
+  does not print an icon that is a file. Ask `Gio.VolumeMonitor` from
+  python3 (`m.get_name()`, `m.get_icon().to_string()`). Not seen: a GNOME
+  desktop drawing it.
+- **A test disc goes in over ssh** with `udisksctl loop-setup -r -f the.iso`
+  and `udisksctl mount -b /dev/loopN`. A polkit rule on the VM
+  (`/etc/polkit-1/rules.d/49-dw-test-discs.rules`) lets `dw` do that with
+  nobody at the screen. gvfs was installed there for this.
+- **`While_a_disc_is_being_built_nothing_that_would_change_it_can_be_pressed`**
+  walks the window during a run and names everything alive. A new box
+  needs no line there; one that stays alive on purpose goes in
+  `StillAliveDuringARun` with its reason.
+- **Do not drive the VM's desktop while a fault run has it loaded.** Xorg
+  fell over in its display driver on a pointer event at load 16, and the
+  session came back with no panel. `sudo systemctl reboot` and forty
+  seconds put it right.
+- Not on the window yet: the drive picker and what is in the drive, and
+  the version link.
+- Next: the recorder, which needs a real machine with a drive; packaging
+  (AppImage and tarball); and a GNOME desktop to look at.
 - The Linux VM is `DiscWright-Linux`, Ubuntu 26.04 with KDE, .NET SDK in
   `~/.dotnet`. Send `app/` to it with tar over `dwlinux.sh` and run the suite
   there before every pull request.

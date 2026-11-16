@@ -117,9 +117,18 @@ public sealed record DiscProject(
 /// off for years and without it the menu sits in a folder nobody opens. Asked
 /// for as an option on 2026-11-10 by somebody testing v1 (discwright#181).
 /// </param>
+/// <param name="LinuxNameAndIcon">
+/// Whether the disc also introduces itself to a Linux desktop: its name in
+/// <c>.xdg-volume-info</c> and its icon as a PNG, neither of which Windows
+/// reads. The PowerShell app had this and the C# one dropped it; it came back
+/// on 2026-11-15, when there was a Linux DiscWright to ask for it. Off here,
+/// because that is what every disc the C# app has made was. The Linux window
+/// starts a new disc with it on, through <c>TheMachine</c>.
+/// </param>
 public sealed record DiscOptions(
     bool Menu = true,
     bool Checksums = true,
     bool LegacyFileSystems = false,
     bool CutFiles = false,
-    bool StartHere = true);
+    bool StartHere = true,
+    bool LinuxNameAndIcon = false);
